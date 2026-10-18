@@ -32,6 +32,12 @@ const App = {
       navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
+    // Direct modal trigger if query param ?modal=receipt or hash #receipt is present
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('modal') === 'receipt' || window.location.hash.includes('receipt')) {
+      setTimeout(() => this.testReceiptPrintModal(), 300);
+    }
+
     console.log('☕ DIALOG COFFEE Cashier (Monochrome Edition) initialized.');
   },
 
@@ -409,6 +415,53 @@ const App = {
       hour: '2-digit',
       minute: '2-digit'
     });
+  },
+
+  getSampleReceiptTransaction() {
+    const settings = StorageManager.getSettings();
+    return {
+      id: 'POS-DEMO-001',
+      date: new Date().toISOString(),
+      type: 'income',
+      category: 'Penjualan Kasir',
+      amount: 40000,
+      subtotal: 40000,
+      tax: settings.taxEnabled ? Math.round((40000 * (settings.taxRate || 10)) / 100) : 0,
+      cashTendered: 50000,
+      change: 10000,
+      paymentMethod: 'Tunai',
+      shift: settings.activeShift || 'Shift 1',
+      baristas: `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`,
+      cashier: settings.activeCashier || 'Ardi',
+      description: 'Penjualan Kasir (DIALOG COFFEE x1, CARAMEL REGAL x1)',
+      refNo: 'POS-DEMO-001',
+      items: [
+        { name: 'DIALOG COFFEE', qty: 1, price: 20000, subtotal: 20000 },
+        { name: 'CARAMEL REGAL', qty: 1, price: 20000, subtotal: 20000 }
+      ]
+    };
+  },
+
+  testReceiptPrintModal() {
+    const trx = this.getSampleReceiptTransaction();
+    if (window.POSModule) {
+      POSModule.showReceiptModal(trx);
+    }
+  },
+
+  testReceiptPrint() {
+    const trx = this.getSampleReceiptTransaction();
+    if (window.POSModule) {
+      POSModule.showReceiptModal(trx);
+      POSModule.printReceipt();
+    }
+  },
+
+  testReceiptPDF() {
+    const trx = this.getSampleReceiptTransaction();
+    if (window.PDFExporter) {
+      PDFExporter.exportReceiptPDF(trx);
+    }
   }
 };
 

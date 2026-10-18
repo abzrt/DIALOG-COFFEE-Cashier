@@ -159,6 +159,7 @@
       <span class="preview-badge">LIVE PREVIEW HARMONIZATION</span>
     </div>
     <div class="preview-toggles">
+      <button class="preview-btn" onclick="openReceiptDemo()" style="background: #3f3f46; color: #ffffff;">🧾 Preview Struk (Cetak / PDF)</button>
       <button class="preview-btn active" onclick="setMode('both')">📱 + 📱 Keduanya</button>
       <button class="preview-btn" onclick="setMode('phone')">📱 HP (412x870)</button>
       <button class="preview-btn" onclick="setMode('tablet')">📱 Tablet (820x870)</button>
@@ -172,7 +173,7 @@
       <div class="phone-frame">
         <div class="phone-speaker"></div>
         <div class="phone-camera"></div>
-        <iframe src="index.html" class="phone-screen" id="phoneIframe"></iframe>
+        <iframe src="index.html" class="phone-screen" id="phoneIframe" onload="if(window.location.hash.includes('receipt')) setTimeout(() => { try { this.contentWindow.App.testReceiptPrintModal(); } catch(e){} }, 400);"></iframe>
       </div>
     </div>
 
@@ -180,14 +181,18 @@
     <div class="device-container" id="tabletContainer">
       <div class="device-label">📱 Tablet POS Kasir (820px Dual-Pane)</div>
       <div class="tablet-frame">
-        <iframe src="index.html" class="tablet-screen" id="tabletIframe"></iframe>
+        <iframe src="index.html" class="tablet-screen" id="tabletIframe" onload="if(window.location.hash.includes('receipt')) setTimeout(() => { try { this.contentWindow.App.testReceiptPrintModal(); } catch(e){} }, 400);"></iframe>
       </div>
     </div>
   </main>
 
   <script>
     function setMode(mode) {
-      document.querySelectorAll('.preview-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.preview-btn').forEach(b => {
+        if (b.innerText.includes('Keduanya') || b.innerText.includes('HP (') || b.innerText.includes('Tablet (')) {
+          b.classList.remove('active');
+        }
+      });
       event.target.classList.add('active');
 
       const phone = document.getElementById('phoneContainer');
@@ -204,6 +209,26 @@
         tablet.style.display = 'flex';
       }
     }
+
+    function openReceiptDemo() {
+      const phoneIframe = document.getElementById('phoneIframe');
+      const tabletIframe = document.getElementById('tabletIframe');
+      [phoneIframe, tabletIframe].forEach(iframe => {
+        if (iframe && iframe.contentWindow && iframe.contentWindow.App) {
+          iframe.contentWindow.App.testReceiptPrintModal();
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('modal') === 'receipt' || window.location.hash.includes('receipt')) {
+        const phone = document.getElementById('phoneIframe');
+        const tablet = document.getElementById('tabletIframe');
+        if (phone) phone.src = 'index.html?modal=receipt';
+        if (tablet) tablet.src = 'index.html?modal=receipt';
+      }
+    });
   </script>
 </body>
 </html>

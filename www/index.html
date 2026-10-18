@@ -466,6 +466,33 @@
             </form>
           </div>
 
+          <!-- Printer & Struk Kasir Settings -->
+          <div class="settings-card">
+            <h3><span>🖨️</span> <span>Printer &amp; Struk Kasir</span></h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Pengaturan pencetakan struk transaksi kasir. Kompatibel dengan printer thermal POS 80mm/58mm (Bluetooth, USB, WiFi, Network) serta opsi simpan struk format PDF jika printer belum terhubung.
+            </p>
+
+            <div style="background: var(--bg-surface); padding: 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px; margin-top: 6px;">
+              <div style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+                💡 Cara Kerja Pencetakan:
+              </div>
+              <ul style="font-size: 0.78rem; color: var(--text-secondary); padding-left: 18px; line-height: 1.5; margin: 0;">
+                <li><strong>Dengan Printer Fisik:</strong> Klik tombol <em>Cetak Printer</em> pada struk untuk mencetak langsung ke printer kasir yang terpasang.</li>
+                <li><strong>Tanpa Printer (Simpan PDF):</strong> Klik tombol <em>Simpan PDF</em> pada struk untuk mengunduh struk digital resmi ke memori perangkat.</li>
+              </ul>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+              <button type="button" class="btn-primary-action btn-closing" style="flex: 1; justify-content: center;" onclick="App.testReceiptPrint()" title="Uji pencetakan struk ke printer">
+                <span>🖨️</span> Uji Cetak Printer
+              </button>
+              <button type="button" class="btn-primary-action btn-pdf-action" style="flex: 1; justify-content: center;" onclick="App.testReceiptPDF()" title="Uji simpan struk ke PDF">
+                <span>📥</span> Uji Simpan PDF
+              </button>
+            </div>
+          </div>
+
           <!-- Data Backup & Reset -->
           <div class="settings-card">
             <h3><span>🛡️</span> <span data-i18n="backupTitle">Manajemen Cadangan Data &amp; Pemulihan</span></h3>
@@ -598,26 +625,35 @@
        MODAL 2: STRUK PEMBAYARAN THERMAL
        =================================================================== -->
   <div id="receiptModal" class="modal-backdrop">
-    <div class="modal-card" style="max-width: 400px;">
+    <div class="modal-card" style="max-width: 420px;">
       <div class="modal-header">
         <h3><span>🧾</span> <span data-i18n="receiptTitle">Struk Pembayaran</span></h3>
         <button class="btn-close-modal" onclick="POSModule.closeReceiptModal()">✕</button>
       </div>
       <div class="modal-body" style="padding: 14px;">
+        <!-- Banner Opsi Cetak Printer vs Simpan PDF -->
+        <div class="receipt-print-banner">
+          <div class="banner-icon">💡</div>
+          <div>
+            <strong style="display: block; margin-bottom: 2px;">Pilihan Pencetakan Struk:</strong>
+            <span>Gunakan <strong>Cetak Printer</strong> jika terhubung printer struk, atau <strong>Simpan PDF</strong> untuk menyimpan struk digital jika tanpa printer.</span>
+          </div>
+        </div>
+
         <div id="receiptContent">
           <!-- Injected via pos.js -->
         </div>
       </div>
-      <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+      <div class="modal-footer receipt-modal-footer">
         <button class="btn-primary-action btn-wa" onclick="POSModule.sendCurrentReceiptWA()" title="Kirim Struk ke WA Owner (085334101996)">
-          <span>📲</span> Kirim WA Owner
+          <span>📲</span> WA Owner
         </button>
-        <div style="display: flex; gap: 6px;">
-          <button class="btn-primary-action" style="background: var(--bg-surface); border: 1.5px solid var(--border-color);" onclick="POSModule.downloadReceiptPDF()">
-            <span>📄</span> PDF
+        <div class="receipt-actions-group">
+          <button class="btn-primary-action btn-pdf-action" onclick="POSModule.downloadReceiptPDF()" title="Simpan sebagai berkas PDF (Bisa digunakan tanpa printer)">
+            <span>📥</span> Simpan PDF
           </button>
-          <button class="btn-primary-action btn-closing" onclick="POSModule.printReceipt()">
-            <span>🖨️</span> Cetak
+          <button class="btn-primary-action btn-print-action" onclick="POSModule.printReceipt()" title="Cetak struk ke printer thermal / bluetooth">
+            <span>🖨️</span> Cetak Printer
           </button>
         </div>
       </div>

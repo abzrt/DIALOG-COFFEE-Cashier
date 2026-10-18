@@ -353,7 +353,13 @@ const POSModule = {
     const receiptContainer = document.getElementById('receiptContent');
     if (!modal || !receiptContainer) return;
 
-    this.lastCheckoutTransaction = trx;
+    if (trx) {
+      this.lastCheckoutTransaction = trx;
+    } else {
+      trx = this.lastCheckoutTransaction;
+    }
+    if (!trx) return;
+
     const settings = StorageManager.getSettings();
 
     let itemsHtml = '';
@@ -379,7 +385,7 @@ const POSModule = {
     receiptContainer.innerHTML = `
       <div class="receipt-paper">
         <div class="receipt-header-center">
-          <img src="assets/dialog_logo.jpg" style="width: 50px; height: 50px; object-fit: contain; margin-bottom: 4px;">
+          <img src="assets/dialog_logo.jpg" alt="Logo" style="width: 48px; height: 48px; object-fit: contain; margin-bottom: 4px; border-radius: 4px;">
           <h4>${settings.cafeName}</h4>
           <div style="font-size: 10px; color: #333;">${settings.tagline}</div>
           <div style="font-size: 9px; color: #555; margin-top: 2px;">${settings.address}</div>
@@ -390,8 +396,8 @@ const POSModule = {
 
         <div class="receipt-row"><span>No. Nota:</span><span style="font-weight: 800;">${trx.id}</span></div>
         <div class="receipt-row"><span>Waktu   :</span><span>${App.formatDateTime(trx.date)}</span></div>
-        <div class="receipt-row"><span>Shift   :</span><span>${trx.shift || settings.activeShift}</span></div>
-        <div class="receipt-row"><span>Barista :</span><span>${trx.baristas || `${settings.activeBarista1} & ${settings.activeBarista2}`}</span></div>
+        <div class="receipt-row"><span>Shift   :</span><span>${trx.shift || settings.activeShift || 'Shift 1'}</span></div>
+        <div class="receipt-row"><span>Barista :</span><span>${trx.baristas || `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`}</span></div>
         <div class="receipt-row"><span>Metode  :</span><span>${trx.paymentMethod || 'Tunai'}</span></div>
 
         <div class="receipt-divider"></div>
@@ -416,7 +422,7 @@ const POSModule = {
         <div class="receipt-divider"></div>
 
         <div class="receipt-footer-text">
-          ${(settings.receiptFooter || '').replace(/\n/g, '<br>')}
+          ${(settings.receiptFooter || 'Terima Kasih Atas Kunjungan Anda\nFollow IG: @dialogcoffee').replace(/\n/g, '<br>')}
         </div>
       </div>
     `;
@@ -430,12 +436,33 @@ const POSModule = {
   },
 
   printReceipt() {
-    window.print();
+    if (!this.lastCheckoutTransaction) {
+      App.showToast('Tidak ada data transaksi untuk dicetak', 'warning');
+      return;
+    }
+
+    try {
+      App.showToast('Membuka dialog pencetakan printer...', 'info', 2500);
+      window.print();
+
+      // Panduan jika printer fisik belum terhubung
+      setTimeout(() => {
+        App.showToast('💡 Belum ada printer terhubung? Klik tombol "Simpan PDF" untuk menyimpan struk digital.', 'info', 5000);
+      }, 1500);
+    } catch (err) {
+      console.warn('Gagal memicu pencetakan:', err);
+      App.showToast('Printer fisik tidak terdeteksi. Mengalihkan ke unduhan PDF...', 'warning', 3500);
+      this.downloadReceiptPDF();
+    }
   },
 
   downloadReceiptPDF() {
-    if (!this.lastCheckoutTransaction) return;
+    if (!this.lastCheckoutTransaction) {
+      App.showToast('Tidak ada data transaksi untuk disimpan', 'warning');
+      return;
+    }
     PDFExporter.exportReceiptPDF(this.lastCheckoutTransaction);
+    App.playBeep(880, 0.08);
   },
 
   sendCurrentReceiptWA() {

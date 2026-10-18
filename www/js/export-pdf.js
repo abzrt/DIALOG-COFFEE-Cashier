@@ -352,79 +352,151 @@ const PDFExporter = {
 
   /**
    * Export individual transaction receipt to printable PDF
+   * Supports thermal roll format (80mm width) with dynamic height based on item count.
+   * If user has no physical printer, this generates an exact digital replica of the receipt.
    */
   async exportReceiptPDF(trx, settings) {
     const { jsPDF } = window.jspdf || {};
-    if (!jsPDF) return;
+    if (!jsPDF) {
+      alert('Pustaka jsPDF belum termuat. Harap periksa koneksi atau berkas libs.');
+      return;
+    }
 
-    // Mini thermal receipt format 80mm width, dynamic height
+    const set = settings || StorageManager.getSettings();
+    const items = trx.items || [];
+    const itemCount = items.length > 0 ? items.length : 1;
+    const footerLines = (set.receiptFooter || 'Terima Kasih Atas Kunjungan Anda\nFollow IG: @dialogcoffee').split('\n').filter(Boolean);
+
+    // Calculate dynamic receipt height in mm:
+    // Header & Meta: ~55mm, Items: ~9mm per item, Totals/Pay: ~36mm, Footer: ~5mm per line + 15mm padding
+    const dynamicHeight = Math.max(130, 55 + (itemCount * 9) + 36 + (footerLines.length * 5) + 15);
+
     const doc = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: [80, 150]
+      format: [80, dynamicHeight]
     });
 
-    const set = settings || StorageManager.getSettings();
-
+    // 1. BRAND HEADER
     doc.setFont('courier', 'bold');
-    doc.setFontSize(12);
-    doc.text(set.cafeName, 40, 10, { align: 'center' });
+    doc.setFontSize(13);
+    doc.setTextColor(0, 0, 0);
+    doc.text((set.cafeName || 'DIALOG COFFEE').toUpperCase(), 40, 10, { align: 'center' });
 
     doc.setFont('courier', 'normal');
+    doc.setFontSize(7.5);
+    doc.text(set.tagline || 'Authentic Artisan Coffee & Roastery', 40, 14.5, { align: 'center' });
+
+    // Address (wrap text if long)
+    const addressLines = doc.splitTextToSize(set.address || 'Jl. Melati No. 45, Jakarta Selatan', 70);
+    doc.text(addressLines, 40, 18.5, { align: 'center' });
+    let curY = 18.5 + (addressLines.length * 3.5);
+
     doc.setFontSize(7);
-    doc.text(set.tagline, 40, 14, { align: 'center' });
-    doc.text(set.address, 40, 18, { align: 'center', maxWidth: 70 });
-    doc.text(`Telp: ${set.phone}`, 40, 23, { align: 'center' });
+    doc.text(`WA Owner: ${set.ownerPhone || '085334101996'}`, 40, curY, { align: 'center' });
+    curY += 3.5;
 
+    // Dashed divider line
     doc.setLineDashPattern([1, 1], 0);
-    doc.line(5, 26, 75, 26);
+    doc.setDrawColor(0, 0, 0);
+    doc.line(5, curY, 75, curY);
+    curY += 4.5;
 
-    doc.text(`No. Nota : ${trx.id}`, 6, 30);
-    doc.text(`Waktu    : ${PDFExporter.formatDateTime(trx.date)}`, 6, 34);
-    doc.text(`Kasir    : ${trx.cashier || set.activeCashier}`, 6, 38);
-    doc.text(`Metode   : ${trx.paymentMethod || 'Tunai'}`, 6, 42);
+    // 2. TRANSACTION METADATA
+    doc.setFont('courier', 'normal');
+    doc.setFontSize(7.5);
+    doc.text(`No. Nota : ${trx.id}`, 6, curY); curY += 4;
+    doc.text(`Waktu    : ${PDFExporter.formatDateTime(trx.date)}`, 6, curY); curY += 4;
+    doc.text(`Shift    : ${trx.shift || set.activeShift || 'Shift 1'}`, 6, curY); curY += 4;
+    doc.text(`Barista  : ${trx.baristas || `${set.activeBarista1 || 'Ardi'} & ${set.activeBarista2 || 'Anca'}`}`, 6, curY); curY += 4;
+    doc.text(`Metode   : ${trx.paymentMethod || 'Tunai'}`, 6, curY); curY += 4;
 
-    doc.line(5, 45, 75, 45);
+    doc.line(5, curY, 75, curY);
+    curY += 4.5;
 
-    let curY = 49;
-    if (trx.items && trx.items.length > 0) {
-      trx.items.forEach(it => {
+    // 3. PURCHASED ITEMS
+    if (items.length > 0) {
+      items.forEach(it => {
         doc.setFont('courier', 'bold');
+        doc.setFontSize(8);
         doc.text(`${it.name}`, 6, curY);
-        curY += 3.5;
+        curY += 3.8;
+
         doc.setFont('courier', 'normal');
-        doc.text(`${it.qty} x ${PDFExporter.formatRupiah(it.price)}`, 10, curY);
+        doc.setFontSize(7.5);
+        const itemLine = `${it.qty} x ${PDFExporter.formatRupiah(it.price)}`;
+        doc.text(itemLine, 9, curY);
         doc.text(PDFExporter.formatRupiah(it.subtotal || it.qty * it.price), 74, curY, { align: 'right' });
         curY += 4.5;
       });
     } else {
-      doc.text(trx.description || trx.category, 6, curY);
+      doc.setFont('courier', 'bold');
+      doc.setFontSize(8);
+      doc.text(trx.description || trx.category || 'Penjualan Kasir', 6, curY);
+      curY += 4;
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
       doc.text(PDFExporter.formatRupiah(trx.amount), 74, curY, { align: 'right' });
       curY += 5;
     }
 
     doc.line(5, curY, 75, curY);
-    curY += 4;
+    curY += 4.5;
 
+    // 4. SUBTOTAL & TAX (PB1) & TOTAL
+    if (trx.subtotal) {
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Subtotal:', 6, curY);
+      doc.text(PDFExporter.formatRupiah(trx.subtotal), 74, curY, { align: 'right' });
+      curY += 4;
+    }
+
+    if (trx.tax) {
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Pajak PB1 (10%):', 6, curY);
+      doc.text(PDFExporter.formatRupiah(trx.tax), 74, curY, { align: 'right' });
+      curY += 4;
+    }
+
+    // GRAND TOTAL
     doc.setFont('courier', 'bold');
-    doc.setFontSize(9);
-    doc.text('TOTAL AKHIR:', 6, curY);
+    doc.setFontSize(9.5);
+    doc.text('TOTAL:', 6, curY);
     doc.text(PDFExporter.formatRupiah(trx.amount), 74, curY, { align: 'right' });
-    curY += 6;
+    curY += 5.5;
+
+    // CASH TENDERED & CHANGE
+    if (trx.paymentMethod === 'Tunai' || trx.cashTendered) {
+      doc.setFont('courier', 'normal');
+      doc.setFontSize(7.5);
+      doc.text('Tunai:', 6, curY);
+      doc.text(PDFExporter.formatRupiah(trx.cashTendered || trx.amount), 74, curY, { align: 'right' });
+      curY += 4;
+
+      doc.text('Kembalian:', 6, curY);
+      doc.text(PDFExporter.formatRupiah(trx.change || 0), 74, curY, { align: 'right' });
+      curY += 4.5;
+    }
 
     doc.line(5, curY, 75, curY);
     curY += 5;
 
+    // 5. FOOTER
     doc.setFont('courier', 'normal');
-    doc.setFontSize(6.5);
-    const footerLines = set.receiptFooter.split('\n');
+    doc.setFontSize(7);
     footerLines.forEach(line => {
       doc.text(line, 40, curY, { align: 'center' });
-      curY += 3.5;
+      curY += 3.8;
     });
 
-    const filename = `Struk_${trx.id}.pdf`;
+    const filename = `Struk_DIALOG_COFFEE_${trx.id}.pdf`;
     doc.save(filename);
+
+    if (window.App && App.showToast) {
+      App.showToast(`Struk ${trx.id} berhasil disimpan sebagai file PDF!`, 'success', 3500);
+    }
     return filename;
   }
 };

@@ -1,6 +1,6 @@
 $chrome = "C:\Program Files\Google\Chrome\Application\chrome.exe"
 $baseDir = "C:\Users\user\.gemini\antigravity-ide\scratch\DIALOG-COFFEE-Cashier"
-$artifactDir = "C:\Users\user\.gemini\antigravity-ide\brain\a85dbb76-4dc3-4b0f-ad9a-93f616e1a3f2"
+$artifactDir = "C:\Users\user\.gemini\antigravity-ide\brain\70b3043b-4b95-4724-ac5d-e078078253c5"
 
 # 1. Capture Both Phone and Tablet side by side
 $outBoth = Join-Path $baseDir "preview_kasir_devices.png"
@@ -53,4 +53,23 @@ if (Test-Path $outTablet) {
     Write-Host "Captured Tablet: $outTablet"
 }
 
+# 4. Capture Receipt Modal (Cetak Struk & Simpan PDF)
+$outStruk = Join-Path $baseDir "preview_struk_devices.png"
+$artStruk = Join-Path $artifactDir "preview_struk_devices.png"
+$argsStruk = @(
+    "--headless",
+    "--disable-gpu",
+    "--no-sandbox",
+    "--virtual-time-budget=4000",
+    "--screenshot=$outStruk",
+    "--window-size=1400,980",
+    "http://127.0.0.1:3000/preview.html#receipt"
+)
+Start-Process -FilePath $chrome -ArgumentList $argsStruk -Wait
+if (Test-Path $outStruk) {
+    Copy-Item $outStruk $artStruk -Force
+    Write-Host "Captured Struk Preview: $outStruk"
+}
+
 Write-Host "All preview screenshots generated successfully!"
+
