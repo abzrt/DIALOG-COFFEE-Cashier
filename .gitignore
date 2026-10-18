@@ -6,3 +6,6 @@ android/build/
 android/.gradle/
 *.log
 test_output.docx
+*.apk
+local.properties
+android/local.properties
