@@ -1,6 +1,7 @@
 /**
  * DIALOG COFFEE Cashier - Core Application Controller
- * Manages navigation, audio effects, settings form, backup/restore, and UI initialization.
+ * Manages monochrome theme toggle, language switcher, 2-shift 2-barista modal,
+ * audio chime effects, and settings management.
  */
 
 const App = {
@@ -9,41 +10,136 @@ const App = {
   soundEnabled: true,
 
   init() {
+    this.initTheme();
     this.initAudio();
     this.initClock();
     this.bindNavigation();
+    this.loadShiftHeader();
     this.loadSettingsForm();
     this.bindSettingsEvents();
+
+    // Inisialisasi i18n
+    if (window.I18N) I18N.init();
 
     // Inisialisasi Modul-Modul
     if (window.POSModule) POSModule.init();
     if (window.FinanceModule) FinanceModule.init();
     if (window.ReportsModule) ReportsModule.init();
 
-    // Daftarkan Service Worker jika didukung
+    // Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(err => {
-        console.log('SW registration note:', err);
-      });
+      navigator.serviceWorker.register('sw.js').catch(() => {});
     }
 
-    console.log('☕ DIALOG COFFEE Cashier initialized successfully.');
+    console.log('☕ DIALOG COFFEE Cashier (Monochrome Edition) initialized.');
   },
 
-  // Audio Synthesizer (Zero-dependency Web Audio API)
+  // THEME MANAGEMENT (MONOCHROME LIGHT / DARK)
+  initTheme() {
+    const s = StorageManager.getSettings();
+    const savedTheme = s.theme || localStorage.getItem('dialog_coffee_theme') || 'light';
+    this.setTheme(savedTheme);
+  },
+
+  setTheme(theme) {
+    if (theme === 'dark') {
+      document.body.classList.add('dark-theme');
+    } else {
+      document.body.classList.remove('dark-theme');
+    }
+    localStorage.setItem('dialog_coffee_theme', theme);
+    const btn = document.getElementById('themeToggleBtn');
+    if (btn) {
+      btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      btn.title = theme === 'dark' ? 'Ganti ke Tema Putih' : 'Ganti ke Tema Gelap';
+    }
+  },
+
+  toggleTheme() {
+    const isDark = document.body.classList.contains('dark-theme');
+    const newTheme = isDark ? 'light' : 'dark';
+    this.setTheme(newTheme);
+    const s = StorageManager.getSettings();
+    s.theme = newTheme;
+    StorageManager.saveSettings(s);
+
+    if (window.ReportsModule && ReportsModule.renderAll) {
+      ReportsModule.renderAll();
+    }
+    this.showToast(newTheme === 'dark' ? 'Tema Hitam Diaktifkan' : 'Tema Putih Diaktifkan', 'info');
+  },
+
+  // SHIFT & BARISTA MODAL (1 SHIFT = 2 BARISTA)
+  loadShiftHeader() {
+    const s = StorageManager.getSettings();
+    const shiftChip = document.getElementById('topShiftDisplay');
+    if (shiftChip) {
+      shiftChip.textContent = `${s.activeShift || 'Shift 1'}: ${s.activeBarista1 || 'Ardi'} & ${s.activeBarista2 || 'Anca'}`;
+    }
+  },
+
+  openShiftModal() {
+    const modal = document.getElementById('shiftModal');
+    if (!modal) return;
+
+    const s = StorageManager.getSettings();
+    const baristas = s.baristas || ['Ardi', 'Anca', 'Jhonson', 'Si Pur'];
+
+    // Set Shift Radio
+    const shiftSelect = document.getElementById('shiftSelectInput');
+    if (shiftSelect) shiftSelect.value = s.activeShift || 'Shift 1';
+
+    // Populate Barista 1
+    const b1Select = document.getElementById('barista1Select');
+    if (b1Select) {
+      b1Select.innerHTML = baristas.map(b => 
+        `<option value="${b}" ${b === s.activeBarista1 ? 'selected' : ''}>${b}</option>`
+      ).join('');
+    }
+
+    // Populate Barista 2
+    const b2Select = document.getElementById('barista2Select');
+    if (b2Select) {
+      b2Select.innerHTML = baristas.map(b => 
+        `<option value="${b}" ${b === s.activeBarista2 ? 'selected' : ''}>${b}</option>`
+      ).join('');
+    }
+
+    modal.classList.add('active');
+  },
+
+  closeShiftModal() {
+    const modal = document.getElementById('shiftModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  saveShiftConfig() {
+    const shift = document.getElementById('shiftSelectInput').value;
+    const b1 = document.getElementById('barista1Select').value;
+    const b2 = document.getElementById('barista2Select').value;
+
+    if (b1 === b2) {
+      alert('Peringatan: Barista 1 dan Barista 2 sebaiknya adalah 2 orang berbeda.');
+    }
+
+    StorageManager.updateShift(shift, b1, b2);
+    this.loadShiftHeader();
+    this.closeShiftModal();
+
+    this.playBeep(660, 0.08);
+    this.showToast(`Shift aktif diperbarui: ${shift} (${b1} & ${b2})`, 'success');
+  },
+
+  // Audio Synthesizer
   initAudio() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      this.audioCtx = new AudioContext();
-    }
+    if (AudioContext) this.audioCtx = new AudioContext();
   },
 
   playBeep(freq = 440, duration = 0.05, type = 'sine') {
     if (!this.soundEnabled || !this.audioCtx) return;
     try {
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
-      }
+      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
       const osc = this.audioCtx.createOscillator();
       const gain = this.audioCtx.createGain();
       osc.type = type;
@@ -54,17 +150,13 @@ const App = {
       gain.connect(this.audioCtx.destination);
       osc.start();
       osc.stop(this.audioCtx.currentTime + duration);
-    } catch (e) {
-      // Audio not permitted yet
-    }
+    } catch (e) {}
   },
 
   playChime() {
     if (!this.soundEnabled || !this.audioCtx) return;
     try {
-      if (this.audioCtx.state === 'suspended') {
-        this.audioCtx.resume();
-      }
+      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
       const now = this.audioCtx.currentTime;
       [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
         const osc = this.audioCtx.createOscillator();
@@ -83,20 +175,17 @@ const App = {
   toggleSound() {
     this.soundEnabled = !this.soundEnabled;
     const btn = document.getElementById('soundToggleBtn');
-    if (btn) {
-      btn.textContent = this.soundEnabled ? '🔔' : '🔕';
-      btn.title = this.soundEnabled ? 'Suara Aktif' : 'Suara Dimatikan';
-    }
-    this.showToast(this.soundEnabled ? 'Efek audio diaktifkan' : 'Efek audio dimatikan', 'info');
+    if (btn) btn.textContent = this.soundEnabled ? '🔔' : '🔕';
+    this.showToast(this.soundEnabled ? 'Suara Diaktifkan' : 'Suara Dimatikan', 'info');
   },
 
-  // Real-time Clock
+  // Clock
   initClock() {
     const clockEl = document.getElementById('topClockDisplay');
     const update = () => {
       if (!clockEl) return;
       const now = new Date();
-      clockEl.textContent = now.toLocaleDateString('id-ID', {
+      clockEl.textContent = now.toLocaleDateString(I18N.currentLang === 'id' ? 'id-ID' : 'en-US', {
         weekday: 'short',
         day: 'numeric',
         month: 'short',
@@ -113,7 +202,7 @@ const App = {
   bindNavigation() {
     const navButtons = document.querySelectorAll('[data-target-tab]');
     navButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const target = btn.getAttribute('data-target-tab');
         this.switchTab(target);
       });
@@ -124,7 +213,6 @@ const App = {
     this.activeTab = tabId;
     this.playBeep(520, 0.03);
 
-    // Update Top & Bottom Nav Active State
     document.querySelectorAll('[data-target-tab]').forEach(btn => {
       if (btn.getAttribute('data-target-tab') === tabId) {
         btn.classList.add('active');
@@ -133,7 +221,6 @@ const App = {
       }
     });
 
-    // Update Views
     document.querySelectorAll('.view-section').forEach(sec => {
       if (sec.id === `view-${tabId}`) {
         sec.classList.add('active');
@@ -142,7 +229,6 @@ const App = {
       }
     });
 
-    // Refresh data per view
     if (tabId === 'pos' && window.POSModule) {
       POSModule.renderMenu();
     } else if (tabId === 'finance' && window.FinanceModule) {
@@ -156,7 +242,7 @@ const App = {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
-  // Toast Notification
+  // Toast
   showToast(message, type = 'info') {
     let container = document.getElementById('toastContainer');
     if (!container) {
@@ -192,15 +278,12 @@ const App = {
     setVal('cfgTagline', s.tagline);
     setVal('cfgAddress', s.address);
     setVal('cfgPhone', s.phone);
-    setVal('cfgActiveCashier', s.activeCashier);
+    setVal('cfgOwnerPhone', s.ownerPhone || '085334101996');
     setVal('cfgTaxRate', s.taxRate);
     setVal('cfgReceiptFooter', s.receiptFooter);
 
     const taxCheck = document.getElementById('cfgTaxEnabled');
     if (taxCheck) taxCheck.checked = !!s.taxEnabled;
-
-    const shiftDisplay = document.getElementById('topShiftCashier');
-    if (shiftDisplay) shiftDisplay.textContent = s.activeCashier;
   },
 
   bindSettingsEvents() {
@@ -209,11 +292,12 @@ const App = {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const updated = {
+          ...StorageManager.getSettings(),
           cafeName: document.getElementById('cfgCafeName').value.trim() || 'DIALOG COFFEE',
           tagline: document.getElementById('cfgTagline').value.trim(),
           address: document.getElementById('cfgAddress').value.trim(),
           phone: document.getElementById('cfgPhone').value.trim(),
-          activeCashier: document.getElementById('cfgActiveCashier').value.trim() || 'Kasir On Duty',
+          ownerPhone: document.getElementById('cfgOwnerPhone').value.trim() || '085334101996',
           taxRate: Number(document.getElementById('cfgTaxRate').value) || 0,
           taxEnabled: document.getElementById('cfgTaxEnabled').checked,
           receiptFooter: document.getElementById('cfgReceiptFooter').value
@@ -223,11 +307,10 @@ const App = {
         this.loadSettingsForm();
         if (window.POSModule) POSModule.renderCart();
         App.playBeep(660, 0.08);
-        this.showToast('Pengaturan toko berhasil diperbarui!', 'success');
+        this.showToast('Pengaturan cafe dan nomor WhatsApp berhasil disimpan!', 'success');
       });
     }
 
-    // Backup JSON download
     const backupBtn = document.getElementById('btnDownloadBackup');
     if (backupBtn) {
       backupBtn.addEventListener('click', () => {
@@ -242,7 +325,6 @@ const App = {
       });
     }
 
-    // Restore JSON upload
     const restoreInput = document.getElementById('restoreFileInput');
     if (restoreInput) {
       restoreInput.addEventListener('change', (e) => {
@@ -253,7 +335,7 @@ const App = {
         reader.onload = (event) => {
           const res = StorageManager.importBackupJSON(event.target.result);
           if (res.success) {
-            alert(`Berhasil memulihkan ${res.count} transaksi dari berkas cadangan!`);
+            alert(`Berhasil memulihkan ${res.count} transaksi dari cadangan!`);
             location.reload();
           } else {
             alert('Gagal memulihkan cadangan: ' + res.error);
@@ -263,11 +345,10 @@ const App = {
       });
     }
 
-    // Reset Demo Data
     const resetBtn = document.getElementById('btnResetDemoData');
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
-        if (confirm('Kembalikan semua data ke sampel demo awal DIALOG COFFEE?')) {
+        if (confirm('Kembalikan semua menu dan transaksi ke data awal DIALOG COFFEE?')) {
           StorageManager.resetAllData();
           location.reload();
         }
@@ -275,7 +356,6 @@ const App = {
     }
   },
 
-  // Helpers
   formatRupiah(num) {
     return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
   },
@@ -283,7 +363,7 @@ const App = {
   formatDateTime(iso) {
     if (!iso) return '-';
     const d = new Date(iso);
-    return d.toLocaleDateString('id-ID', {
+    return d.toLocaleDateString(I18N.currentLang === 'id' ? 'id-ID' : 'en-US', {
       day: '2-digit',
       month: 'short',
       year: 'numeric',

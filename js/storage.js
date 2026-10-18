@@ -1,249 +1,198 @@
 /**
  * DIALOG COFFEE Cashier - Data Storage & Persistence Module
- * Manages LocalStorage, initial seed data, transactions, and settings.
+ * Updated with exact customer menu, 2-shift 2-barista structure, owner WhatsApp configuration.
  */
 
 const STORAGE_KEYS = {
-  TRANSACTIONS: 'dialog_coffee_transactions_v1',
-  MENU: 'dialog_coffee_menu_v1',
-  SETTINGS: 'dialog_coffee_settings_v1'
+  TRANSACTIONS: 'dialog_coffee_transactions_v2',
+  MENU: 'dialog_coffee_menu_v2',
+  SETTINGS: 'dialog_coffee_settings_v2',
+  CLOSINGS: 'dialog_coffee_closings_v2'
 };
 
-// Menu default coffee shop
+// 1. MENU EXACT DIALOG COFFEE SESUAI PERMINTAAN USER
 const DEFAULT_MENU = [
-  // Signature Coffee
-  { id: 'sig-1', name: 'Kopi Susu Dialog Aren', category: 'signature', price: 24000, desc: 'Espresso blend, fresh milk, sirup aren organik khas Dialog', badge: 'Terlaris', icon: '☕' },
-  { id: 'sig-2', name: 'Caramel Velvet Macchiato', category: 'signature', price: 32000, desc: 'Layered espresso, vanilla foam, drizzle salted caramel', badge: 'Favorit', icon: '🍮' },
-  { id: 'sig-3', name: 'Pistachio Cream Latte', category: 'signature', price: 35000, desc: 'Espresso arabica dengan saus pistachio asli dan foam lembut', badge: 'Baru', icon: '🥜' },
-  { id: 'sig-4', name: 'Cold Brew Vanilla Cloud', category: 'signature', price: 28000, desc: 'Cold brew 16 jam dengan topping sweet cream vanilla float', badge: 'Segar', icon: '🧊' },
+  // NON-COFFEE
+  { id: 'nc-1', name: 'BISCOFF', category: 'non-coffee', price: 22000, desc: 'Lotus Biscoff creamy blend dengan remahan biskuit karamel', badge: 'Favorit', icon: '🍪' },
+  { id: 'nc-2', name: 'CARAMEL REGAL', category: 'non-coffee', price: 20000, desc: 'Fresh milk berpadu saus karamel lezat dan biskuit Marie Regal', badge: 'Terlaris', icon: '🥛' },
+  { id: 'nc-3', name: 'COKLAT', category: 'non-coffee', price: 18000, desc: 'Dark chocolate pekat premium dengan susu segar gurih manis pas', badge: '', icon: '🍫' },
+  { id: 'nc-4', name: 'THAITEA', category: 'non-coffee', price: 15000, desc: 'Teh Thailand asli aromatik dipadu susu kental manis segar', badge: 'Segar', icon: '🧋' },
+  { id: 'nc-5', name: 'GREENTEA', category: 'non-coffee', price: 15000, desc: 'Matcha green tea lembut menyegarkan kaya antioksidan', badge: '', icon: '🍵' },
 
-  // Espresso Bar
-  { id: 'esp-1', name: 'Espresso Double Shot', category: 'espresso', price: 18000, desc: 'Ekstraksi murni 100% Arabica House Blend Dialog', badge: '', icon: '☕' },
-  { id: 'esp-2', name: 'Americano / Long Black', category: 'espresso', price: 22000, desc: 'Double espresso dengan air mineral panas atau es dingin', badge: 'Klasik', icon: '☕' },
-  { id: 'esp-3', name: 'Caffe Latte', category: 'espresso', price: 28000, desc: 'Espresso halus berpadu microfoam susu creamy', badge: '', icon: '🥛' },
-  { id: 'esp-4', name: 'Cappuccino', category: 'espresso', price: 28000, desc: 'Rasio seimbang espresso, steamed milk, dan foam tebal bertabur cocoa', badge: '', icon: '☕' },
-  { id: 'esp-5', name: 'Flat White', category: 'espresso', price: 30000, desc: 'Double ristretto dengan velvety microfoam khas Australia', badge: '', icon: '☕' },
+  // SIGNATURE DRINKS
+  { id: 'sig-1', name: 'DIALOG COFFEE', category: 'signature', price: 20000, desc: 'Signature house blend espresso, susu segar creamy & gula aren spesial Dialog', badge: 'Signature Utama', icon: '☕' },
+  { id: 'sig-2', name: 'COFFEE SECRET', category: 'signature', price: 20000, desc: 'Kombinasi rahasia racikan barista Dialog dengan aroma misterius & manis', badge: 'Secret Recipe', icon: '✨' },
+  { id: 'sig-3', name: 'COFFEE MITOS', category: 'signature', price: 20000, desc: 'Sentuhan kopi pekat dengan aftertaste butterscotch yang melegenda', badge: 'Favorit', icon: '☕' },
+  { id: 'sig-4', name: 'AMERICANO', category: 'signature', price: 18000, desc: 'Double shot espresso arabica murni dengan air mineral dingin / panas', badge: 'Klasik', icon: '☕' },
 
-  // Non-Coffee
-  { id: 'non-1', name: 'Uji Matcha Latte', category: 'non-coffee', price: 32000, desc: 'Matcha grade artisanal Kyoto dengan steamed fresh milk', badge: 'Favorit', icon: '🍵' },
-  { id: 'non-2', name: 'Belgian Dark Chocolate', category: 'non-coffee', price: 30000, desc: 'Cokelat Belgia 70% kaya rasa dan manis pas', badge: '', icon: '🍫' },
-  { id: 'non-3', name: 'Red Velvet Silk', category: 'non-coffee', price: 29000, desc: 'Kombinasi red velvet, vanilla, dan kelembutan susu', badge: '', icon: '🍰' },
-  { id: 'non-4', name: 'Earl Grey Milk Tea', category: 'non-coffee', price: 26000, desc: 'Teh hitam bergamot aromatik dipadukan susu creamy', badge: '', icon: '🧋' },
-
-  // Manual Brew
-  { id: 'man-1', name: 'V60 Gayo Winey Honey', category: 'manual-brew', price: 32000, desc: 'Notes berry, floral jasmine, medium body yang bersih', badge: 'Single Origin', icon: '🫖' },
-  { id: 'man-2', name: 'Japanese Drip Flores Bajawa', category: 'manual-brew', price: 34000, desc: 'Diseduh langsung di atas es batu dengan aroma cokelat nutty', badge: '', icon: '🧊' },
-
-  // Pastry & Snacks
-  { id: 'pas-1', name: 'Butter Croissant French Style', category: 'pastry', price: 25000, desc: 'Pastry renyah berlapis dengan aroma butter New Zealand', badge: 'Fresh Oven', icon: '🥐' },
-  { id: 'pas-2', name: 'Almond Pain au Chocolat', category: 'pastry', price: 32000, desc: 'Croissant cokelat dengan taburan almond panggang renyah', badge: '', icon: '🥐' },
-  { id: 'pas-3', name: 'Dialog Truffle Fries', category: 'pastry', price: 28000, desc: 'Kentang goreng renyah bumbu truffle oil dan parmesan herb', badge: 'Snack', icon: '🍟' }
+  // COFFEE & FLAVOR
+  { id: 'flv-1', name: 'AMERICANO', category: 'coffee-flavor', price: 18000, desc: 'Espresso blend klasik dengan notes nutty dan clean finish', badge: '', icon: '☕' },
+  { id: 'flv-2', name: 'LEMSKUY', category: 'coffee-flavor', price: 18000, desc: 'Espresso mocktail dipadu lemon segar menyegarkan hari', badge: 'Fresh', icon: '🍋' },
+  { id: 'flv-3', name: 'CARAMEL MACHIATO', category: 'coffee-flavor', price: 18000, desc: 'Layered espresso dengan vanilla foam dan saus karamel manis', badge: 'Favorit', icon: '🍮' },
+  { id: 'flv-4', name: 'VANILLA', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu beraroma vanila madagascar lembut dan wangi', badge: '', icon: '🍦' },
+  { id: 'flv-5', name: 'CARAMEL', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu berpadu sirup karamel bakar kental gurih', badge: '', icon: '🍯' },
+  { id: 'flv-6', name: 'BUTTERSHCOOT', category: 'coffee-flavor', price: 18000, desc: 'Perpaduan brown sugar, mentega panggang, dan espresso lembut', badge: 'Best Pick', icon: '🧈' },
+  { id: 'flv-7', name: 'TIRAMISU', category: 'coffee-flavor', price: 18000, desc: 'Sensasi rasa cake tiramisu Italia berpadu microfoam susu', badge: '', icon: '🍰' },
+  { id: 'flv-8', name: 'HAZELNUT', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu kaya aroma kacang hazelnut panggang aromatik', badge: '', icon: '🌰' },
+  { id: 'flv-9', name: 'PANDAN', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu khas nusantara dengan wangi pandan alami yang legit', badge: 'Khas', icon: '🍃' }
 ];
 
-// Profil dan Pengaturan Toko
+// Profil dan Pengaturan Toko (Owner WhatsApp: 085334101996, Barista & Shift)
 const DEFAULT_SETTINGS = {
   cafeName: 'DIALOG COFFEE',
   tagline: 'Great Coffee, Honest Conversations',
   address: 'Jl. Senopati No. 42, Kebayoran Baru, Jakarta Selatan',
-  phone: '0812-3456-7890',
+  phone: '0853-3410-1996',
+  ownerPhone: '085334101996',
   instagram: '@dialogcoffee.id',
   taxRate: 10,
   taxEnabled: true,
   currency: 'IDR',
-  activeCashier: 'Aldi Pratama (Barista)',
+  language: 'id',
+  theme: 'light', // 'light' or 'dark' (Monochrome Black & White)
+  
+  // Daftar 4 Barista Resmi
+  baristas: ['Ardi', 'Anca', 'Jhonson', 'Si Pur'],
+  
+  // Shift Aktif Saat Ini (1 Shift = 2 Orang Barista)
+  activeShift: 'Shift 1',
+  activeBarista1: 'Ardi',
+  activeBarista2: 'Anca',
+  activeCashier: 'Shift 1 (Ardi & Anca)',
+
   receiptFooter: 'Terima kasih atas kunjungannya!\nNikmati setiap tetes kopi dan percakapan hangat.\nTag kami di IG @dialogcoffee.id'
 };
 
-// Data Transaksi Contoh (Realistis untuk cafe)
+// Data Transaksi Sampel Realistis
 function generateSampleTransactions() {
   const now = new Date();
   const todayStr = now.toISOString().split('T')[0];
-  
   const d1 = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-  const d2 = new Date(now.getTime() - 48 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   return [
-    // Kemarin Lusa
-    {
-      id: 'TRX-10101',
-      date: `${d2}T08:00:00`,
-      type: 'income',
-      category: 'Modal Awal Kasir',
-      amount: 500000,
-      paymentMethod: 'Tunai',
-      cashier: 'Aldi Pratama',
-      description: 'Modal receh kasir pembukaan toko (Opening Float)',
-      refNo: 'FLOAT-01',
-      items: []
-    },
-    {
-      id: 'TRX-10102',
-      date: `${d2}T10:15:00`,
-      type: 'expense',
-      category: 'Bahan Baku',
-      amount: 450000,
-      paymentMethod: 'Rekening Operasional',
-      cashier: 'Rian (Store Manager)',
-      description: 'Beli 3kg Biji Kopi House Blend Arabica & Robusta',
-      refNo: 'INV-ROAST-88',
-      items: []
-    },
-    {
-      id: 'TRX-10103',
-      date: `${d2}T14:30:00`,
-      type: 'income',
-      category: 'Penjualan Kasir',
-      amount: 148000,
-      paymentMethod: 'QRIS',
-      cashier: 'Aldi Pratama',
-      description: 'Pesanan meja 03 (3x Kopi Susu Dialog, 2x Butter Croissant)',
-      refNo: 'POS-26101',
-      items: [
-        { name: 'Kopi Susu Dialog Aren', qty: 3, price: 24000, subtotal: 72000 },
-        { name: 'Butter Croissant French Style', qty: 2, price: 25000, subtotal: 50000 }
-      ]
-    },
-
     // Kemarin
     {
-      id: 'TRX-10104',
-      date: `${d1}T09:00:00`,
-      type: 'expense',
-      category: 'Bahan Baku',
-      amount: 320000,
-      paymentMethod: 'Petty Cash',
-      cashier: 'Aldi Pratama',
-      description: 'Restock Fresh Milk Greenfields 1 Karton (12 Liter) & Sirup Aren',
-      refNo: 'NOTA-MILK-12',
-      items: []
-    },
-    {
-      id: 'TRX-10105',
-      date: `${d1}T11:45:00`,
+      id: 'POS-261017-01',
+      date: `${d1}T09:15:00`,
       type: 'income',
       category: 'Penjualan Kasir',
-      amount: 98000,
-      paymentMethod: 'Tunai',
-      cashier: 'Aldi Pratama',
-      description: 'Pesanan Takeaway (1x Pistachio Cream, 1x V60 Gayo, 1x Truffle Fries)',
-      refNo: 'POS-26102',
+      amount: 62000,
+      paymentMethod: 'QRIS',
+      shift: 'Shift 1',
+      cashier: 'Shift 1 (Ardi & Anca)',
+      description: 'Penjualan Kasir (DIALOG COFFEE x2, BISCOFF x1)',
+      refNo: 'POS-01',
       items: [
-        { name: 'Pistachio Cream Latte', qty: 1, price: 35000, subtotal: 35000 },
-        { name: 'V60 Gayo Winey Honey', qty: 1, price: 32000, subtotal: 32000 },
-        { name: 'Dialog Truffle Fries', qty: 1, price: 28000, subtotal: 28000 }
+        { name: 'DIALOG COFFEE', qty: 2, price: 20000, subtotal: 40000 },
+        { name: 'BISCOFF', qty: 1, price: 22000, subtotal: 22000 }
       ]
     },
     {
-      id: 'TRX-10106',
-      date: `${d1}T15:20:00`,
+      id: 'TRX-10201',
+      date: `${d1}T11:00:00`,
       type: 'expense',
-      category: 'Operasional',
-      amount: 250000,
-      paymentMethod: 'Rekening Operasional',
-      cashier: 'Rian (Store Manager)',
-      description: 'Token Listrik PLN Cafe dan Langganan Internet WiFi Biznet',
-      refNo: 'PLN-9921',
+      category: 'Bahan Baku',
+      amount: 180000,
+      paymentMethod: 'Petty Cash',
+      shift: 'Shift 1',
+      cashier: 'Ardi',
+      description: 'Beli Fresh Milk 6 Liter & Biskuit Marie Regal 4 Bungkus',
+      refNo: 'NOTA-REG-01',
       items: []
     },
     {
-      id: 'TRX-10107',
-      date: `${d1}T19:30:00`,
+      id: 'POS-261017-02',
+      date: `${d1}T17:30:00`,
       type: 'income',
       category: 'Penjualan Kasir',
-      amount: 215000,
-      paymentMethod: 'Transfer Bank',
-      cashier: 'Aldi Pratama',
-      description: 'Pesanan Komunitas Kopi (5x Americano, 2x Caramel Velvet, 2x Croissant)',
-      refNo: 'POS-26103',
+      amount: 76000,
+      paymentMethod: 'Tunai',
+      shift: 'Shift 2',
+      cashier: 'Shift 2 (Jhonson & Si Pur)',
+      description: 'Penjualan Kasir (CARAMEL MACHIATO x2, COKLAT x2)',
+      refNo: 'POS-02',
       items: [
-        { name: 'Americano / Long Black', qty: 5, price: 22000, subtotal: 110000 },
-        { name: 'Caramel Velvet Macchiato', qty: 2, price: 32000, subtotal: 64000 },
-        { name: 'Butter Croissant French Style', qty: 2, price: 25000, subtotal: 50000 }
+        { name: 'CARAMEL MACHIATO', qty: 2, price: 18000, subtotal: 36000 },
+        { name: 'COKLAT', qty: 2, price: 18000, subtotal: 36000 }
       ]
     },
 
     // Hari Ini
     {
-      id: 'TRX-10108',
-      date: `${todayStr}T08:30:00`,
+      id: 'TRX-10202',
+      date: `${todayStr}T08:00:00`,
       type: 'income',
       category: 'Modal Awal Kasir',
-      amount: 500000,
+      amount: 300000,
       paymentMethod: 'Tunai',
-      cashier: 'Aldi Pratama',
-      description: 'Kas awal laci kasir hari ini (Opening Cash Drawer)',
-      refNo: 'FLOAT-TODAY',
+      shift: 'Shift 1',
+      cashier: 'Shift 1 (Ardi & Anca)',
+      description: 'Kas modal awal laci kasir Shift 1 (Opening Float)',
+      refNo: 'FLOAT-01',
       items: []
     },
     {
-      id: 'TRX-10109',
-      date: `${todayStr}T09:40:00`,
+      id: 'POS-261018-01',
+      date: `${todayStr}T09:30:00`,
       type: 'income',
       category: 'Penjualan Kasir',
-      amount: 82000,
+      amount: 60000,
       paymentMethod: 'QRIS',
-      cashier: 'Aldi Pratama',
-      description: 'Sarapan pagi (2x Kopi Susu Dialog Aren, 1x Almond Croissant)',
-      refNo: 'POS-26104',
+      shift: 'Shift 1',
+      cashier: 'Shift 1 (Ardi & Anca)',
+      description: 'Penjualan Kasir (DIALOG COFFEE x1, COFFEE SECRET x1, CARAMEL REGAL x1)',
+      refNo: 'POS-03',
       items: [
-        { name: 'Kopi Susu Dialog Aren', qty: 2, price: 24000, subtotal: 48000 },
-        { name: 'Almond Pain au Chocolat', qty: 1, price: 32000, subtotal: 32000 }
+        { name: 'DIALOG COFFEE', qty: 1, price: 20000, subtotal: 20000 },
+        { name: 'COFFEE SECRET', qty: 1, price: 20000, subtotal: 20000 },
+        { name: 'CARAMEL REGAL', qty: 1, price: 20000, subtotal: 20000 }
       ]
     },
     {
-      id: 'TRX-10110',
+      id: 'TRX-10203',
       date: `${todayStr}T11:15:00`,
       type: 'expense',
       category: 'Kemasan & Perlengkapan',
-      amount: 175000,
-      paymentMethod: 'Petty Cash',
-      cashier: 'Aldi Pratama',
-      description: 'Beli Cup Takeaway 16oz (200 pcs), Sedotan Oxo-Biodegradable, dan Tissue',
-      refNo: 'NOTA-CUP-44',
+      amount: 95000,
+      paymentMethod: 'Tunai',
+      shift: 'Shift 1',
+      cashier: 'Anca',
+      description: 'Restock Cup Takeaway 14oz (150 pcs) & Sedotan Kertas',
+      refNo: 'NOTA-CUP-18',
       items: []
     },
     {
-      id: 'TRX-10111',
-      date: `${todayStr}T13:00:00`,
+      id: 'POS-261018-02',
+      date: `${todayStr}T13:45:00`,
       type: 'income',
       category: 'Penjualan Kasir',
-      amount: 142000,
+      amount: 54000,
       paymentMethod: 'Tunai',
-      cashier: 'Aldi Pratama',
-      description: 'Makan siang & ngopi (2x Caffe Latte, 1x Cold Brew Vanilla, 2x Truffle Fries)',
-      refNo: 'POS-26105',
+      shift: 'Shift 1',
+      cashier: 'Shift 1 (Ardi & Anca)',
+      description: 'Penjualan Kasir (BUTTERSHCOOT x1, LEMSKUY x1, THAITEA x1)',
+      refNo: 'POS-04',
       items: [
-        { name: 'Caffe Latte', qty: 2, price: 28000, subtotal: 56000 },
-        { name: 'Cold Brew Vanilla Cloud', qty: 1, price: 28000, subtotal: 28000 },
-        { name: 'Dialog Truffle Fries', qty: 2, price: 28000, subtotal: 56000 }
+        { name: 'BUTTERSHCOOT', qty: 1, price: 18000, subtotal: 18000 },
+        { name: 'LEMSKUY', qty: 1, price: 18000, subtotal: 18000 },
+        { name: 'THAITEA', qty: 1, price: 15000, subtotal: 15000 }
       ]
     },
     {
-      id: 'TRX-10112',
-      date: `${todayStr}T14:45:00`,
-      type: 'expense',
-      category: 'Perawatan Alat',
-      amount: 120000,
-      paymentMethod: 'Tunai',
-      cashier: 'Aldi Pratama',
-      description: 'Bubuk Pembersih Backflush Mesin Espresso Cafiza & Water Filter Cartridge',
-      refNo: 'NOTA-SERV-09',
-      items: []
-    },
-    {
-      id: 'TRX-10113',
-      date: `${todayStr}T16:20:00`,
+      id: 'POS-261018-03',
+      date: `${todayStr}T16:30:00`,
       type: 'income',
       category: 'Penjualan Kasir',
-      amount: 126000,
+      amount: 58000,
       paymentMethod: 'QRIS',
-      cashier: 'Aldi Pratama',
-      description: 'Sore santai (2x Uji Matcha Latte, 1x Flat White, 1x Butter Croissant)',
-      refNo: 'POS-26106',
+      shift: 'Shift 2',
+      cashier: 'Shift 2 (Jhonson & Si Pur)',
+      description: 'Penjualan Kasir (COFFEE MITOS x1, BISCOFF x1, AMERICANO x1)',
+      refNo: 'POS-05',
       items: [
-        { name: 'Uji Matcha Latte', qty: 2, price: 32000, subtotal: 64000 },
-        { name: 'Flat White', qty: 1, price: 30000, subtotal: 30000 },
-        { name: 'Butter Croissant French Style', qty: 1, price: 25000, subtotal: 25000 }
+        { name: 'COFFEE MITOS', qty: 1, price: 20000, subtotal: 20000 },
+        { name: 'BISCOFF', qty: 1, price: 22000, subtotal: 22000 },
+        { name: 'AMERICANO', qty: 1, price: 18000, subtotal: 18000 }
       ]
     }
   ];
@@ -276,26 +225,24 @@ const StorageManager = {
 
   addTransaction(trx) {
     const list = this.getTransactions();
+    const settings = this.getSettings();
+
     if (!trx.id) {
       trx.id = 'TRX-' + Date.now().toString().slice(-6);
     }
     if (!trx.date) {
       trx.date = new Date().toISOString();
     }
+    if (!trx.shift) {
+      trx.shift = settings.activeShift || 'Shift 1';
+    }
+    if (!trx.cashier) {
+      trx.cashier = settings.activeCashier;
+    }
+
     list.unshift(trx);
     this.saveAllTransactions(list);
     return trx;
-  },
-
-  updateTransaction(id, updatedFields) {
-    const list = this.getTransactions();
-    const index = list.findIndex(t => t.id === id);
-    if (index !== -1) {
-      list[index] = { ...list[index], ...updatedFields };
-      this.saveAllTransactions(list);
-      return list[index];
-    }
-    return null;
   },
 
   deleteTransaction(id) {
@@ -329,35 +276,7 @@ const StorageManager = {
     }
   },
 
-  addMenuItem(item) {
-    const menu = this.getMenu();
-    if (!item.id) {
-      item.id = 'item-' + Date.now().toString().slice(-5);
-    }
-    menu.push(item);
-    this.saveMenu(menu);
-    return item;
-  },
-
-  updateMenuItem(id, updatedFields) {
-    const menu = this.getMenu();
-    const index = menu.findIndex(m => m.id === id);
-    if (index !== -1) {
-      menu[index] = { ...menu[index], ...updatedFields };
-      this.saveMenu(menu);
-      return menu[index];
-    }
-    return null;
-  },
-
-  deleteMenuItem(id) {
-    let menu = this.getMenu();
-    menu = menu.filter(m => m.id !== id);
-    this.saveMenu(menu);
-    return true;
-  },
-
-  // SETTINGS
+  // SETTINGS & SHIFT
   getSettings() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.SETTINGS);
@@ -380,15 +299,43 @@ const StorageManager = {
     }
   },
 
+  updateShift(shiftName, b1, b2) {
+    const s = this.getSettings();
+    s.activeShift = shiftName;
+    s.activeBarista1 = b1;
+    s.activeBarista2 = b2;
+    s.activeCashier = `${shiftName} (${b1} & ${b2})`;
+    this.saveSettings(s);
+    return s;
+  },
+
+  // CLOSINGS
+  getClosings() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.CLOSINGS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  },
+
+  saveClosing(closingData) {
+    const list = this.getClosings();
+    list.unshift(closingData);
+    localStorage.setItem(STORAGE_KEYS.CLOSINGS, JSON.stringify(list));
+    return closingData;
+  },
+
   // BACKUP & RESTORE
   exportFullBackupJSON() {
     const payload = {
       app: 'DIALOG COFFEE Cashier',
-      version: '1.0',
+      version: '2.0',
       exportedAt: new Date().toISOString(),
       settings: this.getSettings(),
       menu: this.getMenu(),
-      transactions: this.getTransactions()
+      transactions: this.getTransactions(),
+      closings: this.getClosings()
     };
     return JSON.stringify(payload, null, 2);
   },
@@ -397,11 +344,12 @@ const StorageManager = {
     try {
       const parsed = JSON.parse(jsonString);
       if (!parsed.transactions || !Array.isArray(parsed.transactions)) {
-        throw new Error('Format berkas cadangan tidak valid (transaksi tidak ditemukan)');
+        throw new Error('Format berkas cadangan tidak valid');
       }
       if (parsed.settings) this.saveSettings(parsed.settings);
       if (parsed.menu && Array.isArray(parsed.menu)) this.saveMenu(parsed.menu);
       this.saveAllTransactions(parsed.transactions);
+      if (parsed.closings) localStorage.setItem(STORAGE_KEYS.CLOSINGS, JSON.stringify(parsed.closings));
       return { success: true, count: parsed.transactions.length };
     } catch (err) {
       return { success: false, error: err.message };
@@ -413,6 +361,7 @@ const StorageManager = {
     this.saveAllTransactions(sample);
     this.saveMenu(DEFAULT_MENU);
     this.saveSettings(DEFAULT_SETTINGS);
+    localStorage.removeItem(STORAGE_KEYS.CLOSINGS);
     return true;
   }
 };

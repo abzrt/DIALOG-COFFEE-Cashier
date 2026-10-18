@@ -72,23 +72,23 @@ const PDFExporter = {
 
     const netProfit = totalIncome - totalExpense;
 
-    // Palette Warna Brand Dialog Coffee
-    const primaryColor = [56, 34, 15]; // Dark espresso (#38220f)
-    const accentColor = [197, 155, 109]; // Warm gold bronze (#c59b6d)
-    const grayBg = [248, 246, 244];
-    const textDark = [35, 30, 26];
-    const textMuted = [110, 100, 95];
-    const greenColor = [34, 197, 94];
-    const redColor = [239, 68, 68];
+    // Palette Warna Brand Dialog Coffee (Black & White Minimalist)
+    const primaryColor = [18, 18, 20]; // Sleek Jet Black (#121214)
+    const accentColor = [50, 50, 55]; // Charcoal accent
+    const grayBg = [245, 245, 247];
+    const textDark = [20, 20, 22];
+    const textMuted = [100, 100, 105];
+    const greenColor = [21, 128, 61];
+    const redColor = [185, 28, 28];
 
     // 1. KOP SURAT & BRAND HEADER
     // Background banner header
     doc.setFillColor(...primaryColor);
     doc.rect(0, 0, 210, 38, 'F');
 
-    // Accent line gold
+    // Accent line
     doc.setFillColor(...accentColor);
-    doc.rect(0, 38, 210, 2.5, 'F');
+    doc.rect(0, 38, 210, 2, 'F');
 
     // Header Text
     doc.setTextColor(255, 255, 255);
@@ -97,22 +97,23 @@ const PDFExporter = {
     doc.text(settings.cafeName.toUpperCase(), 14, 16);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9.5);
-    doc.setTextColor(230, 215, 195);
+    doc.setFontSize(9);
+    doc.setTextColor(220, 220, 220);
     doc.text(settings.tagline, 14, 23);
-    doc.text(`${settings.address} | Telp: ${settings.phone}`, 14, 29);
+    doc.text(`${settings.address} | WA Owner: ${settings.ownerPhone || '085334101996'}`, 14, 29);
 
     // Document Title Badge (Right Side)
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(255, 215, 0);
+    doc.setFontSize(13);
+    doc.setTextColor(255, 255, 255);
     doc.text('LAPORAN KASIR & KEUANGAN', 196, 17, { align: 'right' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
-    doc.setTextColor(240, 240, 240);
+    doc.setFontSize(8.5);
+    doc.setTextColor(200, 200, 200);
     doc.text(`Dicetak: ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 196, 24, { align: 'right' });
-    doc.text(`Kasir / Operator: ${cashierName}`, 196, 30, { align: 'right' });
+    doc.text(`Petugas: ${cashierName}`, 196, 30, { align: 'right' });
+
 
     // 2. METADATA & PERIODE BANNER
     let curY = 46;

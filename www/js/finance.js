@@ -1,6 +1,7 @@
 /**
  * DIALOG COFFEE Cashier - Finance & Bookkeeping Module
- * Manages detailed recording of income and expenses, cash flow balance, and transaction history.
+ * Updated for detailed income/expense recording, 2-shift 2-barista attribution,
+ * WhatsApp notifications, and Daily Closing Shift summary to owner.
  */
 
 const FinanceModule = {
@@ -95,7 +96,8 @@ const FinanceModule = {
     const categories = new Set();
     all.forEach(t => { if (t.category) categories.add(t.category); });
 
-    let opts = '<option value="all">Semua Kategori</option>';
+    const isId = I18N.currentLang === 'id';
+    let opts = `<option value="all">${isId ? 'Semua Kategori' : 'All Categories'}</option>`;
     categories.forEach(cat => {
       opts += `<option value="${cat}">${cat}</option>`;
     });
@@ -105,13 +107,9 @@ const FinanceModule = {
   getFilteredTransactions() {
     const all = StorageManager.getTransactions();
     return all.filter(t => {
-      // Type filter
       if (this.currentFilterType !== 'all' && t.type !== this.currentFilterType) return false;
-
-      // Category filter
       if (this.currentCategory !== 'all' && t.category !== this.currentCategory) return false;
 
-      // Search query
       if (this.searchQuery) {
         const query = this.searchQuery;
         const matchId = (t.id || '').toLowerCase().includes(query);
@@ -119,7 +117,8 @@ const FinanceModule = {
         const matchCat = (t.category || '').toLowerCase().includes(query);
         const matchRef = (t.refNo || '').toLowerCase().includes(query);
         const matchCashier = (t.cashier || '').toLowerCase().includes(query);
-        if (!matchId && !matchDesc && !matchCat && !matchRef && !matchCashier) return false;
+        const matchShift = (t.shift || '').toLowerCase().includes(query);
+        if (!matchId && !matchDesc && !matchCat && !matchRef && !matchCashier && !matchShift) return false;
       }
 
       return true;
@@ -132,14 +131,15 @@ const FinanceModule = {
     if (!tbody) return;
 
     const filtered = this.getFilteredTransactions();
-    if (countEl) countEl.textContent = `${filtered.length} Transaksi Tercatat`;
+    const isId = I18N.currentLang === 'id';
+    if (countEl) countEl.textContent = `${filtered.length} ${isId ? 'Transaksi Tercatat' : 'Transactions Recorded'}`;
 
     if (filtered.length === 0) {
       tbody.innerHTML = `
         <tr>
           <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
             <div style="font-size: 2.2rem; margin-bottom: 8px;">📑</div>
-            <p>Tidak ada transaksi yang cocok dengan kriteria pencarian/filter.</p>
+            <p>${isId ? 'Tidak ada transaksi yang cocok.' : 'No matching transactions.'}</p>
           </td>
         </tr>
       `;
@@ -149,14 +149,14 @@ const FinanceModule = {
     tbody.innerHTML = filtered.map((t, idx) => {
       const isIncome = t.type === 'income';
       const itemsDetail = t.items && t.items.length > 0
-        ? `<div style="font-size: 0.72rem; color: var(--accent-gold-light); margin-top: 2px;">Items: ${t.items.map(i => `${i.name} (x${i.qty})`).join(', ')}</div>`
+        ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;">Items: ${t.items.map(i => `${i.name} (x${i.qty})`).join(', ')}</div>`
         : '';
 
       return `
         <tr>
           <td style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted);">${idx + 1}</td>
           <td>
-            <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);">${App.formatDateTime(t.date)}</div>
+            <div style="font-weight: 700; font-size: 0.8rem; color: var(--text-primary);">${App.formatDateTime(t.date)}</div>
             <div style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-muted);">${t.id} ${t.refNo ? `• Ref: ${t.refNo}` : ''}</div>
           </td>
           <td>
@@ -165,16 +165,17 @@ const FinanceModule = {
             </span>
           </td>
           <td>
-            <span style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);">${t.category || '-'}</span>
+            <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-primary);">${t.category || '-'}</div>
+            <div style="font-size: 0.7rem; color: var(--text-muted);">${t.shift || 'Shift 1'} • ${t.cashier || 'Barista'}</div>
           </td>
           <td>
-            <div style="max-width: 260px; line-height: 1.3;">
+            <div style="max-width: 250px; line-height: 1.3;">
               <span style="color: var(--text-secondary);">${t.description || '-'}</span>
               ${itemsDetail}
             </div>
           </td>
           <td>
-            <span style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 4px; font-size: 0.75rem;">
+            <span style="background: var(--bg-surface); border: 1px solid var(--border-color); padding: 3px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600;">
               ${t.paymentMethod || 'Tunai'}
             </span>
           </td>
@@ -185,6 +186,9 @@ const FinanceModule = {
           </td>
           <td>
             <div class="action-row-btns">
+              <button class="btn-table-action" title="Kirim Info ke WA Owner" onclick="FinanceModule.sendTransactionWA('${t.id}')">
+                📲
+              </button>
               ${t.items && t.items.length > 0 ? `
                 <button class="btn-table-action" title="Lihat Struk" onclick="POSModule.showReceiptModal(StorageManager.getTransactions().find(x => x.id === '${t.id}'))">
                   🧾
@@ -200,18 +204,31 @@ const FinanceModule = {
     }).join('');
   },
 
+  sendTransactionWA(id) {
+    const all = StorageManager.getTransactions();
+    const trx = all.find(x => x.id === id);
+    if (!trx) return;
+
+    if (trx.type === 'income') {
+      WhatsAppNotifier.notifyIncome(trx);
+    } else {
+      WhatsAppNotifier.notifyExpense(trx);
+    }
+    App.showToast('Membuka WhatsApp untuk mengirim rincian transaksi', 'info');
+  },
+
   deleteEntry(id) {
-    if (!confirm(`Hapus transaksi dengan ID ${id}? Tindakan ini akan memperbarui saldo dan riwayat.`)) return;
+    if (!confirm(`Hapus transaksi dengan ID ${id}? Tindakan ini akan memperbarui saldo.`)) return;
 
     const ok = StorageManager.deleteTransaction(id);
     if (ok) {
-      App.showToast(`Transaksi ${id} telah dihapus`, 'info');
+      App.showToast(`Transaksi ${id} dihapus`, 'info');
       this.renderAll();
       if (window.ReportsModule) window.ReportsModule.renderAll();
     }
   },
 
-  // MODAL RECORD INCOME / EXPENSE
+  // MODAL CATAT PEMASUKAN & PENGELUARAN
   openRecordModal(type = 'income') {
     const modal = document.getElementById('recordTransactionModal');
     if (!modal) return;
@@ -219,10 +236,9 @@ const FinanceModule = {
     this.setModalType(type);
 
     const now = new Date();
-    // Format YYYY-MM-DDTHH:MM for datetime-local
     const offset = now.getTimezoneOffset() * 60000;
     const localISOTime = (new Date(now - offset)).toISOString().slice(0, 16);
-    
+
     const dateInput = document.getElementById('trxModalDate');
     if (dateInput) dateInput.value = localISOTime;
 
@@ -237,7 +253,7 @@ const FinanceModule = {
 
     const settings = StorageManager.getSettings();
     const picInput = document.getElementById('trxModalPic');
-    if (picInput) picInput.value = settings.activeCashier;
+    if (picInput) picInput.value = `${settings.activeBarista1 || 'Ardi'} (${settings.activeShift || 'Shift 1'})`;
 
     modal.classList.add('active');
   },
@@ -260,9 +276,8 @@ const FinanceModule = {
         categorySelect.innerHTML = `
           <option value="Penjualan Kasir">Penjualan Kasir (POS)</option>
           <option value="Modal Awal Kasir">Modal Awal Kasir (Opening Float)</option>
-          <option value="Penjualan Biji Kopi">Penjualan Biji Kopi (Roasted Beans)</option>
-          <option value="Katering / Event Luar">Katering / Event Luar</option>
-          <option value="Merchandise / Tumbler">Merchandise / Tumbler / Alat Kopi</option>
+          <option value="Penjualan Biji Kopi">Penjualan Biji Kopi Sangrai (Beans)</option>
+          <option value="Katering / Event">Katering / Event Luar</option>
           <option value="Pemasukan Lainnya">Pemasukan Lainnya</option>
         `;
       }
@@ -272,13 +287,13 @@ const FinanceModule = {
 
       if (categorySelect) {
         categorySelect.innerHTML = `
-          <option value="Bahan Baku">Bahan Baku (Biji Kopi, Fresh Milk, Sirup, Powder)</option>
+          <option value="Bahan Baku">Bahan Baku (Biji Kopi, Fresh Milk, Sirup, Biskuit Regal/Biscoff)</option>
           <option value="Kemasan & Perlengkapan">Kemasan (Cup, Sedotan, Seal, Paper Bag)</option>
           <option value="Operasional">Operasional (Listrik PLN, Air, Gas, WiFi)</option>
-          <option value="Gaji & Uang Makan">Gaji Barista, Staff, & Uang Makan</option>
+          <option value="Gaji & Uang Makan">Gaji Barista & Uang Makan</option>
           <option value="Perawatan Alat">Perawatan & Servis Mesin Espresso / Grinder</option>
-          <option value="Kebersihan & Sanitasi">Perlengkapan Kebersihan & Sanitasi</option>
-          <option value="Pemasaran & Promo">Pemasaran, Iklan & Promo Cafe</option>
+          <option value="Kebersihan & Sanitasi">Perlengkapan Kebersihan</option>
+          <option value="Pemasaran & Promo">Pemasaran & Promo Cafe</option>
           <option value="Pengeluaran Lainnya">Pengeluaran Lain-lain</option>
         `;
       }
@@ -287,7 +302,7 @@ const FinanceModule = {
     this._modalActiveType = type;
   },
 
-  saveModalTransaction() {
+  saveModalTransaction(sendWhatsApp = false) {
     const type = this._modalActiveType || 'income';
     const category = document.getElementById('trxModalCategory').value;
     const amount = Number(document.getElementById('trxModalAmount').value || 0);
@@ -298,7 +313,7 @@ const FinanceModule = {
     const ref = document.getElementById('trxModalRef').value.trim();
 
     if (!amount || amount <= 0) {
-      alert('Harap masukkan nominal transaksi yang valid (lebih dari 0).');
+      alert('Harap masukkan nominal transaksi yang valid.');
       return;
     }
 
@@ -307,6 +322,8 @@ const FinanceModule = {
       return;
     }
 
+    const settings = StorageManager.getSettings();
+
     const newTrx = {
       id: 'TRX-' + Date.now().toString().slice(-6),
       date: dateVal ? new Date(dateVal).toISOString() : new Date().toISOString(),
@@ -314,7 +331,9 @@ const FinanceModule = {
       category: category,
       amount: amount,
       paymentMethod: method,
-      cashier: pic || 'Petugas',
+      shift: settings.activeShift || 'Shift 1',
+      baristas: `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`,
+      cashier: pic || settings.activeCashier,
       description: desc,
       refNo: ref || '-',
       items: []
@@ -325,8 +344,95 @@ const FinanceModule = {
     this.renderAll();
     if (window.ReportsModule) window.ReportsModule.renderAll();
 
-    App.playBeep(type === 'income' ? 700 : 350, 0.1);
+    // Kirim notifikasi WA ke owner jika diminta
+    if (sendWhatsApp) {
+      if (type === 'income') WhatsAppNotifier.notifyIncome(newTrx);
+      else WhatsAppNotifier.notifyExpense(newTrx);
+    }
+
+    App.playBeep(type === 'income' ? 700 : 350, 0.08);
     App.showToast(`Berhasil mencatat ${type === 'income' ? 'pemasukan' : 'pengeluaran'} ${App.formatRupiah(amount)}`, 'success');
+  },
+
+  // CLOSING SHIFT & REKAPAN HARIAN
+  openClosingModal() {
+    const modal = document.getElementById('closingShiftModal');
+    if (!modal) return;
+
+    const all = StorageManager.getTransactions();
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    // Filter transaksi hari ini
+    const todayTrx = all.filter(t => t.date && t.date.startsWith(todayStr));
+
+    let todayIncome = 0;
+    let todayExpense = 0;
+    let cashBalance = 0;
+    let incomeCount = 0;
+    let expenseCount = 0;
+    const todayExpensesList = [];
+
+    todayTrx.forEach(t => {
+      const amt = Number(t.amount || 0);
+      if (t.type === 'income') {
+        todayIncome += amt;
+        incomeCount++;
+        if (t.paymentMethod === 'Tunai' || !t.paymentMethod) cashBalance += amt;
+      } else {
+        todayExpense += amt;
+        expenseCount++;
+        todayExpensesList.push(t);
+        if (t.paymentMethod === 'Tunai' || t.paymentMethod === 'Petty Cash' || !t.paymentMethod) cashBalance -= amt;
+      }
+    });
+
+    const netProfit = todayIncome - todayExpense;
+    const settings = StorageManager.getSettings();
+
+    this._currentClosingSummary = {
+      date: now.toISOString(),
+      shift: settings.activeShift,
+      baristas: `${settings.activeBarista1} & ${settings.activeBarista2}`,
+      totalIncome: todayIncome,
+      totalExpense: todayExpense,
+      netProfit: netProfit,
+      cashBalance: cashBalance,
+      transactionCount: todayTrx.length,
+      incomeCount: incomeCount,
+      expenseCount: expenseCount,
+      expenses: todayExpensesList
+    };
+
+    // Render data di modal
+    document.getElementById('closingShiftDisplay').textContent = settings.activeShift;
+    document.getElementById('closingBaristaDisplay').textContent = `${settings.activeBarista1} & ${settings.activeBarista2}`;
+    document.getElementById('closingIncomeDisplay').textContent = App.formatRupiah(todayIncome);
+    document.getElementById('closingExpenseDisplay').textContent = App.formatRupiah(todayExpense);
+    
+    const profitEl = document.getElementById('closingProfitDisplay');
+    profitEl.textContent = (netProfit < 0 ? '-' : '+') + App.formatRupiah(Math.abs(netProfit));
+    profitEl.style.color = netProfit >= 0 ? 'var(--income-green)' : 'var(--expense-red)';
+
+    document.getElementById('closingCashDisplay').textContent = App.formatRupiah(cashBalance);
+    document.getElementById('closingCountDisplay').textContent = `${todayTrx.length} (${incomeCount} Masuk, ${expenseCount} Keluar)`;
+
+    modal.classList.add('active');
+  },
+
+  closeClosingModal() {
+    const modal = document.getElementById('closingShiftModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  sendClosingWA() {
+    if (!this._currentClosingSummary) return;
+
+    WhatsAppNotifier.notifyClosingShift(this._currentClosingSummary);
+    StorageManager.saveClosing(this._currentClosingSummary);
+
+    App.showToast('Rekapan closing harian dibuka di WhatsApp Owner!', 'success');
+    this.closeClosingModal();
   }
 };
 

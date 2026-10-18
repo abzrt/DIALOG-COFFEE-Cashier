@@ -1,13 +1,13 @@
 /**
  * DIALOG COFFEE Cashier - Point of Sale (POS) Module
- * Manages coffee menu catalog, search/filter, cart management, checkout, and receipt.
+ * Updated for exact menu categories (Non-Coffee, Signature Drinks, Coffee & Flavor),
+ * WhatsApp owner notification on checkout, and bilingual translations.
  */
 
 const POSModule = {
   activeCategory: 'all',
   searchQuery: '',
   cart: [],
-  discountPercent: 0,
   lastCheckoutTransaction: null,
 
   init() {
@@ -30,9 +30,9 @@ const POSModule = {
     if (clearCartBtn) {
       clearCartBtn.addEventListener('click', () => {
         if (this.cart.length === 0) return;
-        if (confirm('Kosongkan keranjang pesanan kasir?')) {
+        if (confirm(I18N.t('clearCart') + '?')) {
           this.clearCart();
-          App.showToast('Keranjang dikosongkan', 'info');
+          App.showToast(I18N.currentLang === 'id' ? 'Keranjang dikosongkan' : 'Cart emptied', 'info');
         }
       });
     }
@@ -49,13 +49,12 @@ const POSModule = {
     const container = document.getElementById('posCategories');
     if (!container) return;
 
+    const isId = I18N.currentLang === 'id';
     const categories = [
-      { id: 'all', label: '☕ Semua Menu' },
-      { id: 'signature', label: '⭐ Signature' },
-      { id: 'espresso', label: '☕ Espresso Bar' },
+      { id: 'all', label: isId ? '☕ Semua Menu' : '☕ All Items' },
       { id: 'non-coffee', label: '🍵 Non-Coffee' },
-      { id: 'manual-brew', label: '🫖 Manual Brew' },
-      { id: 'pastry', label: '🥐 Pastry & Snack' }
+      { id: 'signature', label: '⭐ Signature Drinks' },
+      { id: 'coffee-flavor', label: '☕ Coffee & Flavor' }
     ];
 
     container.innerHTML = categories.map(cat => `
@@ -70,7 +69,7 @@ const POSModule = {
     this.activeCategory = catId;
     this.renderCategories();
     this.renderMenu();
-    App.playBeep(440, 0.05);
+    App.playBeep(440, 0.04);
   },
 
   renderMenu() {
@@ -90,7 +89,7 @@ const POSModule = {
       container.innerHTML = `
         <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
           <div style="font-size: 2.5rem; margin-bottom: 8px;">🔍</div>
-          <p>Menu tidak ditemukan untuk kata kunci atau kategori ini.</p>
+          <p>${I18N.currentLang === 'id' ? 'Menu tidak ditemukan.' : 'No menu items found.'}</p>
         </div>
       `;
       return;
@@ -129,7 +128,7 @@ const POSModule = {
       });
     }
 
-    App.playBeep(660, 0.07);
+    App.playBeep(660, 0.05);
     this.renderCart();
   },
 
@@ -141,7 +140,7 @@ const POSModule = {
     if (item.qty <= 0) {
       this.cart = this.cart.filter(c => c.id !== itemId);
     }
-    App.playBeep(520, 0.04);
+    App.playBeep(520, 0.03);
     this.renderCart();
   },
 
@@ -173,8 +172,8 @@ const POSModule = {
       listContainer.innerHTML = `
         <div class="cart-empty-state">
           <div class="cart-empty-icon">☕</div>
-          <p>Keranjang masih kosong</p>
-          <span style="font-size: 0.75rem;">Pilih produk di menu untuk mulai pesanan</span>
+          <p style="font-weight: 700;">${I18N.t('emptyCartText')}</p>
+          <span style="font-size: 0.75rem;">${I18N.t('emptyCartSub')}</span>
         </div>
       `;
       if (subtotalEl) subtotalEl.textContent = 'Rp 0';
@@ -216,9 +215,7 @@ const POSModule = {
     if (totalDisplay) totalDisplay.textContent = App.formatRupiah(total);
 
     const cashInput = document.getElementById('payCashInput');
-    if (cashInput) {
-      cashInput.value = total;
-    }
+    if (cashInput) cashInput.value = total;
 
     this.updatePaymentChange();
 
@@ -242,7 +239,7 @@ const POSModule = {
       cashInput.value = amount;
     }
     this.updatePaymentChange();
-    App.playBeep(520, 0.04);
+    App.playBeep(520, 0.03);
   },
 
   updatePaymentChange() {
@@ -254,12 +251,7 @@ const POSModule = {
     const cashTendered = Number(cashInput ? cashInput.value : 0);
     const method = methodSelect ? methodSelect.value : 'Tunai';
 
-    let change = 0;
-    if (method === 'Tunai') {
-      change = cashTendered - total;
-    } else {
-      change = 0;
-    }
+    let change = (method === 'Tunai') ? (cashTendered - total) : 0;
 
     if (changeDisplay) {
       if (change < 0) {
@@ -272,7 +264,7 @@ const POSModule = {
     }
   },
 
-  processCheckout() {
+  processCheckout(sendWhatsApp = false) {
     const { subtotal, taxAmount, total } = this.calculateTotals();
     const cashInput = document.getElementById('payCashInput');
     const methodSelect = document.getElementById('payMethodSelect');
@@ -313,6 +305,8 @@ const POSModule = {
       cashTendered: method === 'Tunai' ? cashTendered : total,
       change: method === 'Tunai' ? (cashTendered - total) : 0,
       paymentMethod: method,
+      shift: settings.activeShift || 'Shift 1',
+      baristas: `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`,
       cashier: settings.activeCashier,
       description: notesInput && notesInput.value ? `${description} - ${notesInput.value}` : description,
       refNo: invoiceId,
@@ -326,14 +320,19 @@ const POSModule = {
     this.closePaymentModal();
     this.clearCart();
 
-    // Tampilkan Struk Otomatis
+    // Tampilkan Struk
     this.showReceiptModal(newTransaction);
 
-    // Refresh data Buku Kas & Laporan jika sedang aktif
+    // Kirim notifikasi WA ke owner jika diminta
+    if (sendWhatsApp && window.WhatsAppNotifier) {
+      WhatsAppNotifier.notifyIncome(newTransaction);
+    }
+
+    // Refresh data Buku Kas & Laporan
     if (window.FinanceModule) window.FinanceModule.renderAll();
     if (window.ReportsModule) window.ReportsModule.renderAll();
 
-    App.showToast(`Transaksi ${invoiceId} berhasil disimpan!`, 'success');
+    App.showToast(`Transaksi ${invoiceId} berhasil dicatat!`, 'success');
   },
 
   // RECEIPT MODAL
@@ -342,16 +341,17 @@ const POSModule = {
     const receiptContainer = document.getElementById('receiptContent');
     if (!modal || !receiptContainer) return;
 
+    this.lastCheckoutTransaction = trx;
     const settings = StorageManager.getSettings();
 
     let itemsHtml = '';
     if (trx.items && trx.items.length > 0) {
       itemsHtml = trx.items.map(it => `
         <div class="receipt-item-line">
-          <div style="font-weight: bold;">${it.name}</div>
+          <div style="font-weight: 800;">${it.name}</div>
           <div style="display: flex; justify-content: space-between;">
             <span>${it.qty} x ${App.formatRupiah(it.price)}</span>
-            <span>${App.formatRupiah(it.subtotal || it.qty * it.price)}</span>
+            <span style="font-weight: 700;">${App.formatRupiah(it.subtotal || it.qty * it.price)}</span>
           </div>
         </div>
       `).join('');
@@ -359,7 +359,7 @@ const POSModule = {
       itemsHtml = `
         <div class="receipt-item-line">
           <div>${trx.description || trx.category}</div>
-          <div style="text-align: right; font-weight: bold;">${App.formatRupiah(trx.amount)}</div>
+          <div style="text-align: right; font-weight: 800;">${App.formatRupiah(trx.amount)}</div>
         </div>
       `;
     }
@@ -367,17 +367,19 @@ const POSModule = {
     receiptContainer.innerHTML = `
       <div class="receipt-paper">
         <div class="receipt-header-center">
+          <img src="assets/dialog_logo.jpg" style="width: 50px; height: 50px; object-fit: contain; margin-bottom: 4px;">
           <h4>${settings.cafeName}</h4>
-          <div style="font-size: 10px; color: #555;">${settings.tagline}</div>
-          <div style="font-size: 9px; color: #666; margin-top: 2px;">${settings.address}</div>
-          <div style="font-size: 9px; color: #666;">Telp: ${settings.phone}</div>
+          <div style="font-size: 10px; color: #333;">${settings.tagline}</div>
+          <div style="font-size: 9px; color: #555; margin-top: 2px;">${settings.address}</div>
+          <div style="font-size: 9px; color: #555;">WA Owner: ${settings.ownerPhone || '085334101996'}</div>
         </div>
 
         <div class="receipt-divider"></div>
 
-        <div class="receipt-row"><span>No. Nota:</span><span style="font-weight: bold;">${trx.id}</span></div>
+        <div class="receipt-row"><span>No. Nota:</span><span style="font-weight: 800;">${trx.id}</span></div>
         <div class="receipt-row"><span>Waktu   :</span><span>${App.formatDateTime(trx.date)}</span></div>
-        <div class="receipt-row"><span>Kasir   :</span><span>${trx.cashier || settings.activeCashier}</span></div>
+        <div class="receipt-row"><span>Shift   :</span><span>${trx.shift || settings.activeShift}</span></div>
+        <div class="receipt-row"><span>Barista :</span><span>${trx.baristas || `${settings.activeBarista1} & ${settings.activeBarista2}`}</span></div>
         <div class="receipt-row"><span>Metode  :</span><span>${trx.paymentMethod || 'Tunai'}</span></div>
 
         <div class="receipt-divider"></div>
@@ -387,9 +389,9 @@ const POSModule = {
         <div class="receipt-divider"></div>
 
         ${trx.subtotal ? `<div class="receipt-row"><span>Subtotal:</span><span>${App.formatRupiah(trx.subtotal)}</span></div>` : ''}
-        ${trx.tax ? `<div class="receipt-row"><span>Pajak (PB1):</span><span>${App.formatRupiah(trx.tax)}</span></div>` : ''}
+        ${trx.tax ? `<div class="receipt-row"><span>Pajak (PB1 10%):</span><span>${App.formatRupiah(trx.tax)}</span></div>` : ''}
 
-        <div class="receipt-row" style="font-size: 13px; font-weight: 800; margin-top: 4px;">
+        <div class="receipt-row" style="font-size: 13px; font-weight: 900; margin-top: 4px;">
           <span>TOTAL:</span>
           <span>${App.formatRupiah(trx.amount)}</span>
         </div>
@@ -422,6 +424,11 @@ const POSModule = {
   downloadReceiptPDF() {
     if (!this.lastCheckoutTransaction) return;
     PDFExporter.exportReceiptPDF(this.lastCheckoutTransaction);
+  },
+
+  sendCurrentReceiptWA() {
+    if (!this.lastCheckoutTransaction) return;
+    WhatsAppNotifier.notifyIncome(this.lastCheckoutTransaction);
   }
 };
 

@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#120e0b">
-  <meta name="description" content="Aplikasi Kasir Android & Web DIALOG COFFEE untuk mencatat pemasukan dan pengeluaran secara detil dengan fitur ekspor Word & PDF">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="description" content="Aplikasi Kasir Android & Web DIALOG COFFEE untuk mencatat pemasukan dan pengeluaran secara detil dengan fitur ekspor Word & PDF serta notifikasi WhatsApp Owner">
   <title>DIALOG COFFEE - Kasir &amp; Pembukuan Keuangan</title>
 
   <!-- PWA & Android Icons -->
@@ -12,7 +12,7 @@
   <link rel="icon" type="image/jpeg" href="assets/dialog_logo.jpg">
   <link rel="apple-touch-icon" href="assets/dialog_logo.jpg">
 
-  <!-- Stylesheet -->
+  <!-- Stylesheet (Black & White Minimalist Design) -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -23,7 +23,7 @@
       <div class="brand-section">
         <img src="assets/dialog_logo.jpg" alt="DIALOG COFFEE" class="brand-logo-img">
         <div class="brand-info">
-          <h1>DIALOG COFFEE <span class="brand-badge">CASHIER</span></h1>
+          <h1>DIALOG COFFEE <span class="brand-badge" data-i18n="cashierBadge">CASHIER</span></h1>
           <p id="topClockDisplay">Memuat waktu...</p>
         </div>
       </div>
@@ -31,29 +31,43 @@
       <!-- Desktop & Tablet Navigation Tabs -->
       <nav class="nav-tabs">
         <button class="nav-tab-btn active" data-target-tab="pos">
-          <span>🛒</span> Kasir (POS)
+          <span>🛒</span> <span data-i18n="posTab">Kasir (POS)</span>
         </button>
         <button class="nav-tab-btn" data-target-tab="finance">
-          <span>💰</span> Buku Kas
+          <span>💰</span> <span data-i18n="financeTab">Buku Kas</span>
         </button>
         <button class="nav-tab-btn" data-target-tab="reports">
-          <span>📈</span> Laporan &amp; Grafik
+          <span>📈</span> <span data-i18n="reportsTab">Laporan &amp; Grafik</span>
         </button>
         <button class="nav-tab-btn" data-target-tab="export">
-          <span>📑</span> Ekspor Dokumen
+          <span>📑</span> <span data-i18n="exportTab">Ekspor Dokumen</span>
         </button>
         <button class="nav-tab-btn" data-target-tab="settings">
-          <span>⚙️</span> Pengaturan
+          <span>⚙️</span> <span data-i18n="settingsTab">Pengaturan</span>
         </button>
       </nav>
 
       <!-- Right Appbar Actions -->
       <div class="appbar-actions">
-        <div class="shift-chip" title="Shift Petugas Aktif">
+        <!-- Shift & Barista Chip (Click to configure) -->
+        <div class="shift-chip" onclick="App.openShiftModal()" title="Klik untuk mengatur Shift & Barista On Duty">
           <div class="status-dot"></div>
-          <span id="topShiftCashier">Aldi Pratama</span>
+          <span id="topShiftDisplay">Shift 1: Ardi &amp; Anca</span>
+          <span style="font-size: 0.7rem; color: var(--text-muted);">▼</span>
         </div>
-        <button class="icon-btn" id="soundToggleBtn" onclick="App.toggleSound()" title="Efek Suara Aktif">
+
+        <!-- Language Switcher (ID / EN) -->
+        <button class="icon-btn" id="langToggleBtn" onclick="I18N.toggleLanguage()" title="Ganti Bahasa / Switch Language">
+          🇮🇩 ID
+        </button>
+
+        <!-- Monochrome Theme Toggle (Black / White) -->
+        <button class="icon-btn" id="themeToggleBtn" onclick="App.toggleTheme()" title="Ganti Tema Putih / Hitam">
+          🌙
+        </button>
+
+        <!-- Sound Toggle -->
+        <button class="icon-btn" id="soundToggleBtn" onclick="App.toggleSound()" title="Efek Suara">
           🔔
         </button>
       </div>
@@ -72,10 +86,10 @@
             <div class="catalog-controls">
               <div class="search-input-wrapper">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="posSearchInput" class="search-input" placeholder="Cari kopi, minuman non-coffee, snack, atau pastry...">
+                <input type="text" id="posSearchInput" class="search-input" placeholder="Cari menu kopi, non-coffee, flavor..." data-i18n-placeholder="searchPlaceholder">
               </div>
               <div class="category-chips" id="posCategories">
-                <!-- Injected via pos.js -->
+                <!-- Injected via pos.js (Non-Coffee, Signature Drinks, Coffee & Flavor) -->
               </div>
             </div>
 
@@ -87,8 +101,8 @@
           <!-- Cart Drawer / Sidebar -->
           <aside class="pos-cart-panel">
             <div class="cart-header">
-              <h2>🛒 Pesanan Aktif</h2>
-              <button class="clear-cart-btn" id="clearCartBtn">Kosongkan</button>
+              <h2>🛒 <span data-i18n="cartTitle">Pesanan Aktif</span></h2>
+              <button class="clear-cart-btn" id="clearCartBtn" data-i18n="clearCart">Kosongkan</button>
             </div>
 
             <div class="cart-items-list" id="cartItemsList">
@@ -97,19 +111,19 @@
 
             <div class="cart-summary">
               <div class="summary-row">
-                <span>Subtotal:</span>
+                <span data-i18n="subtotal">Subtotal:</span>
                 <span id="cartSubtotal" style="font-family: var(--font-mono);">Rp 0</span>
               </div>
               <div class="summary-row">
-                <span id="cartTaxRateLabel">Pajak PB1 (10%):</span>
+                <span id="cartTaxRateLabel" data-i18n="taxPB1">Pajak PB1 (10%):</span>
                 <span id="cartTaxAmount" style="font-family: var(--font-mono);">Rp 0</span>
               </div>
               <div class="summary-row total-row">
-                <span>Total Bayar:</span>
+                <span data-i18n="totalPay">Total Bayar:</span>
                 <span id="cartTotal">Rp 0</span>
               </div>
               <button class="checkout-btn" id="checkoutBtn" disabled>
-                <span>💳</span> Lanjut Pembayaran
+                <span>💳</span> <span data-i18n="checkoutBtn">Lanjut Pembayaran</span>
               </button>
             </div>
           </aside>
@@ -125,38 +139,38 @@
           <div class="kpi-grid">
             <div class="kpi-card income">
               <div class="kpi-header">
-                <span class="kpi-title">Total Pemasukan</span>
+                <span class="kpi-title" data-i18n="totalIncome">Total Pemasukan</span>
                 <span class="kpi-icon">📈</span>
               </div>
               <div class="kpi-amount" id="kpiTotalIncome">Rp 0</div>
-              <div class="kpi-subtitle">Hasil penjualan kasir &amp; kas masuk</div>
+              <div class="kpi-subtitle" data-i18n="incomeSub">Penjualan kasir &amp; kas masuk</div>
             </div>
 
             <div class="kpi-card expense">
               <div class="kpi-header">
-                <span class="kpi-title">Total Pengeluaran</span>
+                <span class="kpi-title" data-i18n="totalExpense">Total Pengeluaran</span>
                 <span class="kpi-icon">📉</span>
               </div>
               <div class="kpi-amount" id="kpiTotalExpense">Rp 0</div>
-              <div class="kpi-subtitle">Bahan baku, operasional, &amp; gaji</div>
+              <div class="kpi-subtitle" data-i18n="expenseSub">Bahan baku, operasional, &amp; gaji</div>
             </div>
 
             <div class="kpi-card profit">
               <div class="kpi-header">
-                <span class="kpi-title">Laba / (Rugi) Bersih</span>
+                <span class="kpi-title" data-i18n="netProfit">Laba / (Rugi) Bersih</span>
                 <span class="kpi-icon">⚖️</span>
               </div>
               <div class="kpi-amount" id="kpiNetProfit">Rp 0</div>
-              <div class="kpi-subtitle">Pemasukan dikurangi pengeluaran</div>
+              <div class="kpi-subtitle" data-i18n="profitSub">Pemasukan dikurangi pengeluaran</div>
             </div>
 
             <div class="kpi-card balance">
               <div class="kpi-header">
-                <span class="kpi-title">Kas di Laci (Tunai)</span>
+                <span class="kpi-title" data-i18n="cashInDrawer">Kas di Laci (Tunai)</span>
                 <span class="kpi-icon">💵</span>
               </div>
               <div class="kpi-amount" id="kpiCashBalance">Rp 0</div>
-              <div class="kpi-subtitle">Saldo fisik kasir saat ini</div>
+              <div class="kpi-subtitle" data-i18n="cashSub">Saldo fisik kasir saat ini</div>
             </div>
           </div>
 
@@ -164,45 +178,48 @@
           <div class="ledger-header-panel">
             <div class="ledger-actions">
               <button class="btn-primary-action btn-income" onclick="FinanceModule.openRecordModal('income')">
-                <span>➕</span> Catat Pemasukan
+                <span>➕</span> <span data-i18n="recordIncome">Catat Pemasukan</span>
               </button>
               <button class="btn-primary-action btn-expense" onclick="FinanceModule.openRecordModal('expense')">
-                <span>➖</span> Catat Pengeluaran Detail
+                <span>➖</span> <span data-i18n="recordExpense">Catat Pengeluaran Detail</span>
+              </button>
+              <button class="btn-primary-action btn-closing" onclick="FinanceModule.openClosingModal()">
+                <span>🔒</span> <span data-i18n="closingBtn">Closing Kasir &amp; Rekap WA</span>
               </button>
             </div>
 
             <div class="ledger-filters">
               <select id="financeTypeFilter" class="filter-select">
-                <option value="all">Semua Tipe Transaksi</option>
-                <option value="income">Hanya Pemasukan</option>
-                <option value="expense">Hanya Pengeluaran</option>
+                <option value="all" data-i18n="allTypes">Semua Tipe Transaksi</option>
+                <option value="income" data-i18n="incomeOnly">Hanya Pemasukan</option>
+                <option value="expense" data-i18n="expenseOnly">Hanya Pengeluaran</option>
               </select>
 
               <select id="financeCategoryFilter" class="filter-select">
-                <option value="all">Semua Kategori</option>
+                <option value="all" data-i18n="allCategories">Semua Kategori</option>
               </select>
 
-              <input type="text" id="financeSearchInput" class="filter-select" placeholder="Cari transaksi / nota..." style="min-width: 180px;">
+              <input type="text" id="financeSearchInput" class="filter-select" placeholder="Cari transaksi / nota..." data-i18n-placeholder="searchTrxPlaceholder" style="min-width: 170px;">
             </div>
           </div>
 
           <!-- Transaction Data Table -->
           <div class="table-container">
-            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+            <div style="padding: 12px 16px; border-bottom: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
               <span id="financeRowCount">0 Transaksi Tercatat</span>
-              <span>Diurutkan berdasarkan transaksi terkini</span>
+              <span>Notifikasi WA Owner otomatis terhubung ke <strong>085334101996</strong></span>
             </div>
             <table class="styled-table">
               <thead>
                 <tr>
-                  <th style="width: 40px;">No</th>
+                  <th style="width: 35px;">No</th>
                   <th>Tanggal &amp; ID</th>
                   <th>Tipe</th>
-                  <th>Kategori</th>
+                  <th>Kategori &amp; Shift</th>
                   <th>Keterangan / Rincian</th>
                   <th>Metode</th>
                   <th style="text-align: right;">Nominal</th>
-                  <th style="width: 80px; text-align: center;">Aksi</th>
+                  <th style="width: 110px; text-align: center;">Aksi</th>
                 </tr>
               </thead>
               <tbody id="financeTableBody">
@@ -221,15 +238,15 @@
           <!-- Filter Bar -->
           <div class="ledger-header-panel">
             <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-              <span style="font-weight: 700; font-size: 0.9rem;">Filter Periode Laporan:</span>
+              <span style="font-weight: 800; font-size: 0.9rem;" data-i18n="filterPeriod">Filter Periode Laporan:</span>
               <select id="reportPeriodSelect" class="filter-select">
-                <option value="today">Hari Ini</option>
-                <option value="yesterday">Kemarin</option>
-                <option value="7days">7 Hari Terakhir</option>
-                <option value="this_month" selected>Bulan Ini</option>
-                <option value="last_month">Bulan Lalu</option>
-                <option value="all">Semua Waktu</option>
-                <option value="custom">Rentang Tanggal Khusus</option>
+                <option value="today" data-i18n="today">Hari Ini</option>
+                <option value="yesterday" data-i18n="yesterday">Kemarin</option>
+                <option value="7days" data-i18n="sevenDays">7 Hari Terakhir</option>
+                <option value="this_month" selected data-i18n="thisMonth">Bulan Ini</option>
+                <option value="last_month" data-i18n="lastMonth">Bulan Lalu</option>
+                <option value="all" data-i18n="allTime">Semua Waktu</option>
+                <option value="custom" data-i18n="customRange">Rentang Tanggal Khusus</option>
               </select>
 
               <div id="customDateRangeWrapper" style="display: none; align-items: center; gap: 6px;">
@@ -240,11 +257,11 @@
             </div>
 
             <div style="display: flex; gap: 8px;">
-              <button class="btn-primary-action" style="background: var(--bg-surface); color: #f87171; border: 1px solid rgba(239,68,68,0.4);" onclick="ReportsModule.triggerExportPDF()">
-                <span>📄</span> Unduh PDF
+              <button class="btn-primary-action btn-closing" onclick="ReportsModule.triggerExportPDF()">
+                <span>📄</span> <span data-i18n="downloadPDF">Unduh PDF</span>
               </button>
-              <button class="btn-primary-action" style="background: var(--bg-surface); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4);" onclick="ReportsModule.triggerExportWord()">
-                <span>📝</span> Unduh Word
+              <button class="btn-primary-action btn-closing" onclick="ReportsModule.triggerExportWord()">
+                <span>📝</span> <span data-i18n="downloadWord">Unduh Word</span>
               </button>
             </div>
           </div>
@@ -252,20 +269,20 @@
           <!-- Periode KPI -->
           <div class="kpi-grid">
             <div class="kpi-card income">
-              <span class="kpi-title">Pemasukan Periode</span>
+              <span class="kpi-title" data-i18n="totalIncome">Pemasukan Periode</span>
               <div class="kpi-amount" id="reportTotalIncome">Rp 0</div>
             </div>
             <div class="kpi-card expense">
-              <span class="kpi-title">Pengeluaran Periode</span>
+              <span class="kpi-title" data-i18n="totalExpense">Pengeluaran Periode</span>
               <div class="kpi-amount" id="reportTotalExpense">Rp 0</div>
             </div>
             <div class="kpi-card profit">
-              <span class="kpi-title">Laba / (Rugi) Bersih</span>
+              <span class="kpi-title" data-i18n="netProfit">Laba / (Rugi) Bersih</span>
               <div class="kpi-amount" id="reportNetProfit">Rp 0</div>
             </div>
             <div class="kpi-card balance">
               <span class="kpi-title">Volume Transaksi</span>
-              <div class="kpi-amount" id="reportTotalCount" style="color: #38bdf8;">0 Data</div>
+              <div class="kpi-amount" id="reportTotalCount" style="color: #3b82f6;">0 Data</div>
             </div>
           </div>
 
@@ -273,7 +290,7 @@
           <div class="chart-grid">
             <div class="chart-card">
               <div class="chart-header">
-                <h3>📊 Tren Arus Kas Harian (Pemasukan vs Pengeluaran)</h3>
+                <h3 data-i18n="cashflowTrendTitle">📊 Tren Arus Kas Harian (Pemasukan vs Pengeluaran)</h3>
               </div>
               <div class="chart-container">
                 <canvas id="trendChartCanvas"></canvas>
@@ -282,7 +299,7 @@
 
             <div class="chart-card">
               <div class="chart-header">
-                <h3>🍩 Komposisi Kategori Pengeluaran</h3>
+                <h3 data-i18n="expenseDonutTitle">🍩 Komposisi Kategori Pengeluaran</h3>
               </div>
               <div class="chart-container">
                 <canvas id="categoryDonutCanvas"></canvas>
@@ -293,7 +310,7 @@
           <!-- Top Products -->
           <div class="chart-card">
             <div class="chart-header">
-              <h3>🏆 5 Produk Kopi &amp; Menu Terlaris (Periode Ini)</h3>
+              <h3 data-i18n="top5Products">🏆 5 Produk Kopi &amp; Minuman Terlaris</h3>
             </div>
             <div id="topProductsContainer">
               <!-- Injected via reports.js -->
@@ -310,83 +327,77 @@
           <!-- Hero Banner -->
           <div class="export-hero-banner">
             <div class="export-hero-text">
-              <h2>Pusat Ekspor Laporan Keuangan &amp; Kasir</h2>
-              <p>Cetak dan unduh laporan arus kas resmi DIALOG COFFEE dalam format <strong>Microsoft Word (.docx)</strong> dan <strong>Adobe PDF (.pdf)</strong> berstandar akuntansi lengkap dengan kop surat, metrik keuangan, rincian nota, dan tanda tangan pengesahan.</p>
+              <h2 data-i18n="exportHubTitle">Pusat Ekspor Laporan Keuangan &amp; Kasir</h2>
+              <p data-i18n="exportHubDesc">Cetak dan unduh laporan arus kas resmi DIALOG COFFEE dalam format <strong>Microsoft Word (.docx)</strong> dan <strong>Adobe PDF (.pdf)</strong> berstandar akuntansi lengkap dengan kop surat, metrik keuangan, rincian nota, dan tanda tangan pengesahan.</p>
             </div>
           </div>
 
           <!-- Export Scope Filter -->
           <div class="ledger-header-panel">
             <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
-              <span style="font-weight: 700; font-size: 0.9rem;">Cakupan Transaksi Ekspor:</span>
+              <span style="font-weight: 800; font-size: 0.9rem;" data-i18n="exportScope">Cakupan Transaksi Ekspor:</span>
               <select id="exportScopeFilter" class="filter-select">
-                <option value="all">Semua Data (Pemasukan &amp; Pengeluaran Lengkap)</option>
-                <option value="income">Hanya Data Pemasukan Kasir</option>
-                <option value="expense">Hanya Data Pengeluaran Cafe</option>
+                <option value="all" data-i18n="exportScopeAll">Semua Data (Pemasukan &amp; Pengeluaran Lengkap)</option>
+                <option value="income" data-i18n="exportScopeIncome">Hanya Data Pemasukan Kasir</option>
+                <option value="expense" data-i18n="exportScopeExpense">Hanya Data Pengeluaran Cafe</option>
               </select>
-            </div>
-            <div style="font-size: 0.8rem; color: var(--text-muted);">
-              Data mengikuti filter periode yang dipilih pada tab Laporan
             </div>
           </div>
 
           <!-- Cards Grid -->
           <div class="export-cards-grid">
             <!-- PDF Card -->
-            <div class="export-card pdf-theme">
-              <span class="export-badge pdf">FORMAT PDF</span>
+            <div class="export-card">
+              <span class="export-badge">FORMAT PDF</span>
               <div class="export-icon-box">📄</div>
               <div class="export-info">
-                <h3>Laporan Resmi PDF (.pdf)</h3>
-                <p>Dokumen siap cetak dengan layout profesional A4, kop surat DIALOG COFFEE, kartu ringkasan keuangan, tabel zebra-striping, dan kolom tanda tangan kasir &amp; manager.</p>
+                <h3 data-i18n="pdfCardTitle">Laporan Resmi PDF (.pdf)</h3>
+                <p>Dokumen siap cetak dengan layout A4, logo DIALOG COFFEE, kartu ringkasan keuangan, tabel transaksi lengkap, dan kolom tanda tangan barista on duty &amp; manager.</p>
               </div>
               <ul class="export-features">
-                <li>Header resmi &amp; alamat lengkap cafe</li>
-                <li>Ringkasan Total Masuk, Total Keluar, Laba Bersih</li>
-                <li>Tabel rincian nota &amp; keterangan per item</li>
-                <li>Kolom pengesahan (Kasir On Duty &amp; Manager)</li>
-                <li>Siap dicetak langsung atau dikirim via WhatsApp/Email</li>
+                <li>Header resmi &amp; logo DIALOG COFFEE</li>
+                <li>Ringkasan Total Masuk, Keluar, Laba Bersih</li>
+                <li>Tabel rincian per nota &amp; per item</li>
+                <li>Kolom pengesahan Barista &amp; Manager</li>
               </ul>
-              <button class="btn-download-export pdf" onclick="ReportsModule.triggerExportPDF()">
+              <button class="btn-download-export" onclick="ReportsModule.triggerExportPDF()">
                 <span>⬇️</span> Unduh Dokumen PDF (.pdf)
               </button>
             </div>
 
             <!-- Word (.docx) Card -->
-            <div class="export-card word-theme">
-              <span class="export-badge word">FORMAT WORD (.DOCX)</span>
+            <div class="export-card">
+              <span class="export-badge">FORMAT WORD (.DOCX)</span>
               <div class="export-icon-box">📝</div>
               <div class="export-info">
-                <h3>Dokumen Microsoft Word (.docx)</h3>
-                <p>Format dokumen Word OpenXML asli yang kompatibel 100% dengan Microsoft Word, Google Docs, dan WPS Office. Bebas diedit kembali untuk kebutuhan pembukuan &amp; pelaporan investor.</p>
+                <h3 data-i18n="wordCardTitle">Dokumen Microsoft Word (.docx)</h3>
+                <p>Format dokumen Word asli OpenXML (.docx) yang kompatibel 100% dengan Microsoft Word, Google Docs, dan WPS Office. Bebas diedit kembali untuk pembukuan.</p>
               </div>
               <ul class="export-features">
                 <li>Native XML Word Document (.docx)</li>
-                <li>Tabel terstruktur rapi dengan styling warna tema</li>
-                <li>Font Calibri proporsional dan mudah diedit ulang</li>
-                <li>Layout landscape A4 agar muat rincian tabel luas</li>
-                <li>Lembar tanda tangan &amp; pengesahan formal</li>
+                <li>Tabel terstruktur rapi dengan styling monochrome</li>
+                <li>Layout landscape A4 untuk ruang baca luas</li>
+                <li>Kolom tanda tangan &amp; pengesahan formal</li>
               </ul>
-              <button class="btn-download-export word" onclick="ReportsModule.triggerExportWord()">
+              <button class="btn-download-export" onclick="ReportsModule.triggerExportWord()">
                 <span>⬇️</span> Unduh Dokumen Word (.docx)
               </button>
             </div>
 
             <!-- CSV / Excel Card -->
-            <div class="export-card csv-theme">
-              <span class="export-badge csv">SPREADSHEET</span>
+            <div class="export-card">
+              <span class="export-badge">SPREADSHEET</span>
               <div class="export-icon-box">📊</div>
               <div class="export-info">
-                <h3>Lembar Sebar Excel (.csv)</h3>
-                <p>Data mentah tabular terformat CSV standar UTF-8 untuk analisis lanjutan menggunakan Microsoft Excel, Google Sheets, atau software akuntansi cafe lainnya.</p>
+                <h3 data-i18n="csvCardTitle">Lembar Sebar Excel (.csv)</h3>
+                <p>Data mentah tabular terformat CSV standar UTF-8 untuk analisis pivot lanjutan di Microsoft Excel atau Google Sheets.</p>
               </div>
               <ul class="export-features">
-                <li>Kompatibel dengan semua versi Excel &amp; Sheets</li>
-                <li>Kolom terpisah rapi (No, Tanggal, Nota, Kategori, Nominal)</li>
-                <li>Mudah diolah rumus pivot, sum, dan vlookup</li>
-                <li>Ukuran berkas sangat ringan dan cepat</li>
+                <li>Kompatibel dengan semua spreadsheet</li>
+                <li>Format kolom terpisah rapi</li>
+                <li>Ukuran berkas sangat ringan</li>
               </ul>
-              <button class="btn-download-export csv" onclick="ReportsModule.triggerExportCSV()">
+              <button class="btn-download-export" onclick="ReportsModule.triggerExportCSV()">
                 <span>⬇️</span> Unduh Berkas CSV / Excel (.csv)
               </button>
             </div>
@@ -401,80 +412,78 @@
         <div class="settings-grid">
           <!-- Profil & Kasir Form -->
           <div class="settings-card">
-            <h3><span>☕</span> Profil Cafe &amp; Kasir DIALOG COFFEE</h3>
+            <h3><span>☕</span> <span data-i18n="settingsProfileTitle">Profil Cafe &amp; Pengaturan</span></h3>
             <form id="settingsForm">
               <div class="form-group">
-                <label>Nama Cafe / Brand</label>
+                <label data-i18n="cafeNameLabel">Nama Cafe / Brand</label>
                 <input type="text" id="cfgCafeName" class="form-control" required>
               </div>
               <div class="form-group">
-                <label>Tagline / Slogan</label>
+                <label data-i18n="taglineLabel">Tagline / Slogan</label>
                 <input type="text" id="cfgTagline" class="form-control">
               </div>
               <div class="form-group">
-                <label>Alamat Lengkap</label>
+                <label data-i18n="addressLabel">Alamat Lengkap</label>
                 <textarea id="cfgAddress" class="form-control" rows="2"></textarea>
               </div>
               <div class="form-group">
-                <label>Nomor Telepon / WhatsApp Kasir</label>
+                <label data-i18n="phoneLabel">Nomor Telepon Cafe</label>
                 <input type="text" id="cfgPhone" class="form-control">
               </div>
               <div class="form-group">
-                <label>Nama Kasir / Barista Aktif Saat Ini</label>
-                <input type="text" id="cfgActiveCashier" class="form-control" placeholder="Contoh: Aldi Pratama (Barista)">
+                <label data-i18n="ownerWALabel">Nomor WhatsApp Owner (Untuk Notifikasi &amp; Closing)</label>
+                <input type="text" id="cfgOwnerPhone" class="form-control" value="085334101996" placeholder="085334101996">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Pesan notifikasi pemasukan, pengeluaran &amp; closing otomatis dikirim ke nomor ini</span>
               </div>
               <div class="form-group" style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
                 <div style="flex: 1;">
-                  <label>Pajak Restoran / PB1 (%)</label>
+                  <label data-i18n="taxRateLabel">Pajak Restoran / PB1 (%)</label>
                   <input type="number" id="cfgTaxRate" class="form-control" min="0" max="100">
                 </div>
                 <div style="display: flex; align-items: center; gap: 6px; margin-top: 20px;">
                   <input type="checkbox" id="cfgTaxEnabled" style="width: 18px; height: 18px;">
-                  <label for="cfgTaxEnabled" style="cursor: pointer;">Aktifkan Pajak</label>
+                  <label for="cfgTaxEnabled" style="cursor: pointer;" data-i18n="enableTax">Aktifkan Pajak</label>
                 </div>
               </div>
               <div class="form-group">
-                <label>Pesan Footer Struk Kasir</label>
+                <label data-i18n="footerReceiptLabel">Pesan Footer Struk Kasir</label>
                 <textarea id="cfgReceiptFooter" class="form-control" rows="3"></textarea>
               </div>
-              <button type="submit" class="btn-save-settings">💾 Simpan Perubahan Profil</button>
+              <button type="submit" class="btn-save-settings" data-i18n="saveProfileBtn">💾 Simpan Pengaturan</button>
             </form>
           </div>
 
           <!-- Data Backup & Reset -->
           <div class="settings-card">
-            <h3><span>🛡️</span> Manajemen Cadangan Data &amp; Pemulihan</h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-              Semua data kasir, menu, dan transaksi disimpan aman di memori lokal perangkat Android / browser Anda. Anda dapat mengunduh berkas cadangan (JSON) kapan saja untuk keamanan.
+            <h3><span>🛡️</span> <span data-i18n="backupTitle">Manajemen Cadangan Data &amp; Pemulihan</span></h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;" data-i18n="backupDesc">
+              Semua data kasir, menu, shift, dan transaksi disimpan aman di memori lokal perangkat Android / browser Anda.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
-              <button class="btn-primary-action" id="btnDownloadBackup" style="background: var(--bg-surface); border: 1px solid var(--accent-gold); color: var(--accent-gold-light);">
-                <span>💾</span> Unduh Cadangan Data Lengkap (Backup JSON)
+              <button class="btn-primary-action btn-closing" id="btnDownloadBackup" data-i18n="downloadBackupBtn">
+                <span>💾</span> Unduh Cadangan Data Lengkap (JSON)
               </button>
 
-              <div style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
-                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+              <div style="border-top: 1.5px dashed var(--border-color); padding-top: 12px;">
+                <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); display: block; margin-bottom: 6px;" data-i18n="restoreLabel">
                   Pulihkan Data dari Berkas Cadangan:
                 </label>
                 <input type="file" id="restoreFileInput" accept=".json" class="form-control" style="padding: 6px;">
               </div>
 
-              <div style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
-                <label style="font-size: 0.8rem; font-weight: 600; color: var(--expense-red); display: block; margin-bottom: 6px;">
-                  Kembalikan ke Contoh Data Demo:
-                </label>
-                <button class="btn-primary-action" id="btnResetDemoData" style="background: rgba(239, 68, 68, 0.1); color: var(--expense-red); border: 1px solid var(--expense-red-border);">
+              <div style="border-top: 1.5px dashed var(--border-color); padding-top: 12px;">
+                <button class="btn-primary-action" id="btnResetDemoData" style="background: var(--expense-red-bg); color: var(--expense-red); border: 1.5px solid var(--expense-red-border);" data-i18n="resetDemoBtn">
                   <span>🔄</span> Reset &amp; Muat Ulang Data Sampel DIALOG COFFEE
                 </button>
               </div>
             </div>
 
-            <!-- Informasi Versi Android -->
-            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted);">
-              <div>📱 <strong>DIALOG COFFEE Cashier Android Edition</strong></div>
-              <div>ID Aplikasi: <code>id.dialogcoffee.cashier</code></div>
-              <div>Versi: 1.0.0 (Build 2026.10)</div>
+            <!-- Barista & Shift Info -->
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1.5px solid var(--border-color); font-size: 0.78rem; color: var(--text-muted);">
+              <div>☕ <strong>Tim Barista DIALOG COFFEE:</strong> Ardi, Anca, Jhonson, Si Pur</div>
+              <div>📱 <strong>Nomor WA Owner:</strong> 085334101996</div>
+              <div>⚡ <strong>Sistem Shift:</strong> 2 Shift (1 Shift = 2 Orang Barista)</div>
             </div>
           </div>
         </div>
@@ -482,27 +491,27 @@
 
     </main>
 
-    <!-- ANDROID BOTTOM NAVIGATION BAR (FOR MOBILE & TABLET) -->
+    <!-- ANDROID BOTTOM NAVIGATION BAR -->
     <nav class="bottom-nav-bar">
       <button class="bottom-nav-item active" data-target-tab="pos">
         <span class="nav-icon">🛒</span>
-        <span>Kasir</span>
+        <span data-i18n="posTab">Kasir</span>
       </button>
       <button class="bottom-nav-item" data-target-tab="finance">
         <span class="nav-icon">💰</span>
-        <span>Buku Kas</span>
+        <span data-i18n="financeTab">Buku Kas</span>
       </button>
       <button class="bottom-nav-item" data-target-tab="reports">
         <span class="nav-icon">📈</span>
-        <span>Laporan</span>
+        <span data-i18n="reportsTab">Laporan</span>
       </button>
       <button class="bottom-nav-item" data-target-tab="export">
         <span class="nav-icon">📑</span>
-        <span>Ekspor</span>
+        <span data-i18n="exportTab">Ekspor</span>
       </button>
       <button class="bottom-nav-item" data-target-tab="settings">
         <span class="nav-icon">⚙️</span>
-        <span>Setting</span>
+        <span data-i18n="settingsTab">Setting</span>
       </button>
     </nav>
   </div>
@@ -513,17 +522,17 @@
   <div id="paymentModal" class="modal-backdrop">
     <div class="modal-card">
       <div class="modal-header">
-        <h3><span>💳</span> Pembayaran Transaksi</h3>
+        <h3><span>💳</span> <span data-i18n="payModalTitle">Pembayaran Transaksi</span></h3>
         <button class="btn-close-modal" onclick="POSModule.closePaymentModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div style="text-align: center; background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
-          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Tagihan</div>
-          <div id="payModalTotal" style="font-size: 1.8rem; font-weight: 800; font-family: var(--font-mono); color: var(--accent-gold); margin-top: 4px;">Rp 0</div>
+        <div style="text-align: center; background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1.5px solid var(--border-color);">
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;" data-i18n="totalBill">Total Tagihan</div>
+          <div id="payModalTotal" style="font-size: 1.9rem; font-weight: 800; font-family: var(--font-mono); margin-top: 4px;">Rp 0</div>
         </div>
 
         <div class="form-group">
-          <label>Metode Pembayaran</label>
+          <label data-i18n="payMethod">Metode Pembayaran</label>
           <select id="payMethodSelect" class="form-control" onchange="POSModule.updatePaymentChange()">
             <option value="Tunai">💵 Tunai (Cash)</option>
             <option value="QRIS">📱 QRIS (Gopay / OVO / Dana / ShopeePay / BCA)</option>
@@ -533,11 +542,11 @@
         </div>
 
         <div class="form-group">
-          <label>Nominal Pembayaran Diterima (Rp)</label>
+          <label data-i18n="cashTendered">Nominal Pembayaran Diterima (Rp)</label>
           <input type="number" id="payCashInput" class="form-control" style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;" oninput="POSModule.updatePaymentChange()">
           
           <div class="quick-cash-grid">
-            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash('exact')">Uang Pas</button>
+            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash('exact')" data-i18n="exactCash">Uang Pas</button>
             <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(20000)">Rp 20.000</button>
             <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(50000)">Rp 50.000</button>
             <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(100000)">Rp 100.000</button>
@@ -546,32 +555,35 @@
           </div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-          <span style="font-weight: 700;">Kembalian:</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 12px 16px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color);">
+          <span style="font-weight: 800;" data-i18n="changeDue">Kembalian:</span>
           <span id="payModalChange" style="font-family: var(--font-mono); font-weight: 800; font-size: 1.15rem; color: var(--income-green);">Rp 0</span>
         </div>
 
         <div class="form-group">
-          <label>Catatan Tambahan (Opsional)</label>
+          <label data-i18n="additionalNotes">Catatan Tambahan (Opsional)</label>
           <input type="text" id="payNotesInput" class="form-control" placeholder="Contoh: Meja 05, Less sugar, Takeaway">
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="POSModule.closePaymentModal()">Batal</button>
-        <button class="btn-primary-action btn-income" onclick="POSModule.processCheckout()">
-          <span>✓</span> Bayar &amp; Cetak Struk
+      <div class="modal-footer" style="flex-wrap: wrap; gap: 8px;">
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="POSModule.closePaymentModal()" data-i18n="cancel">Batal</button>
+        <button class="btn-primary-action btn-wa" onclick="POSModule.processCheckout(true)" title="Bayar &amp; Kirim Struk ke WA Owner">
+          <span>📲</span> Bayar &amp; WA Owner
+        </button>
+        <button class="btn-primary-action btn-closing" onclick="POSModule.processCheckout(false)">
+          <span>✓</span> <span data-i18n="payAndPrint">Bayar &amp; Struk</span>
         </button>
       </div>
     </div>
   </div>
 
   <!-- ===================================================================
-       MODAL 2: STRUK PEMBAYARAN THERMAL (RECEIPT MODAL)
+       MODAL 2: STRUK PEMBAYARAN THERMAL
        =================================================================== -->
   <div id="receiptModal" class="modal-backdrop">
     <div class="modal-card" style="max-width: 400px;">
       <div class="modal-header">
-        <h3><span>🧾</span> Struk Pembayaran</h3>
+        <h3><span>🧾</span> <span data-i18n="receiptTitle">Struk Pembayaran</span></h3>
         <button class="btn-close-modal" onclick="POSModule.closeReceiptModal()">✕</button>
       </div>
       <div class="modal-body" style="padding: 14px;">
@@ -579,19 +591,24 @@
           <!-- Injected via pos.js -->
         </div>
       </div>
-      <div class="modal-footer" style="justify-content: space-between;">
-        <button class="btn-primary-action" style="background: var(--bg-surface); color: var(--accent-gold-light); border: 1px solid var(--accent-gold);" onclick="POSModule.downloadReceiptPDF()">
-          <span>📄</span> Unduh PDF Struk
+      <div class="modal-footer" style="justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+        <button class="btn-primary-action btn-wa" onclick="POSModule.sendCurrentReceiptWA()" title="Kirim Struk ke WA Owner (085334101996)">
+          <span>📲</span> Kirim WA Owner
         </button>
-        <button class="btn-primary-action btn-income" onclick="POSModule.printReceipt()">
-          <span>🖨️</span> Cetak Struk
-        </button>
+        <div style="display: flex; gap: 6px;">
+          <button class="btn-primary-action" style="background: var(--bg-surface); border: 1.5px solid var(--border-color);" onclick="POSModule.downloadReceiptPDF()">
+            <span>📄</span> PDF
+          </button>
+          <button class="btn-primary-action btn-closing" onclick="POSModule.printReceipt()">
+            <span>🖨️</span> Cetak
+          </button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ===================================================================
-       MODAL 3: CATAT PEMASUKAN / PENGELUARAN DETAIL
+       MODAL 3: CATAT TRANSAKSI KEUANGAN
        =================================================================== -->
   <div id="recordTransactionModal" class="modal-backdrop">
     <div class="modal-card">
@@ -600,11 +617,11 @@
         <button class="btn-close-modal" onclick="FinanceModule.closeRecordModal()">✕</button>
       </div>
       <div class="modal-body">
-        <div class="type-toggle-group">
-          <button type="button" id="modalTypeIncomeBtn" class="type-toggle-btn income active" onclick="FinanceModule.setModalType('income')">
+        <div class="type-toggle-group" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button type="button" id="modalTypeIncomeBtn" class="btn-primary-action btn-income" style="justify-content: center;" onclick="FinanceModule.setModalType('income')">
             ▲ Pemasukan Kas
           </button>
-          <button type="button" id="modalTypeExpenseBtn" class="type-toggle-btn expense" onclick="FinanceModule.setModalType('expense')">
+          <button type="button" id="modalTypeExpenseBtn" class="btn-primary-action btn-expense" style="justify-content: center;" onclick="FinanceModule.setModalType('expense')">
             ▼ Pengeluaran Kas
           </button>
         </div>
@@ -628,7 +645,7 @@
 
         <div class="form-group">
           <label>Keterangan / Rincian Detail Transaksi</label>
-          <textarea id="trxModalDesc" class="form-control" rows="2" placeholder="Contoh: Beli 2 karton susu fresh milk Greenfields &amp; 3 botol sirup vanila"></textarea>
+          <textarea id="trxModalDesc" class="form-control" rows="2" placeholder="Contoh: Beli Fresh Milk 5 Liter &amp; Sirup Vanilla"></textarea>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
@@ -643,8 +660,8 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Penanggung Jawab / Kasir</label>
-            <input type="text" id="trxModalPic" class="form-control" placeholder="Nama Petugas">
+            <label>Penanggung Jawab / Barista</label>
+            <input type="text" id="trxModalPic" class="form-control" placeholder="Nama Barista">
           </div>
         </div>
 
@@ -653,16 +670,127 @@
           <input type="text" id="trxModalRef" class="form-control" placeholder="Contoh: NOTA-SUP-882">
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="flex-wrap: wrap; gap: 8px;">
         <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="FinanceModule.closeRecordModal()">Batal</button>
-        <button class="btn-primary-action btn-income" onclick="FinanceModule.saveModalTransaction()">
-          <span>💾</span> Simpan Transaksi
+        <button class="btn-primary-action btn-wa" onclick="FinanceModule.saveModalTransaction(true)">
+          <span>📲</span> Simpan &amp; WA Owner
+        </button>
+        <button class="btn-primary-action btn-closing" onclick="FinanceModule.saveModalTransaction(false)">
+          <span>💾</span> Simpan
         </button>
       </div>
     </div>
   </div>
 
-  <!-- SCRIPT LIBRARIES (OFFLINE BUNDLED & FAST) -->
+  <!-- ===================================================================
+       MODAL 4: PENGATURAN SHIFT & BARISTA (1 SHIFT = 2 BARISTA)
+       =================================================================== -->
+  <div id="shiftModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><span>👥</span> <span data-i18n="shiftModalTitle">Pengaturan Shift &amp; Barista</span></h3>
+        <button class="btn-close-modal" onclick="App.closeShiftModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+          Setiap shift bertugas terdiri dari <strong>dua orang barista</strong> (Ardi, Anca, Jhonson, Si Pur). Nama shift dan barista akan dicatat di setiap struk, transaksi, dan laporan.
+        </p>
+
+        <div class="form-group">
+          <label data-i18n="activeShift">Pilih Shift Kerja Saat Ini</label>
+          <select id="shiftSelectInput" class="form-control">
+            <option value="Shift 1">🌅 Shift 1 (Pagi - Siang / 08:00 - 16:00)</option>
+            <option value="Shift 2">🌙 Shift 2 (Sore - Malam / 16:00 - 24:00)</option>
+          </select>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label data-i18n="barista1">Barista 1 (On Duty)</label>
+            <select id="barista1Select" class="form-control">
+              <!-- Injected via app.js -->
+            </select>
+          </div>
+          <div class="form-group">
+            <label data-i18n="barista2">Barista 2 (On Duty)</label>
+            <select id="barista2Select" class="form-control">
+              <!-- Injected via app.js -->
+            </select>
+          </div>
+        </div>
+
+        <div style="background: var(--bg-surface); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-secondary);">
+          <div>📌 <strong>Daftar Barista Resmi:</strong> Ardi, Anca, Jhonson, Si Pur</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="App.closeShiftModal()">Batal</button>
+        <button class="btn-primary-action btn-closing" onclick="App.saveShiftConfig()">
+          <span>💾</span> <span data-i18n="saveShift">Simpan Shift</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 5: CLOSING SHIFT & REKAPAN HARIAN WA OWNER
+       =================================================================== -->
+  <div id="closingShiftModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><span>🔒</span> <span data-i18n="closingModalTitle">Closing Shift &amp; Rekapan Harian</span></h3>
+        <button class="btn-close-modal" onclick="FinanceModule.closeClosingModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-muted);">
+          Ringkasan seluruh arus kas hari ini untuk disetorkan dan dilaporkan ke WhatsApp Owner (<strong>085334101996</strong>).
+        </p>
+
+        <div style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1.5px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-size: 0.8rem;" data-i18n="closingShift">Shift Bertugas:</span>
+            <span id="closingShiftDisplay" style="font-weight: 800;">Shift 1</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-size: 0.8rem;" data-i18n="closingBaristas">Barista On Duty:</span>
+            <span id="closingBaristaDisplay" style="font-weight: 800;">Ardi &amp; Anca</span>
+          </div>
+          <div style="border-top: 1px dashed var(--border-color); margin: 4px 0;"></div>
+          <div style="display: flex; justify-content: space-between;">
+            <span data-i18n="closingTotalIncome">Pemasukan Hari Ini:</span>
+            <span id="closingIncomeDisplay" style="font-family: var(--font-mono); font-weight: 800; color: var(--income-green);">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span data-i18n="closingTotalExpense">Pengeluaran Hari Ini:</span>
+            <span id="closingExpenseDisplay" style="font-family: var(--font-mono); font-weight: 800; color: var(--expense-red);">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span data-i18n="closingNetProfit">Laba Bersih Hari Ini:</span>
+            <span id="closingProfitDisplay" style="font-family: var(--font-mono); font-weight: 800;">Rp 0</span>
+          </div>
+          <div style="border-top: 1px dashed var(--border-color); margin: 4px 0;"></div>
+          <div style="display: flex; justify-content: space-between; font-size: 1.05rem;">
+            <span style="font-weight: 800;" data-i18n="closingCashPhysical">Uang Fisik di Laci:</span>
+            <span id="closingCashDisplay" style="font-family: var(--font-mono); font-weight: 900;">Rp 0</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
+            <span>Jumlah Transaksi:</span>
+            <span id="closingCountDisplay">0 Data</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="flex-direction: column; gap: 8px;">
+        <button class="btn-primary-action btn-wa" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 14px;" onclick="FinanceModule.sendClosingWA()">
+          <span>📲</span> Kirim Rekapan Closing ke WA Owner (085334101996)
+        </button>
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted); width: 100%; justify-content: center;" onclick="FinanceModule.closeClosingModal()">
+          Tutup / Batal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LIBRARIES -->
   <script src="libs/chart.umd.js"></script>
   <script src="libs/jspdf.umd.min.js"></script>
   <script src="libs/jspdf.plugin.autotable.min.js"></script>
@@ -670,6 +798,8 @@
 
   <!-- APPLICATION SCRIPTS -->
   <script src="js/storage.js"></script>
+  <script src="js/i18n.js"></script>
+  <script src="js/whatsapp.js"></script>
   <script src="js/export-pdf.js"></script>
   <script src="js/export-word.js"></script>
   <script src="js/pos.js"></script>

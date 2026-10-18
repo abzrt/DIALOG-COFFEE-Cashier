@@ -140,15 +140,15 @@ const WordExporter = {
     // Table Header
     tableRowsXml += `<w:tr>
       <w:trPr><w:tblHeader/></w:trPr>
-      ${cell('No', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'center', w: 500, sz: 18 })}
-      ${cell('Tanggal & Jam', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'center', w: 1600, sz: 18 })}
-      ${cell('No. Nota', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'center', w: 1200, sz: 18 })}
-      ${cell('Tipe', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'center', w: 1200, sz: 18 })}
-      ${cell('Kategori', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'left', w: 1500, sz: 18 })}
-      ${cell('Keterangan & Rincian Item', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'left', w: 3000, sz: 18 })}
-      ${cell('Metode', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'center', w: 1100, sz: 18 })}
-      ${cell('Pemasukan (Rp)', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'right', w: 1400, sz: 18 })}
-      ${cell('Pengeluaran (Rp)', { bg: '38220F', color: 'FFFFFF', bold: true, align: 'right', w: 1400, sz: 18 })}
+      ${cell('No', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'center', w: 500, sz: 18 })}
+      ${cell('Tanggal & Jam', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'center', w: 1600, sz: 18 })}
+      ${cell('No. Nota', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'center', w: 1200, sz: 18 })}
+      ${cell('Tipe', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'center', w: 1200, sz: 18 })}
+      ${cell('Kategori & Shift', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'left', w: 1600, sz: 18 })}
+      ${cell('Keterangan & Rincian Item', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'left', w: 2900, sz: 18 })}
+      ${cell('Metode', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'center', w: 1100, sz: 18 })}
+      ${cell('Pemasukan (Rp)', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'right', w: 1400, sz: 18 })}
+      ${cell('Pengeluaran (Rp)', { bg: '18181B', color: 'FFFFFF', bold: true, align: 'right', w: 1400, sz: 18 })}
     </w:tr>`;
 
     transactions.forEach((t, idx) => {
@@ -157,15 +157,16 @@ const WordExporter = {
         ? t.items.map(i => `${i.name} (x${i.qty})`).join(', ')
         : '';
       const fullDesc = itemsDetail ? `${t.description || '-'} [Item: ${itemsDetail}]` : (t.description || '-');
-      const rowBg = idx % 2 === 1 ? 'F9FAFB' : 'FFFFFF';
+      const rowBg = idx % 2 === 1 ? 'F4F4F5' : 'FFFFFF';
+      const catShift = `${t.category || '-'} (${t.shift || 'Shift 1'})`;
 
       tableRowsXml += `<w:tr>
         ${cell(String(idx + 1), { bg: rowBg, align: 'center', w: 500 })}
         ${cell(this.formatDateTime(t.date), { bg: rowBg, align: 'center', w: 1600 })}
         ${cell(t.id, { bg: rowBg, align: 'center', w: 1200 })}
         ${cell(isIncome ? 'PEMASUKAN' : 'PENGELUARAN', { bg: rowBg, color: isIncome ? '15803D' : 'B91C1C', bold: true, align: 'center', w: 1200 })}
-        ${cell(t.category || '-', { bg: rowBg, w: 1500 })}
-        ${cell(fullDesc, { bg: rowBg, w: 3000 })}
+        ${cell(catShift, { bg: rowBg, w: 1600 })}
+        ${cell(fullDesc, { bg: rowBg, w: 2900 })}
         ${cell(t.paymentMethod || 'Tunai', { bg: rowBg, align: 'center', w: 1100 })}
         ${cell(isIncome ? this.formatRupiah(t.amount) : '-', { bg: rowBg, color: '15803D', bold: isIncome, align: 'right', w: 1400 })}
         ${cell(!isIncome ? this.formatRupiah(t.amount) : '-', { bg: rowBg, color: 'B91C1C', bold: !isIncome, align: 'right', w: 1400 })}
@@ -174,9 +175,9 @@ const WordExporter = {
 
     // Foot Row
     tableRowsXml += `<w:tr>
-      ${cell('TOTAL KESELURUHAN', { bg: 'F3F4F6', bold: true, align: 'right', w: 10100, sz: 19 })}
-      ${cell(this.formatRupiah(totalIncome), { bg: 'F3F4F6', color: '15803D', bold: true, align: 'right', w: 1400, sz: 19 })}
-      ${cell(this.formatRupiah(totalExpense), { bg: 'F3F4F6', color: 'B91C1C', bold: true, align: 'right', w: 1400, sz: 19 })}
+      ${cell('TOTAL KESELURUHAN', { bg: 'F4F4F5', bold: true, align: 'right', w: 10100, sz: 19 })}
+      ${cell(this.formatRupiah(totalIncome), { bg: 'F4F4F5', color: '15803D', bold: true, align: 'right', w: 1400, sz: 19 })}
+      ${cell(this.formatRupiah(totalExpense), { bg: 'F4F4F5', color: 'B91C1C', bold: true, align: 'right', w: 1400, sz: 19 })}
     </w:tr>`;
 
     // Build Word Document XML
@@ -186,21 +187,22 @@ const WordExporter = {
     <!-- BRAND HEADER -->
     <w:p>
       <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="40"/></w:pPr>
-      <w:r><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="38220F"/></w:rPr><w:t>${this.escapeXml(settings.cafeName)}</w:t></w:r>
+      <w:r><w:rPr><w:b/><w:sz w:val="40"/><w:color w:val="09090B"/></w:rPr><w:t>${this.escapeXml(settings.cafeName)}</w:t></w:r>
     </w:p>
     <w:p>
       <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="40"/></w:pPr>
-      <w:r><w:rPr><w:i/><w:sz w:val="20"/><w:color w:val="78716C"/></w:rPr><w:t>${this.escapeXml(settings.tagline)}</w:t></w:r>
+      <w:r><w:rPr><w:i/><w:sz w:val="20"/><w:color w:val="71717A"/></w:rPr><w:t>${this.escapeXml(settings.tagline)}</w:t></w:r>
     </w:p>
     <w:p>
       <w:pPr><w:jc w:val="center"/><w:spacing w:before="0" w:after="160"/></w:pPr>
-      <w:r><w:rPr><w:sz w:val="18"/><w:color w:val="8C7B70"/></w:rPr><w:t>${this.escapeXml(settings.address)} | Telp: ${this.escapeXml(settings.phone)}</w:t></w:r>
+      <w:r><w:rPr><w:sz w:val="18"/><w:color w:val="71717A"/></w:rPr><w:t>${this.escapeXml(settings.address)} | WA Owner: ${this.escapeXml(settings.ownerPhone || '085334101996')}</w:t></w:r>
     </w:p>
 
     <!-- HORIZONTAL DIVIDER LINE -->
     <w:p>
-      <w:pPr><w:pBdr><w:bottom w:val="single" w:sz="18" w:space="1" w:color="C59B6D"/></w:pPr><w:spacing w:after="240"/></w:pPr>
+      <w:pPr><w:pBdr><w:bottom w:val="single" w:sz="18" w:space="1" w:color="09090B"/></w:pPr><w:spacing w:after="240"/></w:pPr>
     </w:p>
+
 
     <!-- TITLE -->
     <w:p>

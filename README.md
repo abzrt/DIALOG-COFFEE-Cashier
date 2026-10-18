@@ -1,143 +1,101 @@
-# ☕ DIALOG COFFEE Cashier
+# ☕ DIALOG COFFEE Cashier (Android & Web)
 
-Aplikasi Kasir & Pembukuan Keuangan Modern untuk **Android** dan **Web** yang dirancang khusus untuk kedai kopi (coffee shop) **DIALOG COFFEE**. Aplikasi ini mencatat pemasukan dan pengeluaran secara terperinci serta menyediakan fitur ekspor laporan resmi ke format **Microsoft Word (.docx)** dan **Adobe PDF (.pdf)**.
+Aplikasi Kasir & Pembukuan Keuangan Modern berbasis **Android** dan **Web** dengan desain monokrom **Hitam & Putih (Black & White Luxe Minimalist)** yang dirancang khusus untuk **DIALOG COFFEE**. Aplikasi ini mencatat pemasukan dan pengeluaran secara detil, terintegrasi notifikasi otomatis ke **WhatsApp Owner (085334101996)**, mendukung sistem **2 Shift (2 Barista per shift)**, bilingual (Indonesia & English), serta ekspor laporan ke format **Microsoft Word (.docx)** dan **Adobe PDF (.pdf)**.
 
-![DIALOG COFFEE Logo](assets/dialog_logo.jpg)
-
----
-
-## ✨ Fitur Utama
-
-### 1. 🛒 Kasir Digital (Point of Sale / POS)
-- **Katalog Menu Kopi Lengkap**: Kategori Signature Coffee, Espresso Bar, Non-Coffee, Manual Brew, dan Pastry & Snacks.
-- **Pencarian Cepat & Filter Kategori**: Cari nama produk secara instan.
-- **Keranjang Pesanan Interaktif**: Tambah/kurang kuantitas, hitung subtotal otomatis, dan pajak restoran (PB1).
-- **Proses Checkout Cepat**:
-  - Pilihan metode bayar: Tunai (Cash), QRIS, Transfer Bank, dan Kartu Debit.
-  - Tombol cepat uang pecahan (*Uang Pas, Rp 20.000, Rp 50.000, Rp 100.000, Rp 200.000, Rp 500.000*).
-  - Perhitungan uang kembalian secara *real-time*.
-- **Struk Kasir Thermal (Thermal Receipt)**:
-  - Tampilan struk ala cafe modern dengan rincian item, nomor nota, nama kasir, dan pesan footer.
-  - Opsi **Cetak Struk Langsung** (mendukung printer thermal 58mm & 80mm).
-  - Opsi **Unduh Struk PDF**.
-
-### 2. 💰 Buku Kas Keuangan Detail (Pemasukan & Pengeluaran)
-- **Ringkasan Metrik Realtime (KPI Cards)**:
-  - Total Pemasukan
-  - Total Pengeluaran
-  - Laba / (Rugi) Bersih
-  - Saldo Kas di Laci Kasir
-- **Pencatatan Pengeluaran Terperinci**:
-  - Kategori pengeluaran cafe: *Bahan Baku (Biji Kopi, Susu, Sirup, Powder), Kemasan (Cup, Sedotan, Seal, Paper Bag), Operasional (Listrik PLN, Air, Gas, WiFi), Gaji Barista & Staff, Perawatan Alat Mesin Espresso, Perlengkapan Kebersihan, Pemasaran & Promo, dll.*
-  - Tanggal & waktu transaksi.
-  - Metode bayar (Kas Toko, Petty Cash, Rekening Operasional, QRIS, Transfer).
-  - Penanggung Jawab / PIC kasir.
-  - Nomor referensi / nomor nota supplier.
-- **Pencatatan Pemasukan Manual**:
-  - Modal Awal Kasir (*Opening Float*), Penjualan Biji Kopi Sangrai (*Beans*), Katering / Event, Merchandise.
-- **Riwayat & Filter Transaksi**:
-  - Filter berdasarkan tipe (*Semua, Pemasukan, Pengeluaran*), kategori, dan kotak pencarian nomor nota / deskripsi.
-  - Hapus dan tinjau struk transaksi lama.
-
-### 3. 📈 Laporan & Analitik Interaktif
-- **Filter Rentang Tanggal**: Hari Ini, Kemarin, 7 Hari Terakhir, Bulan Ini, Bulan Lalu, Semua Waktu, atau Custom Tanggal Dari - Sampai.
-- **Visualisasi Grafik**:
-  - Grafik Batang Tren Arus Kas Harian (Pemasukan vs Pengeluaran).
-  - Diagram Donat (*Donut Chart*) Komposisi Pengeluaran Terbesar.
-- **Peringkat 5 Menu Terlaris**: Pantau menu kopi yang paling banyak dipesan pelanggan.
-
-### 4. 📑 Pusat Ekspor Dokumen Resmi (Word & PDF)
-- **📄 Ekspor ke PDF (.pdf)**:
-  - Kop surat resmi DIALOG COFFEE beserta alamat dan kontak.
-  - Kotak ringkasan eksekutif (Total Masuk, Total Keluar, Laba Bersih, Jumlah Transaksi).
-  - Tabel detail transaksi rapi dengan nomor, waktu, ID nota, jenis, kategori, rincian per item, metode bayar, dan nominal.
-  - Lembar pengesahan tanda tangan: **Kasir On Duty** dan **Store Manager / Owner**.
-- **📝 Ekspor ke Microsoft Word (.docx)**:
-  - Berkas asli OpenXML Word (.docx) berformat landscape A4.
-  - Tabel terstruktur rapi dengan border dan header berwarna tema cafe.
-  - 100% kompatibel dan dapat diedit di **Microsoft Word**, **Google Docs**, dan **WPS Office**.
-- **📊 Ekspor ke Excel (.csv)**:
-  - Format tabular CSV standar untuk analisis lanjutan di spreadsheet.
-
-### 5. 📱 Kompatibilitas Android & Mobile First
-- Proyek Android siap build dengan **Capacitor** di folder `android/`.
-- UI Responsif khusus Android:
-  - Bottom Navigation Bar khas aplikasi mobile Android.
-  - Animasi sentuh responsif.
-  - Efek suara audio synthesizer (klik tombol & denting kasir).
-  - Berfungsi offline tanpa kuota internet dengan Service Worker (`sw.js`).
-  - Mode PWA (*Progressive Web App*) yang dapat ditambahkan ke layar utama (*Add to Home screen*).
+<p align="center">
+  <img src="assets/dialog_logo.jpg" alt="DIALOG COFFEE Logo" width="180">
+</p>
 
 ---
 
-## 📂 Struktur Direktori Proyek
+## 📋 Daftar Menu Resmi DIALOG COFFEE
 
-```
-DIALOG-COFFEE-Cashier/
-├── index.html              # Antarmuka utama aplikasi Kasir & Buku Kas
-├── manifest.json           # Android Web App Manifest
-├── sw.js                   # Service Worker untuk caching offline Android
-├── capacitor.config.json   # Konfigurasi Capacitor Android
-├── package.json            # Dependensi dan npm scripts
-├── assets/
-│   └── dialog_logo.jpg     # Logo resmi DIALOG COFFEE
-├── css/
-│   └── style.css           # Design system tema kopi dark lux & responsive
-├── js/
-│   ├── app.js              # Controller utama, navigasi, jam, efek audio
-│   ├── storage.js          # Pengelola data LocalStorage & data sampel
-│   ├── pos.js              # Modul Kasir POS, keranjang, checkout & struk
-│   ├── finance.js          # Modul Buku Kas pemasukan & pengeluaran detail
-│   ├── reports.js          # Modul analitik, grafik Chart.js, & filter
-│   ├── export-pdf.js       # Generator dokumen PDF (jsPDF + autotable)
-│   └── export-word.js      # Generator dokumen Word .docx asli (JSZip)
-├── libs/                   # Pustaka offline lokal (jsPDF, JSZip, Chart.js)
-├── scripts/
-│   └── sync-android.js     # Script otomatisasi sinkronisasi ke folder www
-├── www/                    # Web assets yang disinkronkan untuk Android
-└── android/                # Native Android Studio Project (Gradle, Manifest, Java)
-    ├── app/
-    │   ├── src/main/AndroidManifest.xml
-    │   └── src/main/java/id/dialogcoffee/cashier/MainActivity.java
-    ├── build.gradle
-    └── gradlew.bat
-```
+### 1. 🍵 NON-COFFEE
+| Menu | Harga | Keterangan |
+| :--- | :--- | :--- |
+| **BISCOFF** | Rp 22.000 | Lotus Biscoff blend creamy dengan biskuit karamel |
+| **CARAMEL REGAL** | Rp 20.000 | Fresh milk, saus karamel lezat & biskuit Marie Regal |
+| **COKLAT** | Rp 18.000 | Dark chocolate pekat dengan susu segar creamy |
+| **THAITEA** | Rp 15.000 | Teh Thailand aromatik segar dan susu manis |
+| **GREENTEA** | Rp 15.000 | Matcha green tea lembut menyegarkan |
+
+### 2. ⭐ SIGNATURE DRINKS
+| Menu | Harga | Keterangan |
+| :--- | :--- | :--- |
+| **DIALOG COFFEE** | Rp 20.000 | Signature house blend espresso, susu segar & gula aren spesial |
+| **COFFEE SECRET** | Rp 20.000 | Racikan resep rahasia barista Dialog beraroma manis |
+| **COFFEE MITOS** | Rp 20.000 | Sentuhan kopi mantap dengan aftertaste butterscotch |
+| **AMERICANO** | Rp 18.000 | Double shot espresso arabica murni hangat / dingin |
+
+### 3. ☕ COFFEE & FLAVOR
+| Menu | Harga |
+| :--- | :--- |
+| **AMERICANO** | Rp 18.000 |
+| **LEMSKUY** | Rp 18.000 |
+| **CARAMEL MACHIATO** | Rp 18.000 |
+| **VANILLA** | Rp 18.000 |
+| **CARAMEL** | Rp 18.000 |
+| **BUTTERSHCOOT** | Rp 18.000 |
+| **TIRAMISU** | Rp 18.000 |
+| **HAZELNUT** | Rp 18.000 |
+| **PANDAN** | Rp 18.000 |
 
 ---
 
-## 🚀 Cara Menjalankan Aplikasi
+## ⚡ Fitur Utama & Pembaruan
 
-### Opsi 1: Menjalankan Langsung di Browser / Komputer Kasir
-Aplikasi tidak memerlukan server backend khusus dan dapat langsung dibuka:
+### 1. 📲 Notifikasi WhatsApp Otomatis ke Owner (`085334101996`)
+- **Pemasukan Baru**: Setiap penjualan kasir (POS) atau kas masuk dapat langsung dikirim ke WhatsApp owner dengan rincian nota, waktu, nominal, kasir/shift, dan detail item.
+- **Pengeluaran Baru**: Setiap pencatatan biaya operasional, bahan baku, atau kas keluar langsung menyediakan tombol kirim rincian ke WhatsApp owner.
+- **🔒 Closing Shift / Tutup Kasir Harian**: Tombol rekapan closing otomatis yang merangkum:
+  - Waktu Closing
+  - Shift & Nama 2 Barista yang bertugas
+  - Total Pemasukan Hari Ini
+  - Total Pengeluaran Hari Ini
+  - Laba / (Rugi) Bersih Hari Ini
+  - **Uang Kas Fisik di Laci** yang harus disetor
+  - Rincian seluruh pengeluaran hari ini
+
+### 2. 👥 Manajemen Shift & Barista (1 Shift = 2 Orang Barista)
+- **Tim Barista Resmi**: `Ardi`, `Anca`, `Jhonson`, `Si Pur`.
+- **2 Shift Kerja**:
+  - **Shift 1**: Pagi - Siang (08:00 - 16:00)
+  - **Shift 2**: Sore - Malam (16:00 - 24:00)
+- **Menu Pengaturan Shift**: Klik *chip* shift pada header untuk mengganti shift aktif dan memilih 2 orang barista yang bertugas.
+- Nama kedua barista otomatis tertera di struk kasir, pencatatan buku kas, dokumen laporan, dan pesan WhatsApp closing.
+
+### 3. 🌐 Penggantian Bahasa (Bilingual: ID / EN)
+- Tombol switch instan di header (`🇮🇩 ID` / `🇬🇧 EN`).
+- Seluruh teks tombol, menu, tabel, form, dan struk diterjemahkan secara dinamis.
+
+### 4. 🎨 Tema Dasar Putih & Hitam (Monochrome Minimalist)
+- Desain monokromatik modern berlatar belakang putih bersih dengan tipografi dan border hitam pekat berkarakter.
+- Dilengkapi tombol toggle `🌙 / ☀️` untuk beralih antara Mode Putih (*Light Monochrome*) dan Mode Hitam (*Dark Monochrome*).
+- Menggunakan logo resmi DIALOG COFFEE yang baru.
+
+### 5. 📑 Ekspor Dokumen Resmi
+- **📄 Ekspor PDF (.pdf)**: Format laporan rapi lengkap dengan kop surat Dialog Coffee, nomor WA owner, tabel transaksi detail, dan tanda tangan Barista On Duty & Owner.
+- **📝 Ekspor Word (.docx)**: Dokumen asli Microsoft Word OpenXML (.docx) landscape A4 dengan tabel bershading hitam-putih rapi, siap diedit kembali.
+- **📊 Ekspor CSV (.csv)**: Data mentah untuk Microsoft Excel atau Google Sheets.
+
+---
+
+## 🚀 Cara Menjalankan
+
+### Menjalankan di Komputer / Browser
 ```bash
-# Menggunakan live server bawaan:
 npm run start
 ```
-Buka browser pada alamat `http://localhost:3000`.
+Buka `http://localhost:3000` di browser.
 
-### Opsi 2: Membuka & Membangun di Android Studio
-Proyek ini sudah dilengkapi folder native Android:
+### Membuka di Android Studio & Membangun APK
 ```bash
-# 1. Sinkronisasi perubahan web ke project Android
+# Sinkronisasi aset terbaru ke Android
 npm run sync
 
-# 2. Buka project di Android Studio
+# Buka project di Android Studio
 npm run android
 ```
-Di Android Studio, Anda dapat langsung mengklik tombol **Run ▶** untuk menguji di emulator / HP Android, atau memilih menu **Build > Build Bundle(s) / APK(s) > Build APK(s)** untuk menghasilkan file instalasi `.apk`.
-
-### Opsi 3: Membangun APK Debug via Terminal
-Jika Android SDK dan Gradle sudah terpasang pada komputer:
-```bash
-npm run build:apk
-```
-File APK akan dibuat di `android/app/build/outputs/apk/debug/app-debug.apk`.
-
----
-
-## 🔒 Keamanan Data & Cadangan
-- Semua transaksi disimpan secara otomatis di memori internal perangkat.
-- Tersedia fitur **Unduh Cadangan Data (JSON)** dan **Pulihkan Data** di menu Pengaturan untuk memastikan riwayat pembukuan kasir Anda selalu aman dan dapat dipindahkan antar perangkat.
 
 ---
 
