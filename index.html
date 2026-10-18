@@ -472,11 +472,15 @@
                 <input type="file" id="restoreFileInput" accept=".json" class="form-control" style="padding: 6px;">
               </div>
 
-              <div style="border-top: 1.5px dashed var(--border-color); padding-top: 12px;">
-                <button class="btn-primary-action" id="btnResetDemoData" style="background: var(--expense-red-bg); color: var(--expense-red); border: 1.5px solid var(--expense-red-border);" data-i18n="resetDemoBtn">
-                  <span>🔄</span> Reset &amp; Muat Ulang Data Sampel DIALOG COFFEE
+              <div style="border-top: 1.5px dashed var(--border-color); padding-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <button class="btn-primary-action" id="btnClearTransactions" style="background: var(--expense-red-bg); color: var(--expense-red); border: 1.5px solid var(--expense-red-border); width: 100%; justify-content: center;">
+                  <span>🗑️</span> Kosongkan Seluruh Riwayat Transaksi (Mulai Dari Nol)
+                </button>
+                <button class="btn-primary-action" id="btnResetDemoData" style="background: var(--bg-surface); color: var(--text-muted); border: 1px solid var(--border-color); width: 100%; justify-content: center; font-size: 0.78rem;">
+                  <span>🔄</span> Reset Menu &amp; Pengaturan Default
                 </button>
               </div>
+
             </div>
 
             <!-- Barista & Shift Info -->

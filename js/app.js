@@ -348,13 +348,24 @@ const App = {
     const resetBtn = document.getElementById('btnResetDemoData');
     if (resetBtn) {
       resetBtn.addEventListener('click', () => {
-        if (confirm('Kembalikan semua menu dan transaksi ke data awal DIALOG COFFEE?')) {
+        if (confirm('Kembalikan semua menu dan konfigurasi ke pengaturan awal DIALOG COFFEE?')) {
           StorageManager.resetAllData();
           location.reload();
         }
       });
     }
+
+    const clearTrxBtn = document.getElementById('btnClearTransactions');
+    if (clearTrxBtn) {
+      clearTrxBtn.addEventListener('click', () => {
+        if (confirm('Kosongkan semua data transaksi kasir dan rekapan? Semua angka pemasukan dan pengeluaran akan dimulai dari Rp 0.')) {
+          StorageManager.clearAllTransactions();
+          location.reload();
+        }
+      });
+    }
   },
+
 
   formatRupiah(num) {
     return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
