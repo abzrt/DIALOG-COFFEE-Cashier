@@ -15,6 +15,7 @@ const App = {
     this.initClock();
     this.bindNavigation();
     this.loadShiftHeader();
+    window.addEventListener('resize', () => this.loadShiftHeader());
     this.loadSettingsForm();
     this.bindSettingsEvents();
 
@@ -74,7 +75,25 @@ const App = {
     const s = StorageManager.getSettings();
     const shiftChip = document.getElementById('topShiftDisplay');
     if (shiftChip) {
-      shiftChip.textContent = `${s.activeShift || 'Shift 1'}: ${s.activeBarista1 || 'Ardi'} & ${s.activeBarista2 || 'Anca'}`;
+      const w = window.innerWidth;
+      if (w <= 480) {
+        shiftChip.textContent = `S${(s.activeShift || '1').replace(/\D/g, '') || '1'}`;
+      } else if (w <= 767) {
+        shiftChip.textContent = `${s.activeShift || 'Shift 1'}`;
+      } else if (w <= 950) {
+        shiftChip.textContent = `${s.activeShift || 'Shift 1'}: ${s.activeBarista1 || 'Ardi'}`;
+      } else {
+        shiftChip.textContent = `${s.activeShift || 'Shift 1'}: ${s.activeBarista1 || 'Ardi'} & ${s.activeBarista2 || 'Anca'}`;
+      }
+      if (shiftChip.parentElement) {
+        shiftChip.parentElement.title = `Shift: ${s.activeShift || 'Shift 1'} (${s.activeBarista1 || 'Ardi'} & ${s.activeBarista2 || 'Anca'})`;
+      }
+    }
+
+    const langBtn = document.getElementById('langToggleBtn');
+    if (langBtn) {
+      const lang = window.I18N ? I18N.currentLang : 'id';
+      langBtn.innerHTML = window.innerWidth <= 767 ? (lang === 'id' ? 'ID' : 'EN') : (lang === 'id' ? '🇮🇩 ID' : '🇬🇧 EN');
     }
   },
 

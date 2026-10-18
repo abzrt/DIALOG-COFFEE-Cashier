@@ -10,10 +10,10 @@ const I18N = {
     id: {
       appName: 'DIALOG COFFEE',
       cashierBadge: 'KASIR',
-      posTab: 'Kasir (POS)',
+      posTab: 'Kasir',
       financeTab: 'Buku Kas',
-      reportsTab: 'Laporan & Grafik',
-      exportTab: 'Ekspor Dokumen',
+      reportsTab: 'Laporan',
+      exportTab: 'Ekspor',
       settingsTab: 'Pengaturan',
       
       // Shift & Barista
@@ -135,10 +135,10 @@ const I18N = {
     en: {
       appName: 'DIALOG COFFEE',
       cashierBadge: 'CASHIER',
-      posTab: 'POS Cashier',
-      financeTab: 'Cash Book',
-      reportsTab: 'Reports & Charts',
-      exportTab: 'Export Documents',
+      posTab: 'Cashier',
+      financeTab: 'Ledger',
+      reportsTab: 'Reports',
+      exportTab: 'Export',
       settingsTab: 'Settings',
 
       // Shift & Barista
@@ -292,7 +292,8 @@ const I18N = {
     // Update Language Button Indicator
     const langBtn = document.getElementById('langToggleBtn');
     if (langBtn) {
-      langBtn.innerHTML = lang === 'id' ? '🇮🇩 ID' : '🇬🇧 EN';
+      const isMobile = window.innerWidth <= 767;
+      langBtn.innerHTML = isMobile ? lang.toUpperCase() : (lang === 'id' ? '🇮🇩 ID' : '🇬🇧 EN');
       langBtn.title = lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia';
     }
 
