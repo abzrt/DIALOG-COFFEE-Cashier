@@ -1,0 +1,8 @@
+node_modules/
+.gradle/
+build/
+android/app/build/
+android/build/
+android/.gradle/
+*.log
+test_output.docx

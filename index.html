@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#120e0b">
+  <meta name="description" content="Aplikasi Kasir Android & Web DIALOG COFFEE untuk mencatat pemasukan dan pengeluaran secara detil dengan fitur ekspor Word & PDF">
+  <title>DIALOG COFFEE - Kasir &amp; Pembukuan Keuangan</title>
+
+  <!-- PWA & Android Icons -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/jpeg" href="assets/dialog_logo.jpg">
+  <link rel="apple-touch-icon" href="assets/dialog_logo.jpg">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-shell">
+    <!-- TOP APP BAR -->
+    <header class="top-appbar">
+      <div class="brand-section">
+        <img src="assets/dialog_logo.jpg" alt="DIALOG COFFEE" class="brand-logo-img">
+        <div class="brand-info">
+          <h1>DIALOG COFFEE <span class="brand-badge">CASHIER</span></h1>
+          <p id="topClockDisplay">Memuat waktu...</p>
+        </div>
+      </div>
+
+      <!-- Desktop & Tablet Navigation Tabs -->
+      <nav class="nav-tabs">
+        <button class="nav-tab-btn active" data-target-tab="pos">
+          <span>🛒</span> Kasir (POS)
+        </button>
+        <button class="nav-tab-btn" data-target-tab="finance">
+          <span>💰</span> Buku Kas
+        </button>
+        <button class="nav-tab-btn" data-target-tab="reports">
+          <span>📈</span> Laporan &amp; Grafik
+        </button>
+        <button class="nav-tab-btn" data-target-tab="export">
+          <span>📑</span> Ekspor Dokumen
+        </button>
+        <button class="nav-tab-btn" data-target-tab="settings">
+          <span>⚙️</span> Pengaturan
+        </button>
+      </nav>
+
+      <!-- Right Appbar Actions -->
+      <div class="appbar-actions">
+        <div class="shift-chip" title="Shift Petugas Aktif">
+          <div class="status-dot"></div>
+          <span id="topShiftCashier">Aldi Pratama</span>
+        </div>
+        <button class="icon-btn" id="soundToggleBtn" onclick="App.toggleSound()" title="Efek Suara Aktif">
+          🔔
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN VIEWPORT -->
+    <main class="main-viewport">
+
+      <!-- ===================================================================
+           VIEW 1: KASIR / POS
+           =================================================================== -->
+      <section id="view-pos" class="view-section active">
+        <div class="pos-layout">
+          <!-- Catalog Panel -->
+          <div class="pos-catalog-panel">
+            <div class="catalog-controls">
+              <div class="search-input-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="posSearchInput" class="search-input" placeholder="Cari kopi, minuman non-coffee, snack, atau pastry...">
+              </div>
+              <div class="category-chips" id="posCategories">
+                <!-- Injected via pos.js -->
+              </div>
+            </div>
+
+            <div class="menu-grid" id="posMenuGrid">
+              <!-- Injected via pos.js -->
+            </div>
+          </div>
+
+          <!-- Cart Drawer / Sidebar -->
+          <aside class="pos-cart-panel">
+            <div class="cart-header">
+              <h2>🛒 Pesanan Aktif</h2>
+              <button class="clear-cart-btn" id="clearCartBtn">Kosongkan</button>
+            </div>
+
+            <div class="cart-items-list" id="cartItemsList">
+              <!-- Injected via pos.js -->
+            </div>
+
+            <div class="cart-summary">
+              <div class="summary-row">
+                <span>Subtotal:</span>
+                <span id="cartSubtotal" style="font-family: var(--font-mono);">Rp 0</span>
+              </div>
+              <div class="summary-row">
+                <span id="cartTaxRateLabel">Pajak PB1 (10%):</span>
+                <span id="cartTaxAmount" style="font-family: var(--font-mono);">Rp 0</span>
+              </div>
+              <div class="summary-row total-row">
+                <span>Total Bayar:</span>
+                <span id="cartTotal">Rp 0</span>
+              </div>
+              <button class="checkout-btn" id="checkoutBtn" disabled>
+                <span>💳</span> Lanjut Pembayaran
+              </button>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 2: BUKU KAS (PEMASUKAN & PENGELUARAN DETAIL)
+           =================================================================== -->
+      <section id="view-finance" class="view-section">
+        <div class="finance-layout">
+          <!-- KPI Summary Cards -->
+          <div class="kpi-grid">
+            <div class="kpi-card income">
+              <div class="kpi-header">
+                <span class="kpi-title">Total Pemasukan</span>
+                <span class="kpi-icon">📈</span>
+              </div>
+              <div class="kpi-amount" id="kpiTotalIncome">Rp 0</div>
+              <div class="kpi-subtitle">Hasil penjualan kasir &amp; kas masuk</div>
+            </div>
+
+            <div class="kpi-card expense">
+              <div class="kpi-header">
+                <span class="kpi-title">Total Pengeluaran</span>
+                <span class="kpi-icon">📉</span>
+              </div>
+              <div class="kpi-amount" id="kpiTotalExpense">Rp 0</div>
+              <div class="kpi-subtitle">Bahan baku, operasional, &amp; gaji</div>
+            </div>
+
+            <div class="kpi-card profit">
+              <div class="kpi-header">
+                <span class="kpi-title">Laba / (Rugi) Bersih</span>
+                <span class="kpi-icon">⚖️</span>
+              </div>
+              <div class="kpi-amount" id="kpiNetProfit">Rp 0</div>
+              <div class="kpi-subtitle">Pemasukan dikurangi pengeluaran</div>
+            </div>
+
+            <div class="kpi-card balance">
+              <div class="kpi-header">
+                <span class="kpi-title">Kas di Laci (Tunai)</span>
+                <span class="kpi-icon">💵</span>
+              </div>
+              <div class="kpi-amount" id="kpiCashBalance">Rp 0</div>
+              <div class="kpi-subtitle">Saldo fisik kasir saat ini</div>
+            </div>
+          </div>
+
+          <!-- Action & Filter Bar -->
+          <div class="ledger-header-panel">
+            <div class="ledger-actions">
+              <button class="btn-primary-action btn-income" onclick="FinanceModule.openRecordModal('income')">
+                <span>➕</span> Catat Pemasukan
+              </button>
+              <button class="btn-primary-action btn-expense" onclick="FinanceModule.openRecordModal('expense')">
+                <span>➖</span> Catat Pengeluaran Detail
+              </button>
+            </div>
+
+            <div class="ledger-filters">
+              <select id="financeTypeFilter" class="filter-select">
+                <option value="all">Semua Tipe Transaksi</option>
+                <option value="income">Hanya Pemasukan</option>
+                <option value="expense">Hanya Pengeluaran</option>
+              </select>
+
+              <select id="financeCategoryFilter" class="filter-select">
+                <option value="all">Semua Kategori</option>
+              </select>
+
+              <input type="text" id="financeSearchInput" class="filter-select" placeholder="Cari transaksi / nota..." style="min-width: 180px;">
+            </div>
+          </div>
+
+          <!-- Transaction Data Table -->
+          <div class="table-container">
+            <div style="padding: 12px 16px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+              <span id="financeRowCount">0 Transaksi Tercatat</span>
+              <span>Diurutkan berdasarkan transaksi terkini</span>
+            </div>
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px;">No</th>
+                  <th>Tanggal &amp; ID</th>
+                  <th>Tipe</th>
+                  <th>Kategori</th>
+                  <th>Keterangan / Rincian</th>
+                  <th>Metode</th>
+                  <th style="text-align: right;">Nominal</th>
+                  <th style="width: 80px; text-align: center;">Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="financeTableBody">
+                <!-- Injected via finance.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 3: LAPORAN & GRAFIK ANALITIK
+           =================================================================== -->
+      <section id="view-reports" class="view-section">
+        <div class="reports-layout">
+          <!-- Filter Bar -->
+          <div class="ledger-header-panel">
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <span style="font-weight: 700; font-size: 0.9rem;">Filter Periode Laporan:</span>
+              <select id="reportPeriodSelect" class="filter-select">
+                <option value="today">Hari Ini</option>
+                <option value="yesterday">Kemarin</option>
+                <option value="7days">7 Hari Terakhir</option>
+                <option value="this_month" selected>Bulan Ini</option>
+                <option value="last_month">Bulan Lalu</option>
+                <option value="all">Semua Waktu</option>
+                <option value="custom">Rentang Tanggal Khusus</option>
+              </select>
+
+              <div id="customDateRangeWrapper" style="display: none; align-items: center; gap: 6px;">
+                <input type="date" id="reportCustomStart" class="filter-select">
+                <span>s/d</span>
+                <input type="date" id="reportCustomEnd" class="filter-select">
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+              <button class="btn-primary-action" style="background: var(--bg-surface); color: #f87171; border: 1px solid rgba(239,68,68,0.4);" onclick="ReportsModule.triggerExportPDF()">
+                <span>📄</span> Unduh PDF
+              </button>
+              <button class="btn-primary-action" style="background: var(--bg-surface); color: #60a5fa; border: 1px solid rgba(59,130,246,0.4);" onclick="ReportsModule.triggerExportWord()">
+                <span>📝</span> Unduh Word
+              </button>
+            </div>
+          </div>
+
+          <!-- Periode KPI -->
+          <div class="kpi-grid">
+            <div class="kpi-card income">
+              <span class="kpi-title">Pemasukan Periode</span>
+              <div class="kpi-amount" id="reportTotalIncome">Rp 0</div>
+            </div>
+            <div class="kpi-card expense">
+              <span class="kpi-title">Pengeluaran Periode</span>
+              <div class="kpi-amount" id="reportTotalExpense">Rp 0</div>
+            </div>
+            <div class="kpi-card profit">
+              <span class="kpi-title">Laba / (Rugi) Bersih</span>
+              <div class="kpi-amount" id="reportNetProfit">Rp 0</div>
+            </div>
+            <div class="kpi-card balance">
+              <span class="kpi-title">Volume Transaksi</span>
+              <div class="kpi-amount" id="reportTotalCount" style="color: #38bdf8;">0 Data</div>
+            </div>
+          </div>
+
+          <!-- Charts Grid -->
+          <div class="chart-grid">
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3>📊 Tren Arus Kas Harian (Pemasukan vs Pengeluaran)</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="trendChartCanvas"></canvas>
+              </div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-header">
+                <h3>🍩 Komposisi Kategori Pengeluaran</h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="categoryDonutCanvas"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Top Products -->
+          <div class="chart-card">
+            <div class="chart-header">
+              <h3>🏆 5 Produk Kopi &amp; Menu Terlaris (Periode Ini)</h3>
+            </div>
+            <div id="topProductsContainer">
+              <!-- Injected via reports.js -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 4: EKSPOR DOKUMEN (WORD & PDF CENTER)
+           =================================================================== -->
+      <section id="view-export" class="view-section">
+        <div class="export-hub-layout">
+          <!-- Hero Banner -->
+          <div class="export-hero-banner">
+            <div class="export-hero-text">
+              <h2>Pusat Ekspor Laporan Keuangan &amp; Kasir</h2>
+              <p>Cetak dan unduh laporan arus kas resmi DIALOG COFFEE dalam format <strong>Microsoft Word (.docx)</strong> dan <strong>Adobe PDF (.pdf)</strong> berstandar akuntansi lengkap dengan kop surat, metrik keuangan, rincian nota, dan tanda tangan pengesahan.</p>
+            </div>
+          </div>
+
+          <!-- Export Scope Filter -->
+          <div class="ledger-header-panel">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <span style="font-weight: 700; font-size: 0.9rem;">Cakupan Transaksi Ekspor:</span>
+              <select id="exportScopeFilter" class="filter-select">
+                <option value="all">Semua Data (Pemasukan &amp; Pengeluaran Lengkap)</option>
+                <option value="income">Hanya Data Pemasukan Kasir</option>
+                <option value="expense">Hanya Data Pengeluaran Cafe</option>
+              </select>
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);">
+              Data mengikuti filter periode yang dipilih pada tab Laporan
+            </div>
+          </div>
+
+          <!-- Cards Grid -->
+          <div class="export-cards-grid">
+            <!-- PDF Card -->
+            <div class="export-card pdf-theme">
+              <span class="export-badge pdf">FORMAT PDF</span>
+              <div class="export-icon-box">📄</div>
+              <div class="export-info">
+                <h3>Laporan Resmi PDF (.pdf)</h3>
+                <p>Dokumen siap cetak dengan layout profesional A4, kop surat DIALOG COFFEE, kartu ringkasan keuangan, tabel zebra-striping, dan kolom tanda tangan kasir &amp; manager.</p>
+              </div>
+              <ul class="export-features">
+                <li>Header resmi &amp; alamat lengkap cafe</li>
+                <li>Ringkasan Total Masuk, Total Keluar, Laba Bersih</li>
+                <li>Tabel rincian nota &amp; keterangan per item</li>
+                <li>Kolom pengesahan (Kasir On Duty &amp; Manager)</li>
+                <li>Siap dicetak langsung atau dikirim via WhatsApp/Email</li>
+              </ul>
+              <button class="btn-download-export pdf" onclick="ReportsModule.triggerExportPDF()">
+                <span>⬇️</span> Unduh Dokumen PDF (.pdf)
+              </button>
+            </div>
+
+            <!-- Word (.docx) Card -->
+            <div class="export-card word-theme">
+              <span class="export-badge word">FORMAT WORD (.DOCX)</span>
+              <div class="export-icon-box">📝</div>
+              <div class="export-info">
+                <h3>Dokumen Microsoft Word (.docx)</h3>
+                <p>Format dokumen Word OpenXML asli yang kompatibel 100% dengan Microsoft Word, Google Docs, dan WPS Office. Bebas diedit kembali untuk kebutuhan pembukuan &amp; pelaporan investor.</p>
+              </div>
+              <ul class="export-features">
+                <li>Native XML Word Document (.docx)</li>
+                <li>Tabel terstruktur rapi dengan styling warna tema</li>
+                <li>Font Calibri proporsional dan mudah diedit ulang</li>
+                <li>Layout landscape A4 agar muat rincian tabel luas</li>
+                <li>Lembar tanda tangan &amp; pengesahan formal</li>
+              </ul>
+              <button class="btn-download-export word" onclick="ReportsModule.triggerExportWord()">
+                <span>⬇️</span> Unduh Dokumen Word (.docx)
+              </button>
+            </div>
+
+            <!-- CSV / Excel Card -->
+            <div class="export-card csv-theme">
+              <span class="export-badge csv">SPREADSHEET</span>
+              <div class="export-icon-box">📊</div>
+              <div class="export-info">
+                <h3>Lembar Sebar Excel (.csv)</h3>
+                <p>Data mentah tabular terformat CSV standar UTF-8 untuk analisis lanjutan menggunakan Microsoft Excel, Google Sheets, atau software akuntansi cafe lainnya.</p>
+              </div>
+              <ul class="export-features">
+                <li>Kompatibel dengan semua versi Excel &amp; Sheets</li>
+                <li>Kolom terpisah rapi (No, Tanggal, Nota, Kategori, Nominal)</li>
+                <li>Mudah diolah rumus pivot, sum, dan vlookup</li>
+                <li>Ukuran berkas sangat ringan dan cepat</li>
+              </ul>
+              <button class="btn-download-export csv" onclick="ReportsModule.triggerExportCSV()">
+                <span>⬇️</span> Unduh Berkas CSV / Excel (.csv)
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===================================================================
+           VIEW 5: PENGATURAN & KELOLA TOKO
+           =================================================================== -->
+      <section id="view-settings" class="view-section">
+        <div class="settings-grid">
+          <!-- Profil & Kasir Form -->
+          <div class="settings-card">
+            <h3><span>☕</span> Profil Cafe &amp; Kasir DIALOG COFFEE</h3>
+            <form id="settingsForm">
+              <div class="form-group">
+                <label>Nama Cafe / Brand</label>
+                <input type="text" id="cfgCafeName" class="form-control" required>
+              </div>
+              <div class="form-group">
+                <label>Tagline / Slogan</label>
+                <input type="text" id="cfgTagline" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Alamat Lengkap</label>
+                <textarea id="cfgAddress" class="form-control" rows="2"></textarea>
+              </div>
+              <div class="form-group">
+                <label>Nomor Telepon / WhatsApp Kasir</label>
+                <input type="text" id="cfgPhone" class="form-control">
+              </div>
+              <div class="form-group">
+                <label>Nama Kasir / Barista Aktif Saat Ini</label>
+                <input type="text" id="cfgActiveCashier" class="form-control" placeholder="Contoh: Aldi Pratama (Barista)">
+              </div>
+              <div class="form-group" style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
+                <div style="flex: 1;">
+                  <label>Pajak Restoran / PB1 (%)</label>
+                  <input type="number" id="cfgTaxRate" class="form-control" min="0" max="100">
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; margin-top: 20px;">
+                  <input type="checkbox" id="cfgTaxEnabled" style="width: 18px; height: 18px;">
+                  <label for="cfgTaxEnabled" style="cursor: pointer;">Aktifkan Pajak</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label>Pesan Footer Struk Kasir</label>
+                <textarea id="cfgReceiptFooter" class="form-control" rows="3"></textarea>
+              </div>
+              <button type="submit" class="btn-save-settings">💾 Simpan Perubahan Profil</button>
+            </form>
+          </div>
+
+          <!-- Data Backup & Reset -->
+          <div class="settings-card">
+            <h3><span>🛡️</span> Manajemen Cadangan Data &amp; Pemulihan</h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Semua data kasir, menu, dan transaksi disimpan aman di memori lokal perangkat Android / browser Anda. Anda dapat mengunduh berkas cadangan (JSON) kapan saja untuk keamanan.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 8px;">
+              <button class="btn-primary-action" id="btnDownloadBackup" style="background: var(--bg-surface); border: 1px solid var(--accent-gold); color: var(--accent-gold-light);">
+                <span>💾</span> Unduh Cadangan Data Lengkap (Backup JSON)
+              </button>
+
+              <div style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px;">
+                  Pulihkan Data dari Berkas Cadangan:
+                </label>
+                <input type="file" id="restoreFileInput" accept=".json" class="form-control" style="padding: 6px;">
+              </div>
+
+              <div style="border-top: 1px dashed var(--border-color); padding-top: 12px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--expense-red); display: block; margin-bottom: 6px;">
+                  Kembalikan ke Contoh Data Demo:
+                </label>
+                <button class="btn-primary-action" id="btnResetDemoData" style="background: rgba(239, 68, 68, 0.1); color: var(--expense-red); border: 1px solid var(--expense-red-border);">
+                  <span>🔄</span> Reset &amp; Muat Ulang Data Sampel DIALOG COFFEE
+                </button>
+              </div>
+            </div>
+
+            <!-- Informasi Versi Android -->
+            <div style="margin-top: auto; padding-top: 20px; border-top: 1px solid var(--border-color); font-size: 0.75rem; color: var(--text-muted);">
+              <div>📱 <strong>DIALOG COFFEE Cashier Android Edition</strong></div>
+              <div>ID Aplikasi: <code>id.dialogcoffee.cashier</code></div>
+              <div>Versi: 1.0.0 (Build 2026.10)</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ANDROID BOTTOM NAVIGATION BAR (FOR MOBILE & TABLET) -->
+    <nav class="bottom-nav-bar">
+      <button class="bottom-nav-item active" data-target-tab="pos">
+        <span class="nav-icon">🛒</span>
+        <span>Kasir</span>
+      </button>
+      <button class="bottom-nav-item" data-target-tab="finance">
+        <span class="nav-icon">💰</span>
+        <span>Buku Kas</span>
+      </button>
+      <button class="bottom-nav-item" data-target-tab="reports">
+        <span class="nav-icon">📈</span>
+        <span>Laporan</span>
+      </button>
+      <button class="bottom-nav-item" data-target-tab="export">
+        <span class="nav-icon">📑</span>
+        <span>Ekspor</span>
+      </button>
+      <button class="bottom-nav-item" data-target-tab="settings">
+        <span class="nav-icon">⚙️</span>
+        <span>Setting</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 1: PEMBAYARAN KASIR (CHECKOUT MODAL)
+       =================================================================== -->
+  <div id="paymentModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><span>💳</span> Pembayaran Transaksi</h3>
+        <button class="btn-close-modal" onclick="POSModule.closePaymentModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;">Total Tagihan</div>
+          <div id="payModalTotal" style="font-size: 1.8rem; font-weight: 800; font-family: var(--font-mono); color: var(--accent-gold); margin-top: 4px;">Rp 0</div>
+        </div>
+
+        <div class="form-group">
+          <label>Metode Pembayaran</label>
+          <select id="payMethodSelect" class="form-control" onchange="POSModule.updatePaymentChange()">
+            <option value="Tunai">💵 Tunai (Cash)</option>
+            <option value="QRIS">📱 QRIS (Gopay / OVO / Dana / ShopeePay / BCA)</option>
+            <option value="Transfer Bank">🏦 Transfer Bank BCA / Mandiri</option>
+            <option value="Kartu Debit">💳 Kartu Debit / EDC</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Nominal Pembayaran Diterima (Rp)</label>
+          <input type="number" id="payCashInput" class="form-control" style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;" oninput="POSModule.updatePaymentChange()">
+          
+          <div class="quick-cash-grid">
+            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash('exact')">Uang Pas</button>
+            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(20000)">Rp 20.000</button>
+            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(50000)">Rp 50.000</button>
+            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(100000)">Rp 100.000</button>
+            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(200000)">Rp 200.000</button>
+            <button type="button" class="btn-quick-cash" onclick="POSModule.setQuickCash(500000)">Rp 500.000</button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--bg-surface); padding: 12px 16px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+          <span style="font-weight: 700;">Kembalian:</span>
+          <span id="payModalChange" style="font-family: var(--font-mono); font-weight: 800; font-size: 1.15rem; color: var(--income-green);">Rp 0</span>
+        </div>
+
+        <div class="form-group">
+          <label>Catatan Tambahan (Opsional)</label>
+          <input type="text" id="payNotesInput" class="form-control" placeholder="Contoh: Meja 05, Less sugar, Takeaway">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="POSModule.closePaymentModal()">Batal</button>
+        <button class="btn-primary-action btn-income" onclick="POSModule.processCheckout()">
+          <span>✓</span> Bayar &amp; Cetak Struk
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 2: STRUK PEMBAYARAN THERMAL (RECEIPT MODAL)
+       =================================================================== -->
+  <div id="receiptModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3><span>🧾</span> Struk Pembayaran</h3>
+        <button class="btn-close-modal" onclick="POSModule.closeReceiptModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 14px;">
+        <div id="receiptContent">
+          <!-- Injected via pos.js -->
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <button class="btn-primary-action" style="background: var(--bg-surface); color: var(--accent-gold-light); border: 1px solid var(--accent-gold);" onclick="POSModule.downloadReceiptPDF()">
+          <span>📄</span> Unduh PDF Struk
+        </button>
+        <button class="btn-primary-action btn-income" onclick="POSModule.printReceipt()">
+          <span>🖨️</span> Cetak Struk
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 3: CATAT PEMASUKAN / PENGELUARAN DETAIL
+       =================================================================== -->
+  <div id="recordTransactionModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><span>📝</span> Catat Transaksi Keuangan</h3>
+        <button class="btn-close-modal" onclick="FinanceModule.closeRecordModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="type-toggle-group">
+          <button type="button" id="modalTypeIncomeBtn" class="type-toggle-btn income active" onclick="FinanceModule.setModalType('income')">
+            ▲ Pemasukan Kas
+          </button>
+          <button type="button" id="modalTypeExpenseBtn" class="type-toggle-btn expense" onclick="FinanceModule.setModalType('expense')">
+            ▼ Pengeluaran Kas
+          </button>
+        </div>
+
+        <div class="form-group">
+          <label>Kategori Transaksi</label>
+          <select id="trxModalCategory" class="form-control">
+            <!-- Injected via finance.js -->
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Nominal Transaksi (Rp)</label>
+          <input type="number" id="trxModalAmount" class="form-control" style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700;" placeholder="Contoh: 150000" min="1">
+        </div>
+
+        <div class="form-group">
+          <label>Tanggal &amp; Waktu Transaksi</label>
+          <input type="datetime-local" id="trxModalDate" class="form-control">
+        </div>
+
+        <div class="form-group">
+          <label>Keterangan / Rincian Detail Transaksi</label>
+          <textarea id="trxModalDesc" class="form-control" rows="2" placeholder="Contoh: Beli 2 karton susu fresh milk Greenfields &amp; 3 botol sirup vanila"></textarea>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <div class="form-group">
+            <label>Metode Pembayaran</label>
+            <select id="trxModalMethod" class="form-control">
+              <option value="Tunai">💵 Tunai (Kas Toko)</option>
+              <option value="Petty Cash">🪙 Petty Cash / Kas Kecil</option>
+              <option value="Rekening Operasional">🏦 Rekening Operasional</option>
+              <option value="QRIS">📱 QRIS</option>
+              <option value="Transfer Bank">💳 Transfer Bank</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Penanggung Jawab / Kasir</label>
+            <input type="text" id="trxModalPic" class="form-control" placeholder="Nama Petugas">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Nomor Referensi / Nomor Nota Supplier (Opsional)</label>
+          <input type="text" id="trxModalRef" class="form-control" placeholder="Contoh: NOTA-SUP-882">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="FinanceModule.closeRecordModal()">Batal</button>
+        <button class="btn-primary-action btn-income" onclick="FinanceModule.saveModalTransaction()">
+          <span>💾</span> Simpan Transaksi
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT LIBRARIES (OFFLINE BUNDLED & FAST) -->
+  <script src="libs/chart.umd.js"></script>
+  <script src="libs/jspdf.umd.min.js"></script>
+  <script src="libs/jspdf.plugin.autotable.min.js"></script>
+  <script src="libs/jszip.min.js"></script>
+
+  <!-- APPLICATION SCRIPTS -->
+  <script src="js/storage.js"></script>
+  <script src="js/export-pdf.js"></script>
+  <script src="js/export-word.js"></script>
+  <script src="js/pos.js"></script>
+  <script src="js/finance.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

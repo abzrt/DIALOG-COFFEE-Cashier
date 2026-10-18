@@ -1,0 +1,28 @@
+{
+  "name": "dialog-coffee-cashier",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "npx -y serve . -l 3000",
+    "sync": "node scripts/sync-android.js && npx cap sync android",
+    "android": "npx cap open android",
+    "build:apk": "node scripts/sync-android.js && npx cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "chart.js": "^4.5.1",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.9",
+    "jszip": "^3.10.2"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3"
+  }
+}

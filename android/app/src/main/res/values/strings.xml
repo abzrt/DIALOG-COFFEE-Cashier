@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">DIALOG COFFEE Cashier</string>
+    <string name="title_activity_main">DIALOG COFFEE Cashier</string>
+    <string name="package_name">id.dialogcoffee.cashier</string>
+    <string name="custom_url_scheme">id.dialogcoffee.cashier</string>
+</resources>
