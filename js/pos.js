@@ -165,6 +165,9 @@ const POSModule = {
     const taxAmountEl = document.getElementById('cartTaxAmount');
     const totalEl = document.getElementById('cartTotal');
     const checkoutBtn = document.getElementById('checkoutBtn');
+    const mobileCartBar = document.getElementById('mobileCartBar');
+    const mcbCount = document.getElementById('mcbCount');
+    const mcbTotal = document.getElementById('mcbTotal');
 
     if (!listContainer) return;
 
@@ -180,6 +183,7 @@ const POSModule = {
       if (taxAmountEl) taxAmountEl.textContent = 'Rp 0';
       if (totalEl) totalEl.textContent = 'Rp 0';
       if (checkoutBtn) checkoutBtn.disabled = true;
+      if (mobileCartBar) mobileCartBar.classList.remove('visible');
       return;
     }
 
@@ -204,6 +208,14 @@ const POSModule = {
     if (taxAmountEl) taxAmountEl.textContent = App.formatRupiah(taxAmount);
     if (totalEl) totalEl.textContent = App.formatRupiah(total);
     if (checkoutBtn) checkoutBtn.disabled = false;
+
+    // Update Mobile Quick Cart Bar
+    if (mobileCartBar) {
+      const totalCount = this.cart.reduce((s, i) => s + i.qty, 0);
+      if (mcbCount) mcbCount.textContent = `${totalCount} item`;
+      if (mcbTotal) mcbTotal.textContent = App.formatRupiah(total);
+      mobileCartBar.classList.add('visible');
+    }
   },
 
   // PAYMENT MODAL

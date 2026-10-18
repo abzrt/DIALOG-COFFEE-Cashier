@@ -39,6 +39,7 @@ const I18N = {
       taxPB1: 'Pajak PB1 (10%):',
       totalPay: 'Total Bayar:',
       checkoutBtn: 'Lanjut Pembayaran',
+      viewCartBtn: 'Lihat Pesanan',
 
       // Payment Modal
       payModalTitle: 'Pembayaran Transaksi',
@@ -163,6 +164,7 @@ const I18N = {
       taxPB1: 'PB1 Tax (10%):',
       totalPay: 'Total Due:',
       checkoutBtn: 'Proceed to Payment',
+      viewCartBtn: 'View Order',
 
       // Payment Modal
       payModalTitle: 'Payment Checkout',

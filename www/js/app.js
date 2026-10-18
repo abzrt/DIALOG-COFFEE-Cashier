@@ -367,6 +367,15 @@ const App = {
   },
 
 
+  scrollToCart() {
+    const cart = document.querySelector('.pos-cart-panel');
+    if (cart) {
+      cart.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      cart.classList.add('pulse-highlight');
+      setTimeout(() => cart.classList.remove('pulse-highlight'), 1000);
+    }
+  },
+
   formatRupiah(num) {
     return 'Rp ' + Number(num || 0).toLocaleString('id-ID');
   },
