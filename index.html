@@ -218,7 +218,7 @@
 
           <!-- Transaction Data Table -->
           <div class="table-container">
-            <div style="padding: 12px 16px; border-bottom: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+            <div style="padding: 12px 16px; border-bottom: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted); flex-wrap: wrap; gap: 6px;">
               <span id="financeRowCount">0 Transaksi Tercatat</span>
               <span>Notifikasi WA Owner otomatis terhubung ke <strong>085334101996</strong></span>
             </div>
@@ -838,6 +838,33 @@
         </button>
         <button class="btn-primary-action" style="background: transparent; color: var(--text-muted); width: 100%; justify-content: center;" onclick="FinanceModule.closeClosingModal()">
           Tutup / Batal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 6: KONFIRMASI KELUAR APLIKASI
+       =================================================================== -->
+  <div id="exitModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 390px;">
+      <div class="modal-header">
+        <h3><span>🚪</span> <span data-i18n="exitModalTitle">Keluar dari Aplikasi</span></h3>
+        <button class="btn-close-modal" onclick="App.closeExitModal()">✕</button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 22px 18px;">
+        <div style="font-size: 2.6rem; margin-bottom: 10px;">☕</div>
+        <h4 style="font-size: 1.15rem; font-weight: 800; margin-bottom: 6px; color: var(--text-primary);">Tutup Aplikasi Kasir?</h4>
+        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5; margin: 0 auto; max-width: 290px;">
+          Apakah Anda ingin keluar dari aplikasi DIALOG COFFEE? Seluruh data kasir dan pembukuan shift tetap tersimpan aman.
+        </p>
+      </div>
+      <div class="modal-footer" style="gap: 10px; justify-content: center;">
+        <button class="btn-primary-action" style="flex: 1; justify-content: center; background: var(--bg-surface); color: var(--text-secondary); border: 1.5px solid var(--border-color);" onclick="App.closeExitModal()">
+          Batal
+        </button>
+        <button class="btn-primary-action btn-expense" style="flex: 1; justify-content: center;" onclick="App.confirmExitApp()">
+          <span>🚪</span> Keluar
         </button>
       </div>
     </div>

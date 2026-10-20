@@ -97,6 +97,7 @@ const POSModule = {
 
     container.innerHTML = filtered.map(item => `
       <div class="menu-card" onclick="POSModule.addToCart('${item.id}')">
+        <div class="menu-card-bg" style="background-image: url('${item.image || 'assets/menu/dialog_coffee.jpg'}');"></div>
         <div class="card-top">
           <div class="item-icon-box">${item.icon || '☕'}</div>
           ${item.badge ? `<span class="badge-tag">${item.badge}</span>` : ''}

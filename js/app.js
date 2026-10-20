@@ -14,6 +14,7 @@ const App = {
     this.initAudio();
     this.initClock();
     this.bindNavigation();
+    this.initBackButton();
     this.loadShiftHeader();
     window.addEventListener('resize', () => this.loadShiftHeader());
     this.loadSettingsForm();
@@ -462,6 +463,90 @@ const App = {
     if (window.PDFExporter) {
       PDFExporter.exportReceiptPDF(trx);
     }
+  },
+
+  // BACK BUTTON & EXIT NOTIFICATION HANDLER (HP ANDROID & BROWSER)
+  initBackButton() {
+    // Inisialisasi history state untuk mendeteksi tombol back di browser / HP
+    try {
+      window.history.pushState({ page: 'dialog-cashier' }, '');
+      window.addEventListener('popstate', (e) => {
+        window.history.pushState({ page: 'dialog-cashier' }, '');
+        this.handleHardwareBackButton();
+      });
+    } catch (e) {}
+
+    // Listener Capacitor Native Back Button (Android APK)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      window.Capacitor.Plugins.App.addListener('backButton', () => {
+        this.handleHardwareBackButton();
+      });
+    }
+
+    document.addEventListener('backbutton', () => {
+      this.handleHardwareBackButton();
+    }, false);
+  },
+
+  handleHardwareBackButton() {
+    // 1. Cek apakah ada modal yang terbuka, jika ada tutup modal tersebut
+    const openModals = document.querySelectorAll('.modal-backdrop.active');
+    if (openModals.length > 0) {
+      openModals.forEach(modal => modal.classList.remove('active'));
+      return;
+    }
+
+    // 2. Jika sedang di tab selain Kasir (POS), kembali ke Kasir terlebih dahulu
+    if (this.activeTab !== 'pos') {
+      this.switchTab('pos');
+      return;
+    }
+
+    // 3. Jika sudah di halaman utama Kasir dan tidak ada modal, jalankan notifikasi keluar
+    const now = Date.now();
+    if (!this.lastBackPressTime || (now - this.lastBackPressTime > 2500)) {
+      this.lastBackPressTime = now;
+      this.playBeep(440, 0.06);
+      this.showToast('Tekan kembali sekali lagi untuk menutup aplikasi', 'info');
+    } else {
+      this.lastBackPressTime = 0;
+      this.openExitModal();
+    }
+  },
+
+  openExitModal() {
+    const modal = document.getElementById('exitModal');
+    if (modal) {
+      modal.classList.add('active');
+      this.playBeep(520, 0.08);
+    }
+  },
+
+  closeExitModal() {
+    const modal = document.getElementById('exitModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  confirmExitApp() {
+    this.closeExitModal();
+    this.showToast('Menutup aplikasi...', 'info');
+
+    setTimeout(() => {
+      // 1. Capacitor Native exit
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.exitApp();
+        return;
+      }
+      // 2. Cordova / WebView exit
+      if (navigator.app && navigator.app.exitApp) {
+        navigator.app.exitApp();
+        return;
+      }
+      // 3. Standard Window Close
+      try {
+        window.close();
+      } catch (e) {}
+    }, 300);
   }
 };
 

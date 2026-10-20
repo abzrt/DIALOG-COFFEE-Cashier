@@ -15,4 +15,16 @@ public class MainActivity extends BridgeActivity {
         window.setStatusBarColor(Color.parseColor("#09090b"));
         window.setNavigationBarColor(Color.parseColor("#09090b"));
     }
+
+    @Override
+    public void onBackPressed() {
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().evaluateJavascript(
+                "if (window.App && typeof window.App.handleHardwareBackButton === 'function') { window.App.handleHardwareBackButton(); } else { window.history.back(); }",
+                null
+            );
+            return;
+        }
+        super.onBackPressed();
+    }
 }

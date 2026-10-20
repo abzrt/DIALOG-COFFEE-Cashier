@@ -21,28 +21,28 @@ try {
 // 1. MENU EXACT DIALOG COFFEE
 const DEFAULT_MENU = [
   // NON-COFFEE
-  { id: 'nc-1', name: 'BISCOFF', category: 'non-coffee', price: 22000, desc: 'Lotus Biscoff creamy blend dengan remahan biskuit karamel', badge: 'Favorit', icon: '🍪' },
-  { id: 'nc-2', name: 'CARAMEL REGAL', category: 'non-coffee', price: 20000, desc: 'Fresh milk berpadu saus karamel lezat dan biskuit Marie Regal', badge: 'Terlaris', icon: '🥛' },
-  { id: 'nc-3', name: 'COKLAT', category: 'non-coffee', price: 18000, desc: 'Dark chocolate pekat premium dengan susu segar gurih manis pas', badge: '', icon: '🍫' },
-  { id: 'nc-4', name: 'THAITEA', category: 'non-coffee', price: 15000, desc: 'Teh Thailand asli aromatik dipadu susu kental manis segar', badge: 'Segar', icon: '🧋' },
-  { id: 'nc-5', name: 'GREENTEA', category: 'non-coffee', price: 15000, desc: 'Matcha green tea lembut menyegarkan kaya antioksidan', badge: '', icon: '🍵' },
+  { id: 'nc-1', name: 'BISCOFF', category: 'non-coffee', price: 22000, desc: 'Lotus Biscoff creamy blend dengan remahan biskuit karamel', badge: 'Favorit', icon: '🍪', image: 'assets/menu/biscoff.jpg' },
+  { id: 'nc-2', name: 'CARAMEL REGAL', category: 'non-coffee', price: 20000, desc: 'Fresh milk berpadu saus karamel lezat dan biskuit Marie Regal', badge: 'Terlaris', icon: '🥛', image: 'assets/menu/caramel_regal.jpg' },
+  { id: 'nc-3', name: 'COKLAT', category: 'non-coffee', price: 18000, desc: 'Dark chocolate pekat premium dengan susu segar gurih manis pas', badge: '', icon: '🍫', image: 'assets/menu/coklat.jpg' },
+  { id: 'nc-4', name: 'THAITEA', category: 'non-coffee', price: 15000, desc: 'Teh Thailand asli aromatik dipadu susu kental manis segar', badge: 'Segar', icon: '🧋', image: 'assets/menu/thaitea.jpg' },
+  { id: 'nc-5', name: 'GREENTEA', category: 'non-coffee', price: 15000, desc: 'Matcha green tea lembut menyegarkan kaya antioksidan', badge: '', icon: '🍵', image: 'assets/menu/greentea.jpg' },
 
   // SIGNATURE DRINKS
-  { id: 'sig-1', name: 'DIALOG COFFEE', category: 'signature', price: 20000, desc: 'Signature house blend espresso, susu segar creamy & gula aren spesial Dialog', badge: 'Signature Utama', icon: '☕' },
-  { id: 'sig-2', name: 'COFFEE SECRET', category: 'signature', price: 20000, desc: 'Kombinasi rahasia racikan barista Dialog dengan aroma manis misterius', badge: 'Secret Recipe', icon: '✨' },
-  { id: 'sig-3', name: 'COFFEE MITOS', category: 'signature', price: 20000, desc: 'Sentuhan kopi pekat dengan aftertaste butterscotch yang melegenda', badge: 'Favorit', icon: '☕' },
-  { id: 'sig-4', name: 'AMERICANO', category: 'signature', price: 18000, desc: 'Double shot espresso arabica murni dengan air mineral dingin / panas', badge: 'Klasik', icon: '☕' },
+  { id: 'sig-1', name: 'DIALOG COFFEE', category: 'signature', price: 20000, desc: 'Signature house blend espresso, susu segar creamy & gula aren spesial Dialog', badge: 'Signature Utama', icon: '☕', image: 'assets/menu/dialog_coffee.jpg' },
+  { id: 'sig-2', name: 'COFFEE SECRET', category: 'signature', price: 20000, desc: 'Kombinasi rahasia racikan barista Dialog dengan aroma manis misterius', badge: 'Secret Recipe', icon: '✨', image: 'assets/menu/dialog_coffee.jpg' },
+  { id: 'sig-3', name: 'COFFEE MITOS', category: 'signature', price: 20000, desc: 'Sentuhan kopi pekat dengan aftertaste butterscotch yang melegenda', badge: 'Favorit', icon: '☕', image: 'assets/menu/dialog_coffee.jpg' },
+  { id: 'sig-4', name: 'AMERICANO', category: 'signature', price: 18000, desc: 'Double shot espresso arabica murni dengan air mineral dingin / panas', badge: 'Klasik', icon: '☕', image: 'assets/menu/americano.jpg' },
 
   // COFFEE & FLAVOR
-  { id: 'flv-1', name: 'AMERICANO', category: 'coffee-flavor', price: 18000, desc: 'Espresso blend klasik dengan notes nutty dan clean finish', badge: '', icon: '☕' },
-  { id: 'flv-2', name: 'LEMSKUY', category: 'coffee-flavor', price: 18000, desc: 'Espresso mocktail dipadu lemon segar menyegarkan hari', badge: 'Fresh', icon: '🍋' },
-  { id: 'flv-3', name: 'CARAMEL MACHIATO', category: 'coffee-flavor', price: 18000, desc: 'Layered espresso dengan vanilla foam dan saus karamel manis', badge: 'Favorit', icon: '🍮' },
-  { id: 'flv-4', name: 'VANILLA', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu beraroma vanila madagascar lembut dan wangi', badge: '', icon: '🍦' },
-  { id: 'flv-5', name: 'CARAMEL', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu berpadu sirup karamel bakar kental gurih', badge: '', icon: '🍯' },
-  { id: 'flv-6', name: 'BUTTERSHCOOT', category: 'coffee-flavor', price: 18000, desc: 'Perpaduan brown sugar, mentega panggang, dan espresso lembut', badge: 'Best Pick', icon: '🧈' },
-  { id: 'flv-7', name: 'TIRAMISU', category: 'coffee-flavor', price: 18000, desc: 'Sensasi rasa cake tiramisu Italia berpadu microfoam susu', badge: '', icon: '🍰' },
-  { id: 'flv-8', name: 'HAZELNUT', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu kaya aroma kacang hazelnut panggang aromatik', badge: '', icon: '🌰' },
-  { id: 'flv-9', name: 'PANDAN', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu khas nusantara dengan wangi pandan alami yang legit', badge: 'Khas', icon: '🍃' }
+  { id: 'flv-1', name: 'AMERICANO', category: 'coffee-flavor', price: 18000, desc: 'Espresso blend klasik dengan notes nutty dan clean finish', badge: '', icon: '☕', image: 'assets/menu/americano.jpg' },
+  { id: 'flv-2', name: 'LEMSKUY', category: 'coffee-flavor', price: 18000, desc: 'Espresso mocktail dipadu lemon segar menyegarkan hari', badge: 'Fresh', icon: '🍋', image: 'assets/menu/lemskuy.jpg' },
+  { id: 'flv-3', name: 'CARAMEL MACHIATO', category: 'coffee-flavor', price: 18000, desc: 'Layered espresso dengan vanilla foam dan saus karamel manis', badge: 'Favorit', icon: '🍮', image: 'assets/menu/caramel_machiato.jpg' },
+  { id: 'flv-4', name: 'VANILLA', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu beraroma vanila madagascar lembut dan wangi', badge: '', icon: '🍦', image: 'assets/menu/vanilla.jpg' },
+  { id: 'flv-5', name: 'CARAMEL', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu berpadu sirup karamel bakar kental gurih', badge: '', icon: '🍯', image: 'assets/menu/caramel_machiato.jpg' },
+  { id: 'flv-6', name: 'BUTTERSHCOOT', category: 'coffee-flavor', price: 18000, desc: 'Perpaduan brown sugar, mentega panggang, dan espresso lembut', badge: 'Best Pick', icon: '🧈', image: 'assets/menu/dialog_coffee.jpg' },
+  { id: 'flv-7', name: 'TIRAMISU', category: 'coffee-flavor', price: 18000, desc: 'Sensasi rasa cake tiramisu Italia berpadu microfoam susu', badge: '', icon: '🍰', image: 'assets/menu/tiramisu.jpg' },
+  { id: 'flv-8', name: 'HAZELNUT', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu kaya aroma kacang hazelnut panggang aromatik', badge: '', icon: '🌰', image: 'assets/menu/hazelnut.jpg' },
+  { id: 'flv-9', name: 'PANDAN', category: 'coffee-flavor', price: 18000, desc: 'Kopi susu khas nusantara dengan wangi pandan alami yang legit', badge: 'Khas', icon: '🍃', image: 'assets/menu/pandan.jpg' }
 ];
 
 // Profil dan Pengaturan Toko
@@ -142,7 +142,18 @@ const StorageManager = {
         this.saveMenu(DEFAULT_MENU);
         return DEFAULT_MENU;
       }
-      return JSON.parse(data);
+      const parsed = JSON.parse(data);
+      let needsSave = false;
+      const updated = parsed.map(item => {
+        const def = DEFAULT_MENU.find(d => d.id === item.id);
+        if (def && (!item.image || item.image !== def.image)) {
+          item.image = def.image;
+          needsSave = true;
+        }
+        return item;
+      });
+      if (needsSave) this.saveMenu(updated);
+      return updated;
     } catch (e) {
       console.error('Error reading menu:', e);
       return DEFAULT_MENU;
