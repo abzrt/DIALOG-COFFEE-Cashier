@@ -42,13 +42,28 @@
         <button class="nav-tab-btn" data-target-tab="export">
           <span>📑</span> <span data-i18n="exportTab">Ekspor Dokumen</span>
         </button>
-        <button class="nav-tab-btn" data-target-tab="settings">
+        <button class="nav-tab-btn" data-target-tab="settings" id="topNavSettingsTab">
           <span>⚙️</span> <span data-i18n="settingsTab">Pengaturan</span>
+        </button>
+        <button class="nav-tab-btn owner-tab-btn" data-target-tab="owner" id="topNavOwnerTab" title="Menu Khusus Owner - Alur Arus Kas Lengkap">
+          <span>👑</span> <span data-i18n="ownerTab">Owner</span>
         </button>
       </nav>
 
       <!-- Right Appbar Actions -->
       <div class="appbar-actions">
+        <!-- Akun Login Aktif: Klik untuk Ganti Akun -->
+        <div class="user-role-chip role-chip-barista" id="topUserRoleChip" onclick="AuthModule.openLoginModal(true)" title="Akun Aktif: Klik untuk Ganti Akun (Owner / Barista)">
+          <span id="topUserRoleIcon">☕</span>
+          <span id="topUserRoleText">Barista</span>
+          <span style="font-size: 0.65rem; opacity: 0.6; margin-left: 2px;">⇅</span>
+        </div>
+
+        <!-- Tombol Akses Cepat Login / Dashboard Owner -->
+        <button class="icon-btn owner-appbar-btn" id="topOwnerBtn" onclick="OwnerModule.handleOwnerClick()" title="Login Khusus Owner / Kontrol Arus Kas">
+          👑
+        </button>
+
         <!-- Shift & Barista Chip (Click to configure) -->
         <div class="shift-chip" onclick="App.openShiftModal()" title="Klik untuk mengatur Shift & Barista On Duty">
           <div class="status-dot"></div>
@@ -102,7 +117,21 @@
           <aside class="pos-cart-panel">
             <div class="cart-header">
               <h2>🛒 <span data-i18n="cartTitle">Pesanan Aktif</span></h2>
-              <button class="clear-cart-btn" id="clearCartBtn" data-i18n="clearCart">Kosongkan</button>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <button type="button" class="saved-orders-pill-btn" id="savedOrdersBtn" onclick="POSModule.openSavedOrdersModal()" title="Lihat Daftar Draft Orderan">
+                  📋 <span data-i18n="draftOrders">Draft</span> (<span id="savedOrdersCount">0</span>)
+                </button>
+                <button class="clear-cart-btn" id="clearCartBtn" data-i18n="clearCart">Kosongkan</button>
+              </div>
+            </div>
+
+            <!-- Fitur Input Nama Orderan / Draft -->
+            <div class="cart-order-name-box">
+              <div class="con-header">
+                <label for="cartOrderName">👤 <span data-i18n="orderNameLabel">Nama Orderan / Pemesan</span>:</label>
+                <span id="activeDraftBadge" class="draft-badge-active" style="display: none;">Draft Aktif</span>
+              </div>
+              <input type="text" id="cartOrderName" class="form-control order-name-input" placeholder="Masukkan nama pemesan / meja (Wajib)..." autocomplete="off" oninput="POSModule.onOrderNameInput(this.value)">
             </div>
 
             <div class="cart-items-list" id="cartItemsList">
@@ -122,9 +151,14 @@
                 <span data-i18n="totalPay">Total Bayar:</span>
                 <span id="cartTotal">Rp 0</span>
               </div>
-              <button class="checkout-btn" id="checkoutBtn" disabled>
-                <span>💳</span> <span data-i18n="checkoutBtn">Lanjut Pembayaran</span>
-              </button>
+              <div class="cart-actions-row">
+                <button type="button" class="btn-hold-cart" id="holdCartQuickBtn" onclick="POSModule.saveCurrentCartToDraft()" title="Simpan orderan ini ke Draft sesuai nama pemesan" disabled>
+                  <span>💾</span> <span data-i18n="saveDraftBtn">Simpan ke Draft</span>
+                </button>
+                <button class="checkout-btn" id="checkoutBtn" onclick="POSModule.proceedToPaymentWithDraft()" disabled>
+                  <span>💳</span> <span data-i18n="checkoutBtn">Lanjut Pembayaran</span>
+                </button>
+              </div>
             </div>
           </aside>
         </div>
@@ -444,9 +478,28 @@
                 <input type="text" id="cfgPhone" class="form-control">
               </div>
               <div class="form-group">
-                <label data-i18n="ownerWALabel">Nomor WhatsApp Owner (Untuk Notifikasi &amp; Closing)</label>
+                <label>📸 Akun Instagram Cafe</label>
+                <input type="text" id="cfgInstagram" class="form-control" value="@dialogcoffee.nnk" placeholder="@dialogcoffee.nnk">
+              </div>
+              <div class="form-group">
+                <label>📡 Nomor WhatsApp Gateway (Pengirim)</label>
+                <input type="text" id="cfgGatewayPhone" class="form-control" value="08982151560" placeholder="08982151560">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Nomor gateway pengirim (+628982151560) khusus untuk mengirim rekapan closing</span>
+              </div>
+              <div class="form-group">
+                <label data-i18n="ownerWALabel">Nomor WhatsApp Owner (Penerima)</label>
                 <input type="text" id="cfgOwnerPhone" class="form-control" value="085334101996" placeholder="085334101996">
-                <span style="font-size: 0.72rem; color: var(--text-muted);">Pesan notifikasi pemasukan, pengeluaran &amp; closing otomatis dikirim ke nomor ini</span>
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Nomor WhatsApp Owner (+62 85334101996) penerima rekapan closing kasir</span>
+              </div>
+              <div class="form-group">
+                <label>🔐 PIN Keamanan Owner (Akses Pengaturan &amp; Owner)</label>
+                <input type="password" id="cfgOwnerPin" class="form-control" value="1996" placeholder="1996" maxlength="12">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">PIN rahasia pemilik untuk membuka Tab Pengaturan &amp; Dashboard Owner (Default: 1996)</span>
+              </div>
+              <div class="form-group">
+                <label>☕ Password Login Barista</label>
+                <input type="password" id="cfgBaristaPin" class="form-control" value="6969" placeholder="6969" maxlength="12">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Password untuk login akun Barista ke kasir (Default: 6969)</span>
               </div>
               <div class="form-group" style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
                 <div style="flex: 1;">
@@ -493,6 +546,66 @@
             </div>
           </div>
 
+          <!-- Cloud Database Sync (myphp.id / MySQL) Settings -->
+          <div class="settings-card">
+            <h3><span>🌐</span> <span>Database Rekapan Cloud (myphp.id / MySQL)</span></h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Hubungkan kasir DIALOG COFFEE ke akun database MySQL di <strong>myphp.id</strong> agar rekapan closing, transaksi harian, dan pembukuan tersimpan aman di server cloud secara online.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.82rem; font-weight: 700;">🔗 URL Endpoint API myphp.id:</label>
+                <input type="text" id="cfgCloudSyncUrl" class="form-control" placeholder="https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php" value="https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Tautan API database cloud di hosting Anda: <code>https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php</code></span>
+              </div>
+
+              <div class="form-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.82rem; font-weight: 700;">🔑 Kunci Rahasia API (X-Api-Key):</label>
+                <input type="text" id="cfgCloudApiKey" class="form-control" placeholder="dialog2026" value="dialog2026">
+              </div>
+
+              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
+                <input type="checkbox" id="cfgCloudAutoSync" style="width: 18px; height: 18px;" checked>
+                <label for="cfgCloudAutoSync" style="cursor: pointer; font-size: 0.82rem; font-weight: 600;">
+                  Otomatis kirim rekapan ke database myphp.id setiap kali proses <strong>Closing Shift</strong>
+                </label>
+              </div>
+
+              <div id="cloudSyncStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <span class="cloud-sync-last-time">Status: Siap diuji</span>
+              </div>
+
+              <!-- Action buttons -->
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+                <button type="button" class="btn-primary-action btn-closing" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.testConnection(document.getElementById('cfgCloudSyncUrl').value)">
+                  <span>🔌</span> Uji Koneksi Database
+                </button>
+                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.syncAllData()">
+                  <span>☁️</span> Sinkronkan Seluruh Data
+                </button>
+              </div>
+
+              <!-- Download files helper for myphp.id hosting -->
+              <div style="border-top: 1.5px dashed var(--border-color); padding-top: 12px; margin-top: 4px;">
+                <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">
+                  📦 Berkas Siap Pakai untuk myphp.id:
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                  <button type="button" class="btn-primary-action" style="background: var(--bg-surface); color: var(--text-primary); border: 1.5px solid var(--border-color); flex: 1; justify-content: center; font-size: 0.78rem;" onclick="CloudSync.downloadPHP()">
+                    <span>📥</span> Unduh api_sync.php
+                  </button>
+                  <button type="button" class="btn-primary-action" style="background: var(--bg-surface); color: var(--text-primary); border: 1.5px solid var(--border-color); flex: 1; justify-content: center; font-size: 0.78rem;" onclick="CloudSync.downloadSQL()">
+                    <span>📄</span> Unduh database_rekapan.sql
+                  </button>
+                </div>
+                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
+                  💡 <strong>Cara Pasang di myphp.id:</strong> 1) Import <code>database_rekapan.sql</code> di phpMyAdmin. 2) Upload <code>api_sync.php</code> ke folder website myphp.id Anda dan sesuaikan username &amp; password database.
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Data Backup & Reset -->
           <div class="settings-card">
             <h3><span>🛡️</span> <span data-i18n="backupTitle">Manajemen Cadangan Data &amp; Pemulihan</span></h3>
@@ -533,6 +646,391 @@
         </div>
       </section>
 
+      <!-- ===================================================================
+           VIEW 6: MENU & KONTROL KHUSUS OWNER (ALUR KAS DETIL HARI/BULAN/TAHUN)
+           =================================================================== -->
+      <section id="view-owner" class="view-section">
+        <!-- Locked State Banner (If not logged in) -->
+        <div id="ownerLockedNotice" class="owner-locked-card" style="display: none;">
+          <div style="font-size: 3rem; margin-bottom: 12px;">👑</div>
+          <h2 style="font-size: 1.4rem; font-weight: 800; margin-bottom: 6px;">Portal Khusus Pemilik (Owner)</h2>
+          <p style="color: var(--text-muted); font-size: 0.9rem; max-width: 460px; margin: 0 auto 18px; line-height: 1.5;">
+            Halaman ini dikhususkan bagi Owner DIALOG COFFEE untuk melihat dan menganalisis alur pemasukan serta pengeluaran secara detil tiap hari, bulan, dan tahun.
+          </p>
+          <button type="button" class="btn-primary-action btn-closing" style="font-size: 1rem; padding: 12px 24px;" onclick="OwnerModule.openLoginModal()">
+            <span>👑</span> Masuk dengan PIN Owner
+          </button>
+        </div>
+
+        <!-- Authenticated State Content -->
+        <div id="ownerAuthenticatedContent" class="owner-content-layout">
+          <!-- Top Executive Banner -->
+          <div class="owner-hero-panel">
+            <div class="owner-hero-left">
+              <div class="owner-crown-chip">👑 AREA KHUSUS OWNER</div>
+              <h2>Alur Arus Kas Pemasukan &amp; Pengeluaran</h2>
+              <p>Pemantauan komprehensif pemasukan kasir dan rincian beban pengeluaran operasional <strong>DIALOG COFFEE</strong>.</p>
+              <div class="owner-status-badge">
+                <span class="status-dot"></span>
+                <span>Sesi Terverifikasi: Owner (<strong>+62 85334101996</strong>)</span>
+              </div>
+            </div>
+            <div class="owner-hero-actions">
+              <button type="button" class="btn-owner-action" onclick="CloudSync.syncAllData()" title="Sinkronkan seluruh data rekapan ke database MySQL myphp.id">
+                <span>☁️</span> Sinkron myphp.id
+              </button>
+              <button type="button" class="btn-owner-action" onclick="OwnerModule.exportOwnerPDF()" title="Unduh Rekap Arus Kas Format PDF">
+                <span>📄</span> Unduh PDF
+              </button>
+              <button type="button" class="btn-owner-action" onclick="OwnerModule.exportOwnerCSV()" title="Unduh Rekap Arus Kas Format Spreadsheet CSV">
+                <span>📊</span> Unduh CSV
+              </button>
+              <button type="button" class="btn-owner-action btn-owner-logout" onclick="OwnerModule.logout()" title="Kunci sesi & keluar dari area owner">
+                <span>🔒</span> Keluar Sesi
+              </button>
+            </div>
+          </div>
+
+          <!-- All-Time Metric Strip -->
+          <div class="owner-lifetime-strip">
+            <div class="ols-item">
+              <span class="ols-label">Total Omset Pemasukan Sepanjang Waktu:</span>
+              <span class="ols-val income" id="ownerLifetimeIncome">Rp 0</span>
+            </div>
+            <div class="ols-divider">|</div>
+            <div class="ols-item">
+              <span class="ols-label">Total Pengeluaran Kas Sepanjang Waktu:</span>
+              <span class="ols-val expense" id="ownerLifetimeExpense">Rp 0</span>
+            </div>
+            <div class="ols-divider">|</div>
+            <div class="ols-item">
+              <span class="ols-label">Total Laba Bersih Sepanjang Waktu:</span>
+              <span class="ols-val profit" id="ownerLifetimeNet">Rp 0</span>
+            </div>
+          </div>
+
+          <!-- Main Timeframe Switcher Tabs -->
+          <div class="owner-timeframe-nav">
+            <button type="button" class="owner-tf-btn active" data-owner-timeframe="daily">
+              <span class="tf-icon">📅</span>
+              <span class="tf-label">Alur Kas Harian (Tiap Hari)</span>
+            </button>
+            <button type="button" class="owner-tf-btn" data-owner-timeframe="monthly">
+              <span class="tf-icon">📆</span>
+              <span class="tf-label">Alur Kas Bulanan (Tiap Bulan)</span>
+            </button>
+            <button type="button" class="owner-tf-btn" data-owner-timeframe="yearly">
+              <span class="tf-icon">🗓️</span>
+              <span class="tf-label">Alur Kas Tahunan (Tiap Tahun)</span>
+            </button>
+          </div>
+
+          <!-- =================================================================
+               PANEL 1: ALUR KAS HARIAN (PER HARI)
+               ================================================================= -->
+          <div id="ownerDailyPanel" class="owner-timeframe-panel">
+            <!-- Filter Bar Harian -->
+            <div class="ledger-header-panel">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn-step-date" onclick="OwnerModule.changeDailyOffset(-1)" title="Kemarin">◀</button>
+                <input type="date" id="ownerDailyDate" class="filter-select" style="font-weight: 700; font-family: var(--font-mono);">
+                <button type="button" class="btn-step-date" onclick="OwnerModule.changeDailyOffset(1)" title="Besok">▶</button>
+                <button type="button" class="btn-today-pill" onclick="OwnerModule.goToToday()">Hari Ini</button>
+
+                <select id="ownerDailyShiftFilter" class="filter-select">
+                  <option value="all">Semua Shift Kerja</option>
+                  <option value="Shift 1">🌅 Hanya Shift 1</option>
+                  <option value="Shift 2">🌙 Hanya Shift 2</option>
+                </select>
+              </div>
+
+              <div class="owner-period-title" id="ownerDailyTitleDisplay">
+                Memuat tanggal...
+              </div>
+            </div>
+
+            <!-- Daily KPI Cards -->
+            <div class="kpi-grid">
+              <div class="kpi-card income">
+                <div class="kpi-header">
+                  <span class="kpi-title">Pemasukan Hari Ini</span>
+                  <span class="kpi-icon">📈</span>
+                </div>
+                <div class="kpi-amount" id="ownerDailyTotalIncome">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerDailyCashBreakdown">Tunai &amp; Non-Tunai</div>
+              </div>
+
+              <div class="kpi-card expense">
+                <div class="kpi-header">
+                  <span class="kpi-title">Pengeluaran Hari Ini</span>
+                  <span class="kpi-icon">📉</span>
+                </div>
+                <div class="kpi-amount" id="ownerDailyTotalExpense">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerDailyCount">0 Transaksi</div>
+              </div>
+
+              <div class="kpi-card profit">
+                <div class="kpi-header">
+                  <span class="kpi-title">Laba / (Rugi) Bersih Hari Ini</span>
+                  <span class="kpi-icon">⚖️</span>
+                </div>
+                <div class="kpi-amount" id="ownerDailyNetProfit">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerDailyMargin">Margin: 0%</div>
+              </div>
+
+              <div class="kpi-card balance">
+                <div class="kpi-header">
+                  <span class="kpi-title">Performa Antar Shift</span>
+                  <span class="kpi-icon">☕</span>
+                </div>
+                <div class="kpi-amount" style="font-size: 1.05rem; line-height: 1.3;" id="ownerDailyShiftsBreakdown">
+                  Shift 1 &amp; 2
+                </div>
+                <div class="kpi-subtitle">Kontribusi laba per shift</div>
+              </div>
+            </div>
+
+            <!-- Detailed Transactions Table -->
+            <div class="table-container">
+              <div style="padding: 14px 18px; border-bottom: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <span>📋</span> Rincian Seluruh Transaksi Pemasukan &amp; Pengeluaran Hari Ini
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                  Data real-time tercatat dari kasir &amp; buku kas
+                </div>
+              </div>
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th style="width: 35px;">No</th>
+                    <th>Jam &amp; ID</th>
+                    <th>Tipe</th>
+                    <th>Kategori &amp; Shift</th>
+                    <th>Keterangan / Rincian Menu</th>
+                    <th>Metode</th>
+                    <th style="text-align: right;">Nominal</th>
+                    <th style="width: 70px; text-align: center;">Detail</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerDailyTableBody">
+                  <!-- Injected via owner.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- =================================================================
+               PANEL 2: ALUR KAS BULANAN (PER BULAN)
+               ================================================================= -->
+          <div id="ownerMonthlyPanel" class="owner-timeframe-panel" style="display: none;">
+            <!-- Filter Bar Bulanan -->
+            <div class="ledger-header-panel">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn-step-date" onclick="OwnerModule.changeMonthlyOffset(-1)" title="Bulan Sebelumnya">◀</button>
+                <select id="ownerMonthlyMonth" class="filter-select">
+                  <option value="0">Januari</option>
+                  <option value="1">Februari</option>
+                  <option value="2">Maret</option>
+                  <option value="3">April</option>
+                  <option value="4">Mei</option>
+                  <option value="5">Juni</option>
+                  <option value="6">Juli</option>
+                  <option value="7">Agustus</option>
+                  <option value="8">September</option>
+                  <option value="9">Oktober</option>
+                  <option value="10">November</option>
+                  <option value="11">Desember</option>
+                </select>
+                <select id="ownerMonthlyYear" class="filter-select">
+                  <!-- Injected via owner.js -->
+                </select>
+                <button type="button" class="btn-step-date" onclick="OwnerModule.changeMonthlyOffset(1)" title="Bulan Berikutnya">▶</button>
+                <button type="button" class="btn-today-pill" onclick="OwnerModule.goToThisMonth()">Bulan Ini</button>
+              </div>
+
+              <div class="owner-period-title" id="ownerMonthlyTitleDisplay">
+                Memuat bulan...
+              </div>
+            </div>
+
+            <!-- Monthly KPI Cards -->
+            <div class="kpi-grid">
+              <div class="kpi-card income">
+                <div class="kpi-header">
+                  <span class="kpi-title">Total Pemasukan Bulan Ini</span>
+                  <span class="kpi-icon">📈</span>
+                </div>
+                <div class="kpi-amount" id="ownerMonthlyTotalIncome">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerMonthlyAvgDaily">Rata-rata: Rp 0 / hari</div>
+              </div>
+
+              <div class="kpi-card expense">
+                <div class="kpi-header">
+                  <span class="kpi-title">Total Pengeluaran Bulan Ini</span>
+                  <span class="kpi-icon">📉</span>
+                </div>
+                <div class="kpi-amount" id="ownerMonthlyTotalExpense">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerMonthlyCount">0 Transaksi</div>
+              </div>
+
+              <div class="kpi-card profit">
+                <div class="kpi-header">
+                  <span class="kpi-title">Laba Bersih Bulan Ini</span>
+                  <span class="kpi-icon">⚖️</span>
+                </div>
+                <div class="kpi-amount" id="ownerMonthlyNetProfit">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerMonthlyMargin">Margin: 0%</div>
+              </div>
+
+              <div class="kpi-card balance">
+                <div class="kpi-header">
+                  <span class="kpi-title">Target &amp; Efisiensi</span>
+                  <span class="kpi-icon">🎯</span>
+                </div>
+                <div class="kpi-amount" style="font-size: 1.15rem; color: #3b82f6;">Optimal</div>
+                <div class="kpi-subtitle">Rasio belanja terkendali</div>
+              </div>
+            </div>
+
+            <!-- Monthly Chart -->
+            <div class="chart-card" style="margin-bottom: 20px;">
+              <div class="chart-header">
+                <h3>📊 Tren Arus Kas Tiap Hari dalam Bulan Ini (Pemasukan vs Pengeluaran)</h3>
+              </div>
+              <div class="chart-container" style="height: 300px;">
+                <canvas id="ownerMonthlyChartCanvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Day-by-Day Table -->
+            <div class="table-container">
+              <div style="padding: 14px 18px; border-bottom: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <span>📆</span> Rekapitulasi Alur Kas Tiap Hari dalam Bulan
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                  Klik &quot;Buka Hari&quot; untuk langsung meninjau rincian nota di tanggal tersebut
+                </div>
+              </div>
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Tanggal</th>
+                    <th style="text-align: right;">Pemasukan (Rp)</th>
+                    <th style="text-align: right;">Pengeluaran (Rp)</th>
+                    <th style="text-align: right;">Laba / (Rugi) Bersih</th>
+                    <th style="text-align: center;">Jumlah Transaksi</th>
+                    <th style="text-align: center; width: 110px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerMonthlyTableBody">
+                  <!-- Injected via owner.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- =================================================================
+               PANEL 3: ALUR KAS TAHUNAN (PER TAHUN)
+               ================================================================= -->
+          <div id="ownerYearlyPanel" class="owner-timeframe-panel" style="display: none;">
+            <!-- Filter Bar Tahunan -->
+            <div class="ledger-header-panel">
+              <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn-step-date" onclick="OwnerModule.changeYearlyOffset(-1)" title="Tahun Sebelumnya">◀</button>
+                <select id="ownerYearlyYear" class="filter-select">
+                  <!-- Injected via owner.js -->
+                </select>
+                <button type="button" class="btn-step-date" onclick="OwnerModule.changeYearlyOffset(1)" title="Tahun Berikutnya">▶</button>
+                <button type="button" class="btn-today-pill" onclick="OwnerModule.goToThisYear()">Tahun Ini</button>
+              </div>
+
+              <div class="owner-period-title" id="ownerYearlyTitleDisplay">
+                Memuat tahun...
+              </div>
+            </div>
+
+            <!-- Yearly KPI Cards -->
+            <div class="kpi-grid">
+              <div class="kpi-card income">
+                <div class="kpi-header">
+                  <span class="kpi-title">Total Pemasukan Tahunan</span>
+                  <span class="kpi-icon">📈</span>
+                </div>
+                <div class="kpi-amount" id="ownerYearlyTotalIncome">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerYearlyBestMonth">Bulan Terbaik: -</div>
+              </div>
+
+              <div class="kpi-card expense">
+                <div class="kpi-header">
+                  <span class="kpi-title">Total Pengeluaran Tahunan</span>
+                  <span class="kpi-icon">📉</span>
+                </div>
+                <div class="kpi-amount" id="ownerYearlyTotalExpense">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerYearlyCount">0 Transaksi Total</div>
+              </div>
+
+              <div class="kpi-card profit">
+                <div class="kpi-header">
+                  <span class="kpi-title">Laba Bersih Tahunan</span>
+                  <span class="kpi-icon">⚖️</span>
+                </div>
+                <div class="kpi-amount" id="ownerYearlyNetProfit">Rp 0</div>
+                <div class="kpi-subtitle" id="ownerYearlyMargin">Margin: 0%</div>
+              </div>
+
+              <div class="kpi-card balance">
+                <div class="kpi-header">
+                  <span class="kpi-title">Status Pertumbuhan</span>
+                  <span class="kpi-icon">🚀</span>
+                </div>
+                <div class="kpi-amount" style="font-size: 1.15rem; color: var(--income-green);">Sehat &amp; Positif</div>
+                <div class="kpi-subtitle">Evaluasi buku tahunan</div>
+              </div>
+            </div>
+
+            <!-- Yearly Bar Chart -->
+            <div class="chart-card" style="margin-bottom: 20px;">
+              <div class="chart-header">
+                <h3>🗓️ Grafik Perbandingan Arus Kas 12 Bulan (Pemasukan vs Pengeluaran)</h3>
+              </div>
+              <div class="chart-container" style="height: 300px;">
+                <canvas id="ownerYearlyChartCanvas"></canvas>
+              </div>
+            </div>
+
+            <!-- Month-by-Month Table -->
+            <div class="table-container">
+              <div style="padding: 14px 18px; border-bottom: 1.5px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+                  <span>🗓️</span> Rekapitulasi Alur Kas Tiap Bulan (Januari s/d Desember)
+                </div>
+                <div style="font-size: 0.78rem; color: var(--text-muted);">
+                  Klik &quot;Buka Bulan&quot; untuk melihat rincian per hari di bulan terkait
+                </div>
+              </div>
+              <table class="styled-table">
+                <thead>
+                  <tr>
+                    <th>Bulan</th>
+                    <th style="text-align: right;">Total Pemasukan (Rp)</th>
+                    <th style="text-align: right;">Total Pengeluaran (Rp)</th>
+                    <th style="text-align: right;">Laba / (Rugi) Bersih</th>
+                    <th style="text-align: center;">Margin Laba</th>
+                    <th style="text-align: center;">Jumlah Transaksi</th>
+                    <th style="text-align: center; width: 110px;">Aksi</th>
+                  </tr>
+                </thead>
+                <tbody id="ownerYearlyTableBody">
+                  <!-- Injected via owner.js -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <!-- ANDROID BOTTOM NAVIGATION BAR -->
@@ -553,9 +1051,13 @@
         <span class="nav-icon">📑</span>
         <span data-i18n="exportTab">Ekspor</span>
       </button>
-      <button class="bottom-nav-item" data-target-tab="settings">
+      <button class="bottom-nav-item" data-target-tab="settings" id="bottomNavSettingsTab">
         <span class="nav-icon">⚙️</span>
         <span data-i18n="settingsTab">Setting</span>
+      </button>
+      <button class="bottom-nav-item owner-nav-item" data-target-tab="owner" id="bottomNavOwnerTab">
+        <span class="nav-icon">👑</span>
+        <span data-i18n="ownerTab">Owner</span>
       </button>
     </nav>
   </div>
@@ -573,6 +1075,17 @@
         <div style="text-align: center; background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1.5px solid var(--border-color);">
           <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase;" data-i18n="totalBill">Total Tagihan</div>
           <div id="payModalTotal" style="font-size: 1.9rem; font-weight: 800; font-family: var(--font-mono); margin-top: 4px;">Rp 0</div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 700; font-size: 0.82rem;">🪑 <span data-i18n="seatNumber">Nomor Seat / Meja</span></label>
+            <input type="text" id="paySeatInput" class="form-control" placeholder="Contoh: Seat 01, Meja 5">
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label style="font-weight: 700; font-size: 0.82rem;">👤 <span data-i18n="customerName">Nama Pelanggan</span></label>
+            <input type="text" id="payCustomerInput" class="form-control" placeholder="Contoh: Budi, Sarah">
+          </div>
         </div>
 
         <div class="form-group">
@@ -611,12 +1124,77 @@
       </div>
       <div class="modal-footer" style="flex-wrap: wrap; gap: 8px;">
         <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="POSModule.closePaymentModal()" data-i18n="cancel">Batal</button>
-        <button class="btn-primary-action btn-wa" onclick="POSModule.processCheckout(true)" title="Bayar &amp; Kirim Struk ke WA Owner">
-          <span>📲</span> Bayar &amp; WA Owner
+        <button type="button" class="btn-primary-action btn-hold-modal" onclick="POSModule.saveCurrentOrderPending()" title="Simpan Order untuk dibayar nanti berdasarkan Nomor Seat atau Nama Pelanggan">
+          <span>💾</span> <span data-i18n="holdOrderBtn">Simpan Order</span>
         </button>
         <button class="btn-primary-action btn-closing" onclick="POSModule.processCheckout(false)">
           <span>✓</span> <span data-i18n="payAndPrint">Bayar &amp; Struk</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 1B: SIMPAN ORDER (HOLD / OPEN BILL MODAL)
+       =================================================================== -->
+  <div id="holdOrderModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3><span>💾</span> <span data-i18n="holdOrderModalTitle">Simpan Order (Open Bill)</span></h3>
+        <button class="btn-close-modal" onclick="POSModule.closeHoldOrderModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+          Simpan pesanan aktif untuk dibayar nanti berdasarkan Nomor Seat atau Nama Pelanggan.
+        </p>
+
+        <div style="background: var(--bg-surface); padding: 12px 16px; border-radius: var(--radius-sm); border: 1.5px solid var(--border-color); margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 0.95rem;">
+            <span id="holdModalItemCount">0 item</span>
+            <span id="holdModalTotal" style="font-family: var(--font-mono); font-size: 1.15rem; color: var(--income-green);">Rp 0</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 700; font-size: 0.85rem;">🪑 <span data-i18n="seatNumber">Nomor Seat / Meja</span></label>
+          <input type="text" id="holdSeatInput" class="form-control" placeholder="Contoh: Seat 01, Meja 5, Bar 2">
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 700; font-size: 0.85rem;">👤 <span data-i18n="customerName">Nama Pelanggan</span></label>
+          <input type="text" id="holdCustomerInput" class="form-control" placeholder="Contoh: Kak Budi, Sarah">
+        </div>
+
+        <div class="form-group">
+          <label style="font-weight: 700; font-size: 0.85rem;">📝 Catatan Pesanan (Opsional)</label>
+          <input type="text" id="holdNotesInput" class="form-control" placeholder="Contoh: Less ice, nanti bayar QRIS">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="POSModule.closeHoldOrderModal()" data-i18n="cancel">Batal</button>
+        <button class="btn-primary-action btn-closing" onclick="POSModule.confirmSaveHoldOrder()">
+          <span>💾</span> <span data-i18n="holdOrderBtn">Simpan Order</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 1C: DAFTAR ORDER TERSIMPAN (OPEN BILLS / HOLD LIST)
+       =================================================================== -->
+  <div id="savedOrdersModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <h3><span>📋</span> <span data-i18n="draftOrdersTitle">Daftar Draft Orderan</span></h3>
+        <button class="btn-close-modal" onclick="POSModule.closeSavedOrdersModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 16px;">
+        <div id="savedOrdersList" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Injected via pos.js -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="POSModule.closeSavedOrdersModal()" data-i18n="cancel">Tutup</button>
       </div>
     </div>
   </div>
@@ -645,10 +1223,7 @@
         </div>
       </div>
       <div class="modal-footer receipt-modal-footer">
-        <button class="btn-primary-action btn-wa" onclick="POSModule.sendCurrentReceiptWA()" title="Kirim Struk ke WA Owner (085334101996)">
-          <span>📲</span> WA Owner
-        </button>
-        <div class="receipt-actions-group">
+        <div class="receipt-actions-group" style="width: 100%; justify-content: flex-end;">
           <button class="btn-primary-action btn-pdf-action" onclick="POSModule.downloadReceiptPDF()" title="Simpan sebagai berkas PDF (Bisa digunakan tanpa printer)">
             <span>📥</span> Simpan PDF
           </button>
@@ -725,9 +1300,6 @@
       </div>
       <div class="modal-footer" style="flex-wrap: wrap; gap: 8px;">
         <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="FinanceModule.closeRecordModal()">Batal</button>
-        <button class="btn-primary-action btn-wa" onclick="FinanceModule.saveModalTransaction(true)">
-          <span>📲</span> Simpan &amp; WA Owner
-        </button>
         <button class="btn-primary-action btn-closing" onclick="FinanceModule.saveModalTransaction(false)">
           <span>💾</span> Simpan
         </button>
@@ -776,8 +1348,11 @@
           <div>📌 <strong>Daftar Barista Resmi:</strong> Ardi, Anca, Jhonson, Si Pur</div>
         </div>
       </div>
-      <div class="modal-footer">
+      <div class="modal-footer" style="flex-wrap: wrap; gap: 8px;">
         <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="App.closeShiftModal()">Batal</button>
+        <button type="button" class="btn-primary-action" style="background: var(--bg-surface); color: var(--text-primary); border: 1.5px solid var(--border-color);" onclick="App.closeShiftModal(); FinanceModule.openClosingModal(document.getElementById('shiftSelectInput').value);" title="Lakukan closing rekap kas untuk shift ini">
+          <span>🔒</span> Closing Shift Ini
+        </button>
         <button class="btn-primary-action btn-closing" onclick="App.saveShiftConfig()">
           <span>💾</span> <span data-i18n="saveShift">Simpan Shift</span>
         </button>
@@ -795,9 +1370,25 @@
         <button class="btn-close-modal" onclick="FinanceModule.closeClosingModal()">✕</button>
       </div>
       <div class="modal-body">
-        <p style="font-size: 0.85rem; color: var(--text-muted);">
-          Ringkasan seluruh arus kas hari ini untuk disetorkan dan dilaporkan ke WhatsApp Owner (<strong>085334101996</strong>).
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px;">
+          Pilih shift yang akan ditutup untuk merekap arus kas dan mengirimkan laporan closing via WhatsApp Gateway (<strong>+628982151560</strong>) ke Owner (<strong>+62 85334101996</strong>).
         </p>
+
+        <!-- Selector Shift Closing -->
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="font-weight: 700; font-size: 0.82rem; margin-bottom: 6px; display: block;">Pilih Shift yang Ditutup:</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px;">
+            <button type="button" class="btn-closing-tab active" id="closingTabShift1" onclick="FinanceModule.onClosingShiftChange('Shift 1')">
+              🌅 Shift 1
+            </button>
+            <button type="button" class="btn-closing-tab" id="closingTabShift2" onclick="FinanceModule.onClosingShiftChange('Shift 2')">
+              🌙 Shift 2
+            </button>
+            <button type="button" class="btn-closing-tab" id="closingTabAll" onclick="FinanceModule.onClosingShiftChange('all')">
+              📊 Total Hari Ini
+            </button>
+          </div>
+        </div>
 
         <div style="background: var(--bg-surface); padding: 16px; border-radius: var(--radius-md); border: 1.5px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
           <div style="display: flex; justify-content: space-between;">
@@ -810,20 +1401,20 @@
           </div>
           <div style="border-top: 1px dashed var(--border-color); margin: 4px 0;"></div>
           <div style="display: flex; justify-content: space-between;">
-            <span data-i18n="closingTotalIncome">Pemasukan Hari Ini:</span>
+            <span>Pemasukan Shift Ini:</span>
             <span id="closingIncomeDisplay" style="font-family: var(--font-mono); font-weight: 800; color: var(--income-green);">Rp 0</span>
           </div>
           <div style="display: flex; justify-content: space-between;">
-            <span data-i18n="closingTotalExpense">Pengeluaran Hari Ini:</span>
+            <span>Pengeluaran Shift Ini:</span>
             <span id="closingExpenseDisplay" style="font-family: var(--font-mono); font-weight: 800; color: var(--expense-red);">Rp 0</span>
           </div>
           <div style="display: flex; justify-content: space-between;">
-            <span data-i18n="closingNetProfit">Laba Bersih Hari Ini:</span>
+            <span>Laba Bersih Shift Ini:</span>
             <span id="closingProfitDisplay" style="font-family: var(--font-mono); font-weight: 800;">Rp 0</span>
           </div>
           <div style="border-top: 1px dashed var(--border-color); margin: 4px 0;"></div>
           <div style="display: flex; justify-content: space-between; font-size: 1.05rem;">
-            <span style="font-weight: 800;" data-i18n="closingCashPhysical">Uang Fisik di Laci:</span>
+            <span style="font-weight: 800;">Uang Fisik Kas di Laci:</span>
             <span id="closingCashDisplay" style="font-family: var(--font-mono); font-weight: 900;">Rp 0</span>
           </div>
           <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted);">
@@ -833,8 +1424,8 @@
         </div>
       </div>
       <div class="modal-footer" style="flex-direction: column; gap: 8px;">
-        <button class="btn-primary-action btn-wa" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 14px;" onclick="FinanceModule.sendClosingWA()">
-          <span>📲</span> Kirim Rekapan Closing ke WA Owner (085334101996)
+        <button id="btnSubmitClosingWA" class="btn-primary-action btn-wa" style="width: 100%; justify-content: center; font-size: 0.95rem; padding: 14px;" onclick="FinanceModule.sendClosingWA()">
+          <span>📲</span> Kirim Closing Shift 1 via WA Gateway (+628982151560) ke Owner (+62 85334101996)
         </button>
         <button class="btn-primary-action" style="background: transparent; color: var(--text-muted); width: 100%; justify-content: center;" onclick="FinanceModule.closeClosingModal()">
           Tutup / Batal
@@ -870,6 +1461,157 @@
     </div>
   </div>
 
+  <!-- ===================================================================
+       MODAL: LOGIN AKUN (OWNER vs BARISTA)
+       =================================================================== -->
+  <div id="accountLoginModal" class="modal-backdrop">
+    <div class="modal-card auth-modal-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3><span>🔐</span> <span id="authModalRoleTitle">Login Akun DIALOG COFFEE</span></h3>
+        <button type="button" class="btn-close-modal" id="btnCloseAuthModal" onclick="AuthModule.closeLoginModal()" style="display: none;">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 22px 20px; text-align: center;">
+        <div style="display: flex; justify-content: center; align-items: center; gap: 12px; margin-bottom: 8px;">
+          <img src="assets/dialog_logo.jpg" alt="DIALOG COFFEE" style="width: 48px; height: 48px; border-radius: 12px; border: 2px solid var(--border-color); object-fit: cover;">
+          <div style="text-align: left;">
+            <div style="font-size: 1.15rem; font-weight: 900; color: var(--text-primary); letter-spacing: -0.3px;">DIALOG COFFEE</div>
+            <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">Sistem Kasir &amp; Pembukuan</div>
+          </div>
+        </div>
+
+        <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 16px;">
+          Pilih peran akun Anda untuk melanjutkan:
+        </p>
+
+        <!-- Role Selector Cards -->
+        <div class="role-selector-grid">
+          <!-- Card Owner -->
+          <div class="role-card" id="roleCardOwner" onclick="AuthModule.selectRole('owner')">
+            <div class="role-card-badge">Akses Penuh</div>
+            <div class="role-card-icon">👑</div>
+            <div class="role-card-name">Owner</div>
+            <div class="role-card-desc">Pengaturan &amp; Arus Kas</div>
+          </div>
+
+          <!-- Card Barista -->
+          <div class="role-card selected" id="roleCardBarista" onclick="AuthModule.selectRole('barista')">
+            <div class="role-card-badge">Kasir Harian</div>
+            <div class="role-card-icon">☕</div>
+            <div class="role-card-name">Barista</div>
+            <div class="role-card-desc">Kasir POS &amp; Pesanan</div>
+          </div>
+        </div>
+
+        <!-- Password / PIN Input -->
+        <div style="text-align: left; margin-top: 14px; margin-bottom: 6px;">
+          <label id="authPinLabel" style="font-size: 0.82rem; font-weight: 700; color: var(--text-primary);">
+            ☕ Masukkan Password Barista:
+          </label>
+        </div>
+
+        <div style="position: relative; margin-bottom: 8px;">
+          <input type="password" id="authPinInput" class="form-control" placeholder="Password Barista..." style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 800; font-family: var(--font-mono); padding: 12px;" maxlength="12" autocomplete="off">
+          <button type="button" id="btnToggleAuthEye" onclick="AuthModule.togglePinVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="Tampilkan / Sembunyikan Password">
+            👁️
+          </button>
+        </div>
+
+        <div id="authPinError" style="display: none; color: var(--expense-red); font-size: 0.8rem; font-weight: 700; margin-bottom: 8px;">
+          Password salah!
+        </div>
+
+        <div style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 14px;">
+          💡 <em>Password Standar: <strong>Owner = 1996</strong> | <strong>Barista = 6969</strong></em>
+        </div>
+
+        <!-- Numeric Keypad for fast touchscreen input -->
+        <div class="owner-keypad-grid" style="margin-bottom: 12px;">
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('1')">1</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('2')">2</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('3')">3</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('4')">4</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('5')">5</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('6')">6</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('7')">7</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('8')">8</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('9')">9</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.clearPin()" style="font-size: 0.75rem; color: var(--expense-red);">C</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('0')">0</button>
+          <button type="button" class="btn-owner-key" onclick="AuthModule.backspacePin()">⌫</button>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="gap: 8px;">
+        <button type="button" class="btn-primary-action" id="btnCancelAuthModal" style="background: transparent; color: var(--text-muted); display: none;" onclick="AuthModule.closeLoginModal()">
+          Batal
+        </button>
+        <button type="button" class="btn-primary-action btn-closing" id="btnSubmitAuth" style="flex: 1; justify-content: center;" onclick="AuthModule.submitLogin()">
+          <span>☕</span> Masuk Sebagai Barista
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 7: LOGIN KHUSUS OWNER (PIN VERIFIKASI)
+       =================================================================== -->
+  <div id="ownerLoginModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 400px;">
+      <div class="modal-header">
+        <h3><span>👑</span> <span data-i18n="ownerLoginModalTitle">Login Khusus Owner</span></h3>
+        <button class="btn-close-modal" onclick="OwnerModule.closeLoginModal()">✕</button>
+      </div>
+      <div class="modal-body" style="text-align: center; padding: 20px 18px;">
+        <div style="font-size: 2.2rem; margin-bottom: 4px;">👑</div>
+        <h4 style="font-size: 1.1rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">
+          Portal Kontrol Arus Kas Owner
+        </h4>
+        <p style="font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 14px;">
+          Area khusus Pemilik DIALOG COFFEE untuk melihat alur pemasukan &amp; pengeluaran secara detil tiap hari, bulan, dan tahun.
+        </p>
+
+        <div style="position: relative; margin-bottom: 8px;">
+          <input type="password" id="ownerPinInput" class="form-control" placeholder="PIN Owner..." style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 800; font-family: var(--font-mono); padding: 12px;" maxlength="12" autocomplete="off">
+          <button type="button" id="btnTogglePinEye" onclick="OwnerModule.togglePinVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="Tampilkan / Sembunyikan PIN">
+            👁️
+          </button>
+        </div>
+
+        <div id="ownerPinError" style="display: none; color: var(--expense-red); font-size: 0.78rem; font-weight: 700; margin-bottom: 8px;">
+          PIN keamanan salah!
+        </div>
+
+        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 14px;">
+          💡 <em>PIN Standar Pemilik: <strong>1996</strong></em>
+        </div>
+
+        <!-- Numeric Keypad for fast touch screen typing -->
+        <div class="owner-keypad-grid">
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('1')">1</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('2')">2</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('3')">3</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('4')">4</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('5')">5</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('6')">6</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('7')">7</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('8')">8</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('9')">9</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.clearPin()" style="font-size: 0.75rem; color: var(--expense-red);">C</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('0')">0</button>
+          <button type="button" class="btn-owner-key" onclick="OwnerModule.backspacePin()">⌫</button>
+        </div>
+      </div>
+      <div class="modal-footer" style="gap: 8px;">
+        <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="OwnerModule.closeLoginModal()">
+          Batal
+        </button>
+        <button class="btn-primary-action btn-closing" style="flex: 1; justify-content: center;" onclick="OwnerModule.submitLogin()">
+          <span>👑</span> Masuk Area Owner
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPT LIBRARIES -->
   <script src="libs/chart.umd.js"></script>
   <script src="libs/jspdf.umd.min.js"></script>
@@ -885,6 +1627,9 @@
   <script src="js/pos.js"></script>
   <script src="js/finance.js"></script>
   <script src="js/reports.js"></script>
+  <script src="js/cloud-sync.js"></script>
+  <script src="js/owner.js"></script>
+  <script src="js/auth.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -27,6 +27,8 @@ const App = {
     if (window.POSModule) POSModule.init();
     if (window.FinanceModule) FinanceModule.init();
     if (window.ReportsModule) ReportsModule.init();
+    if (window.OwnerModule) OwnerModule.init();
+    if (window.AuthModule) AuthModule.init();
 
     // Service Worker
     if ('serviceWorker' in navigator) {
@@ -236,6 +238,22 @@ const App = {
   },
 
   switchTab(tabId) {
+    if (tabId === 'settings' && window.AuthModule && !AuthModule.isOwner()) {
+      this.showToast('Akses dibatasi: Tab Pengaturan hanya dapat dikelola oleh Owner.', 'error');
+      AuthModule.openLoginModal(true);
+      return;
+    }
+
+    if (tabId === 'owner' && window.AuthModule && !AuthModule.isOwner()) {
+      AuthModule.openLoginModal(true);
+      return;
+    }
+
+    if (tabId === 'owner' && window.OwnerModule && !OwnerModule.isLoggedIn()) {
+      OwnerModule.openLoginModal();
+      return;
+    }
+
     this.activeTab = tabId;
     this.playBeep(520, 0.03);
 
@@ -261,6 +279,8 @@ const App = {
       FinanceModule.renderAll();
     } else if (tabId === 'reports' && window.ReportsModule) {
       ReportsModule.renderAll();
+    } else if (tabId === 'owner' && window.OwnerModule) {
+      OwnerModule.renderAll();
     } else if (tabId === 'settings') {
       this.loadSettingsForm();
     }
@@ -304,12 +324,23 @@ const App = {
     setVal('cfgTagline', s.tagline);
     setVal('cfgAddress', s.address);
     setVal('cfgPhone', s.phone);
+    setVal('cfgInstagram', s.instagram || '@dialogcoffee.nnk');
+    setVal('cfgGatewayPhone', s.gatewayPhone || '08982151560');
     setVal('cfgOwnerPhone', s.ownerPhone || '085334101996');
+    setVal('cfgOwnerPin', s.ownerPin || '1996');
+    setVal('cfgBaristaPin', s.baristaPin || '6969');
     setVal('cfgTaxRate', s.taxRate);
     setVal('cfgReceiptFooter', s.receiptFooter);
+    setVal('cfgCloudSyncUrl', s.cloudSyncUrl || 'api_sync.php');
+    setVal('cfgCloudApiKey', s.cloudApiKey || 'dialog2026');
 
     const taxCheck = document.getElementById('cfgTaxEnabled');
     if (taxCheck) taxCheck.checked = !!s.taxEnabled;
+
+    const autoSyncCheck = document.getElementById('cfgCloudAutoSync');
+    if (autoSyncCheck) autoSyncCheck.checked = s.cloudAutoSync !== false;
+
+    if (window.CloudSync && CloudSync.updateStatusBadge) CloudSync.updateStatusBadge();
   },
 
   bindSettingsEvents() {
@@ -323,7 +354,14 @@ const App = {
           tagline: document.getElementById('cfgTagline').value.trim(),
           address: document.getElementById('cfgAddress').value.trim(),
           phone: document.getElementById('cfgPhone').value.trim(),
+          instagram: (document.getElementById('cfgInstagram') ? document.getElementById('cfgInstagram').value.trim() : '') || '@dialogcoffee.nnk',
+          gatewayPhone: (document.getElementById('cfgGatewayPhone') ? document.getElementById('cfgGatewayPhone').value.trim() : '') || '08982151560',
           ownerPhone: document.getElementById('cfgOwnerPhone').value.trim() || '085334101996',
+          ownerPin: (document.getElementById('cfgOwnerPin') ? document.getElementById('cfgOwnerPin').value.trim() : '') || '1996',
+          baristaPin: (document.getElementById('cfgBaristaPin') ? document.getElementById('cfgBaristaPin').value.trim() : '') || '6969',
+          cloudSyncUrl: (document.getElementById('cfgCloudSyncUrl') ? document.getElementById('cfgCloudSyncUrl').value.trim() : '') || 'api_sync.php',
+          cloudApiKey: (document.getElementById('cfgCloudApiKey') ? document.getElementById('cfgCloudApiKey').value.trim() : '') || 'dialog2026',
+          cloudAutoSync: document.getElementById('cfgCloudAutoSync') ? document.getElementById('cfgCloudAutoSync').checked : true,
           taxRate: Number(document.getElementById('cfgTaxRate').value) || 0,
           taxEnabled: document.getElementById('cfgTaxEnabled').checked,
           receiptFooter: document.getElementById('cfgReceiptFooter').value
@@ -396,6 +434,9 @@ const App = {
   scrollToCart() {
     const cart = document.querySelector('.pos-cart-panel');
     if (cart) {
+      const mobileCartBar = document.getElementById('mobileCartBar');
+      if (mobileCartBar) mobileCartBar.classList.remove('visible');
+      if (window.POSModule) POSModule.isCartInView = true;
       cart.scrollIntoView({ behavior: 'smooth', block: 'start' });
       cart.classList.add('pulse-highlight');
       setTimeout(() => cart.classList.remove('pulse-highlight'), 1000);
@@ -489,9 +530,12 @@ const App = {
   },
 
   handleHardwareBackButton() {
-    // 1. Cek apakah ada modal yang terbuka, jika ada tutup modal tersebut
+    // 1. Cek apakah ada modal yang terbuka, jika ada tutup modal tersebut (kecuali modal login jika belum login)
     const openModals = document.querySelectorAll('.modal-backdrop.active');
     if (openModals.length > 0) {
+      if (document.getElementById('accountLoginModal')?.classList.contains('active') && window.AuthModule && !AuthModule.isLoggedIn()) {
+        return;
+      }
       openModals.forEach(modal => modal.classList.remove('active'));
       return;
     }

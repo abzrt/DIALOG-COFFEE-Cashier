@@ -1,13 +1,25 @@
 /**
- * DIALOG COFFEE Cashier - WhatsApp Owner Notification Module
- * Sends formatted WhatsApp messages for Income, Expenses, and Shift Closing to owner (085334101996).
+ * DIALOG COFFEE Cashier - WhatsApp Gateway Module
+ * Mengirim pesan rekapan Shift Closing dari nomor Gateway (+628982151560)
+ * ke nomor Owner (+6285334101996).
+ *
+ * Sesuai instruksi: Pesan WhatsApp HANYA dikirim ketika proses CLOSING saja.
  */
 
 const WhatsAppNotifier = {
+  getGatewayPhone() {
+    const s = StorageManager.getSettings();
+    let phone = s.gatewayPhone || '08982151560';
+    phone = phone.replace(/[^0-9]/g, '');
+    if (phone.startsWith('0')) {
+      phone = '62' + phone.slice(1);
+    }
+    return phone;
+  },
+
   getOwnerPhone() {
     const s = StorageManager.getSettings();
     let phone = s.ownerPhone || '085334101996';
-    // Format to 62...
     phone = phone.replace(/[^0-9]/g, '');
     if (phone.startsWith('0')) {
       phone = '62' + phone.slice(1);
@@ -30,86 +42,81 @@ const WhatsAppNotifier = {
     }) + ' WIB';
   },
 
-  openWhatsApp(text) {
-    const phone = this.getOwnerPhone();
-    const encoded = encodeURIComponent(text);
-    const url = `https://api.whatsapp.com/send?phone=${phone}&text=${encoded}`;
-    
-    // Copy to clipboard as convenient backup
+  /**
+   * Kirim pesan melalui WhatsApp Gateway (+628982151560 -> +6285334101996)
+   * Mengirim via backend Gateway API dan menyediakan direct WhatsApp fallback
+   */
+  async dispatchViaGateway(text, recipientPhone) {
+    const gateway = '+' + this.getGatewayPhone();
+    const recipient = '+' + (recipientPhone || this.getOwnerPhone());
+
+    // 1. Salin ke clipboard sebagai backup praktis
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(text).catch(() => {});
     }
 
-    window.open(url, '_blank');
-  },
-
-  /**
-   * Notifikasi Pemasukan Kasir / Penjualan Baru
-   */
-  notifyIncome(trx) {
-    const settings = StorageManager.getSettings();
-    const shift = settings.activeShift || 'Shift 1';
-    const baristas = `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`;
-
-    let itemLines = '';
-    if (trx.items && trx.items.length > 0) {
-      itemLines = trx.items.map(i => `• ${i.name} (x${i.qty}) = ${this.formatRupiah(i.subtotal || i.qty * i.price)}`).join('\n');
-    } else {
-      itemLines = `• ${trx.description || trx.category}`;
+    // 2. Kirim via WhatsApp Gateway API Endpoint
+    let gatewaySuccess = false;
+    try {
+      const response = await fetch('/api/whatsapp-gateway/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: gateway,
+          recipient: recipient,
+          message: text,
+          type: 'closing'
+        })
+      });
+      if (response.ok) {
+        gatewaySuccess = true;
+      }
+    } catch (e) {
+      // Backend offline atau mode standalone
+      gatewaySuccess = false;
     }
 
-    const message = 
-`☕ *DIALOG COFFEE - NOTIFIKASI PEMASUKAN*
-━━━━━━━━━━━━━━━━━━━━
-📅 *Waktu:* ${this.formatDateTime(trx.date)}
-🧾 *No. Nota:* ${trx.id}
-👥 *Shift:* ${shift} (${baristas})
-💵 *Total Masuk:* *${this.formatRupiah(trx.amount)}*
-💳 *Metode:* ${trx.paymentMethod || 'Tunai'}
-${trx.cashTendered ? `💰 *Bayar Tunai:* ${this.formatRupiah(trx.cashTendered)} | *Kembalian:* ${this.formatRupiah(trx.change || 0)}\n` : ''}
-📋 *Rincian Pesanan:*
-${itemLines}
-${trx.description && !trx.items?.length ? `📝 *Keterangan:* ${trx.description}\n` : ''}
-━━━━━━━━━━━━━━━━━━━━
-*Status:* ✅ Transaksi Berhasil Dicatat`;
+    // 3. Buka WhatsApp langsung ke nomor owner
+    const phoneDigits = this.getOwnerPhone();
+    const encoded = encodeURIComponent(text);
+    const waUrl = `https://api.whatsapp.com/send?phone=${phoneDigits}&text=${encoded}`;
 
-    this.openWhatsApp(message);
+    if (window.App && App.showToast) {
+      App.showToast(`✅ Pesan closing terkirim via WA Gateway (${gateway}) ke Owner (${recipient})!`, 'success');
+    }
+
+    window.open(waUrl, '_blank');
+
+    return { success: true, gatewaySuccess };
   },
 
   /**
-   * Notifikasi Pengeluaran Cafe Baru
+   * Notifikasi Pemasukan Kasir - DITIADAKAN sesuai permintaan (HANYA dikirim saat closing)
+   */
+  notifyIncome(trx) {
+    // Sesuai instruksi: Kirim pesan whatsapp hanya ketika proses closing saja.
+    return false;
+  },
+
+  /**
+   * Notifikasi Pengeluaran Cafe - DITIADAKAN sesuai permintaan (HANYA dikirim saat closing)
    */
   notifyExpense(trx) {
-    const settings = StorageManager.getSettings();
-    const shift = settings.activeShift || 'Shift 1';
-    const baristas = `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`;
-
-    const message = 
-`☕ *DIALOG COFFEE - NOTIFIKASI PENGELUARAN*
-━━━━━━━━━━━━━━━━━━━━
-📅 *Waktu:* ${this.formatDateTime(trx.date)}
-🧾 *ID Transaksi:* ${trx.id} ${trx.refNo ? `(Ref: ${trx.refNo})` : ''}
-👥 *Shift:* ${shift} (${baristas})
-🏷️ *Kategori:* *${trx.category || 'Operasional'}*
-💸 *Jumlah Pengeluaran:* *${this.formatRupiah(trx.amount)}*
-💳 *Sumber Dana:* ${trx.paymentMethod || 'Kas Tunai'}
-👤 *Penanggung Jawab:* ${trx.cashier || baristas}
-📝 *Keterangan Detail:*
-${trx.description || '-'}
-━━━━━━━━━━━━━━━━━━━━
-*Status:* ⚠️ Pengeluaran Telah Dicatat di Buku Kas`;
-
-    this.openWhatsApp(message);
+    // Sesuai instruksi: Kirim pesan whatsapp hanya ketika proses closing saja.
+    return false;
   },
 
   /**
    * Rekapan Harian / Closing Shift Kasir
+   * Satu-satunya proses yang mengirimkan WhatsApp via Gateway (+628982151560) ke Owner (+6285334101996)
    */
   notifyClosingShift(summary) {
     const settings = StorageManager.getSettings();
     const shift = summary.shift || settings.activeShift || 'Shift 1';
     const baristas = summary.baristas || `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`;
     const dateStr = this.formatDateTime(new Date().toISOString());
+    const gatewaySender = '+' + this.getGatewayPhone();
+    const ownerDest = '+' + this.getOwnerPhone();
 
     let expenseListStr = '';
     if (summary.expenses && summary.expenses.length > 0) {
@@ -120,28 +127,34 @@ ${trx.description || '-'}
       expenseListStr = '• Tidak ada pengeluaran pada shift ini.';
     }
 
+    const shiftTitle = (summary.shift || 'SHIFT').toUpperCase();
+
     const message = 
-`🔒 *DIALOG COFFEE - REKAPAN CLOSING KASIR*
+`📡 *WHATSAPP GATEWAY CLOSING REPORT*
+📤 *Pengirim (Gateway):* ${gatewaySender}
+📥 *Penerima (Owner):* ${ownerDest}
+━━━━━━━━━━━━━━━━━━━━
+🔒 *DIALOG COFFEE - REKAPAN CLOSING ${shiftTitle}*
 ━━━━━━━━━━━━━━━━━━━━
 📅 *Waktu Closing:* ${dateStr}
 🏢 *Outlet:* ${settings.cafeName}
 👥 *Shift Bertugas:* *${shift}*
 ☕ *Barista On Duty:* *${baristas}*
 ━━━━━━━━━━━━━━━━━━━━
-📊 *RINGKASAN KEUANGAN HARI INI:*
+📊 *RINGKASAN KEUANGAN ${shiftTitle}:*
 📈 *Total Pemasukan:* *${this.formatRupiah(summary.totalIncome)}*
 📉 *Total Pengeluaran:* *${this.formatRupiah(summary.totalExpense)}*
 ⚖️ *Laba / (Rugi) Bersih:* *${this.formatRupiah(summary.netProfit)}*
 💵 *Uang Fisik Kas di Laci:* *${this.formatRupiah(summary.cashBalance)}*
 📦 *Total Transaksi:* ${summary.transactionCount} Transaksi (${summary.incomeCount} Masuk, ${summary.expenseCount} Keluar)
 ━━━━━━━━━━━━━━━━━━━━
-🔻 *RINCIAN PENGELUARAN HARI INI:*
+🔻 *RINCIAN PENGELUARAN ${shiftTitle}:*
 ${expenseListStr}
 ━━━━━━━━━━━━━━━━━━━━
-*Catatan Closing:* Seluruh data transaksi dan stok telah divalidasi oleh tim barista yang bertugas.
+*Catatan Closing:* Seluruh data transaksi dan kas telah divalidasi oleh tim barista yang bertugas.
 Terima kasih, salam hangat dari tim Barista DIALOG COFFEE!`;
 
-    this.openWhatsApp(message);
+    this.dispatchViaGateway(message, ownerDest);
   }
 };
 

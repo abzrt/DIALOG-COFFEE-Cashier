@@ -9,12 +9,17 @@ const POSModule = {
   searchQuery: '',
   cart: [],
   lastCheckoutTransaction: null,
+  isCartInView: false,
+  activeSavedOrderId: null,
+  currentOrderName: '',
 
   init() {
     this.renderCategories();
     this.renderMenu();
     this.renderCart();
     this.bindEvents();
+    this.initCartObserver();
+    this.updateSavedOrdersBadge();
   },
 
   bindEvents() {
@@ -37,11 +42,26 @@ const POSModule = {
       });
     }
 
-    const checkoutBtn = document.getElementById('checkoutBtn');
-    if (checkoutBtn) {
-      checkoutBtn.addEventListener('click', () => {
-        this.openPaymentModal();
-      });
+    // Checkout button is handled via onclick="POSModule.proceedToPaymentWithDraft()"
+  },
+
+  initCartObserver() {
+    const cartPanel = document.querySelector('.pos-cart-panel');
+    const mobileCartBar = document.getElementById('mobileCartBar');
+    if (!cartPanel || !mobileCartBar) return;
+
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          this.isCartInView = entry.isIntersecting;
+          if (entry.isIntersecting) {
+            mobileCartBar.classList.remove('visible');
+          } else if (this.cart.length > 0) {
+            mobileCartBar.classList.add('visible');
+          }
+        });
+      }, { threshold: 0.1 });
+      observer.observe(cartPanel);
     }
   },
 
@@ -147,6 +167,24 @@ const POSModule = {
 
   clearCart() {
     this.cart = [];
+    this.activeSavedOrderId = null;
+    this.currentOrderName = '';
+    const nameInput = document.getElementById('cartOrderName');
+    if (nameInput) {
+      nameInput.value = '';
+      nameInput.classList.remove('highlight-error');
+    }
+    const badge = document.getElementById('activeDraftBadge');
+    if (badge) {
+      badge.style.display = 'none';
+      badge.textContent = 'Draft Aktif';
+    }
+    const seatInput = document.getElementById('paySeatInput');
+    const custInput = document.getElementById('payCustomerInput');
+    const notesInput = document.getElementById('payNotesInput');
+    if (seatInput) seatInput.value = '';
+    if (custInput) custInput.value = '';
+    if (notesInput) notesInput.value = '';
     this.renderCart();
   },
 
@@ -166,6 +204,7 @@ const POSModule = {
     const taxAmountEl = document.getElementById('cartTaxAmount');
     const totalEl = document.getElementById('cartTotal');
     const checkoutBtn = document.getElementById('checkoutBtn');
+    const holdCartQuickBtn = document.getElementById('holdCartQuickBtn');
     const mobileCartBar = document.getElementById('mobileCartBar');
     const mcbCount = document.getElementById('mcbCount');
     const mcbTotal = document.getElementById('mcbTotal');
@@ -184,7 +223,9 @@ const POSModule = {
       if (taxAmountEl) taxAmountEl.textContent = 'Rp 0';
       if (totalEl) totalEl.textContent = 'Rp 0';
       if (checkoutBtn) checkoutBtn.disabled = true;
+      if (holdCartQuickBtn) holdCartQuickBtn.disabled = true;
       if (mobileCartBar) mobileCartBar.classList.remove('visible');
+      this.updateSavedOrdersBadge();
       return;
     }
 
@@ -209,13 +250,16 @@ const POSModule = {
     if (taxAmountEl) taxAmountEl.textContent = App.formatRupiah(taxAmount);
     if (totalEl) totalEl.textContent = App.formatRupiah(total);
     if (checkoutBtn) checkoutBtn.disabled = false;
+    if (holdCartQuickBtn) holdCartQuickBtn.disabled = false;
 
     // Update Mobile Quick Cart Bar
     if (mobileCartBar) {
       const totalCount = this.cart.reduce((s, i) => s + i.qty, 0);
       if (mcbCount) mcbCount.textContent = `${totalCount} item`;
       if (mcbTotal) mcbTotal.textContent = App.formatRupiah(total);
-      mobileCartBar.classList.add('visible');
+      if (!this.isCartInView) {
+        mobileCartBar.classList.add('visible');
+      }
     }
   },
 
@@ -282,9 +326,13 @@ const POSModule = {
     const cashInput = document.getElementById('payCashInput');
     const methodSelect = document.getElementById('payMethodSelect');
     const notesInput = document.getElementById('payNotesInput');
+    const seatInput = document.getElementById('paySeatInput');
+    const customerInput = document.getElementById('payCustomerInput');
 
     const method = methodSelect ? methodSelect.value : 'Tunai';
     const cashTendered = Number(cashInput ? cashInput.value : 0);
+    const seatNumber = seatInput ? seatInput.value.trim() : '';
+    const customerName = (customerInput ? customerInput.value.trim() : '') || this.currentOrderName || '';
 
     if (method === 'Tunai' && cashTendered < total) {
       alert(`Nominal pembayaran tunai kurang Rp ${(total - cashTendered).toLocaleString('id-ID')}`);
@@ -305,7 +353,15 @@ const POSModule = {
       subtotal: c.qty * c.price
     }));
 
-    const description = `Penjualan Kasir (${this.cart.map(i => `${i.name} x${i.qty}`).join(', ')})`;
+    let labelInfo = [];
+    if (seatNumber) labelInfo.push(`Seat: ${seatNumber}`);
+    if (customerName) labelInfo.push(`Pelanggan: ${customerName}`);
+    const metaPrefix = labelInfo.length > 0 ? `[${labelInfo.join(' | ')}] ` : '';
+
+    let description = `${metaPrefix}Penjualan Kasir (${this.cart.map(i => `${i.name} x${i.qty}`).join(', ')})`;
+    if (notesInput && notesInput.value) {
+      description += ` - ${notesInput.value}`;
+    }
 
     const newTransaction = {
       id: invoiceId,
@@ -321,13 +377,22 @@ const POSModule = {
       shift: settings.activeShift || 'Shift 1',
       baristas: `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`,
       cashier: settings.activeCashier,
-      description: notesInput && notesInput.value ? `${description} - ${notesInput.value}` : description,
+      seatNumber: seatNumber,
+      customerName: customerName,
+      description: description,
       refNo: invoiceId,
       items: itemsSummary
     };
 
     StorageManager.addTransaction(newTransaction);
     this.lastCheckoutTransaction = newTransaction;
+
+    // Hapus dari daftar order tersimpan jika checkout berasal dari open bill
+    if (this.activeSavedOrderId) {
+      StorageManager.removeSavedOrder(this.activeSavedOrderId);
+      this.activeSavedOrderId = null;
+      this.updateSavedOrdersBadge();
+    }
 
     App.playChime();
     this.closePaymentModal();
@@ -397,6 +462,8 @@ const POSModule = {
 
         <div class="receipt-row"><span>No. Nota:</span><span style="font-weight: 800;">${trx.id}</span></div>
         <div class="receipt-row"><span>Waktu   :</span><span>${App.formatDateTime(trx.date)}</span></div>
+        ${trx.seatNumber ? `<div class="receipt-row"><span>Seat/Meja:</span><span style="font-weight: 800;">${trx.seatNumber}</span></div>` : ''}
+        ${trx.customerName ? `<div class="receipt-row"><span>Pelanggan:</span><span style="font-weight: 800;">${trx.customerName}</span></div>` : ''}
         <div class="receipt-row"><span>Shift   :</span><span>${trx.shift || settings.activeShift || 'Shift 1'}</span></div>
         <div class="receipt-row"><span>Barista :</span><span>${trx.baristas || `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`}</span></div>
         <div class="receipt-row"><span>Metode  :</span><span>${trx.paymentMethod || 'Tunai'}</span></div>
@@ -469,6 +536,368 @@ const POSModule = {
   sendCurrentReceiptWA() {
     if (!this.lastCheckoutTransaction) return;
     WhatsAppNotifier.notifyIncome(this.lastCheckoutTransaction);
+  },
+
+  // =========================================================================
+  // HOLD / SAVED ORDERS (OPEN BILLS BERDASARKAN NOMOR SEAT & NAMA PELANGGAN)
+  // =========================================================================
+  openHoldOrderModal() {
+    if (this.cart.length === 0) {
+      App.showToast('Keranjang masih kosong', 'info');
+      return;
+    }
+    const { total } = this.calculateTotals();
+    const count = this.cart.reduce((s, i) => s + i.qty, 0);
+
+    const countEl = document.getElementById('holdModalItemCount');
+    const totalEl = document.getElementById('holdModalTotal');
+    if (countEl) countEl.textContent = `${count} item`;
+    if (totalEl) totalEl.textContent = App.formatRupiah(total);
+
+    const paySeat = document.getElementById('paySeatInput');
+    const payCust = document.getElementById('payCustomerInput');
+    const holdSeat = document.getElementById('holdSeatInput');
+    const holdCust = document.getElementById('holdCustomerInput');
+    if (holdSeat && paySeat) holdSeat.value = paySeat.value;
+    if (holdCust && payCust) holdCust.value = payCust.value;
+
+    const modal = document.getElementById('holdOrderModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  closeHoldOrderModal() {
+    const modal = document.getElementById('holdOrderModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  confirmSaveHoldOrder() {
+    if (this.cart.length === 0) return;
+    const seatInput = document.getElementById('holdSeatInput');
+    const custInput = document.getElementById('holdCustomerInput');
+    const notesInput = document.getElementById('holdNotesInput');
+
+    const seat = seatInput ? seatInput.value.trim() : '';
+    const customer = custInput ? custInput.value.trim() : '';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    if (!seat && !customer) {
+      alert('Mohon isi Nomor Seat/Meja atau Nama Pelanggan agar pesanan mudah dikenali.');
+      if (seatInput) seatInput.focus();
+      return;
+    }
+
+    const { subtotal, taxAmount, total } = this.calculateTotals();
+    const order = {
+      id: this.activeSavedOrderId || ('ORD-' + Date.now().toString().slice(-6)),
+      date: new Date().toISOString(),
+      seatNumber: seat,
+      customerName: customer,
+      notes: notes,
+      items: JSON.parse(JSON.stringify(this.cart)),
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      total: total
+    };
+
+    StorageManager.addSavedOrder(order);
+    this.activeSavedOrderId = null;
+    this.cart = [];
+    this.renderCart();
+    this.closeHoldOrderModal();
+    this.updateSavedOrdersBadge();
+
+    if (seatInput) seatInput.value = '';
+    if (custInput) custInput.value = '';
+    if (notesInput) notesInput.value = '';
+
+    const label = [seat ? `Seat ${seat}` : '', customer].filter(Boolean).join(' - ');
+    App.showToast(`Pesanan (${label}) berhasil disimpan!`, 'success');
+  },
+
+  saveCurrentOrderPending() {
+    if (this.cart.length === 0) return;
+    const seatInput = document.getElementById('paySeatInput');
+    const custInput = document.getElementById('payCustomerInput');
+    const notesInput = document.getElementById('payNotesInput');
+
+    const seat = seatInput ? seatInput.value.trim() : '';
+    const customer = custInput ? custInput.value.trim() : '';
+    const notes = notesInput ? notesInput.value.trim() : '';
+
+    if (!seat && !customer) {
+      alert('Mohon isi Nomor Seat/Meja atau Nama Pelanggan terlebih dahulu untuk menyimpan order.');
+      if (seatInput) seatInput.focus();
+      return;
+    }
+
+    const { subtotal, taxAmount, total } = this.calculateTotals();
+    const order = {
+      id: this.activeSavedOrderId || ('ORD-' + Date.now().toString().slice(-6)),
+      date: new Date().toISOString(),
+      seatNumber: seat,
+      customerName: customer,
+      notes: notes,
+      items: JSON.parse(JSON.stringify(this.cart)),
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      total: total
+    };
+
+    StorageManager.addSavedOrder(order);
+    this.activeSavedOrderId = null;
+    this.cart = [];
+    this.renderCart();
+    this.closePaymentModal();
+    this.updateSavedOrdersBadge();
+
+    if (seatInput) seatInput.value = '';
+    if (custInput) custInput.value = '';
+    if (notesInput) notesInput.value = '';
+
+    const label = [seat ? `Seat ${seat}` : '', customer].filter(Boolean).join(' - ');
+    App.showToast(`Order (${label}) berhasil disimpan! Siap dibayar nanti.`, 'success');
+  },
+
+  // FITUR DRAFT ORDER DENGAN NAMA PEMESAN
+  onOrderNameInput(val) {
+    this.currentOrderName = (val || '').trim();
+    const input = document.getElementById('cartOrderName');
+    if (input) input.classList.remove('highlight-error');
+  },
+
+  saveCurrentCartToDraft() {
+    if (this.cart.length === 0) {
+      App.showToast(I18N.currentLang === 'id' ? 'Keranjang masih kosong' : 'Cart is empty', 'info');
+      return;
+    }
+
+    const nameInput = document.getElementById('cartOrderName');
+    const orderName = (nameInput ? nameInput.value.trim() : '') || this.currentOrderName;
+
+    if (!orderName) {
+      if (nameInput) {
+        nameInput.classList.add('highlight-error');
+        nameInput.focus();
+        App.scrollToCart();
+      }
+      alert('Mohon masukkan Nama Orderan / Pemesan terlebih dahulu untuk menyimpan ke draft.');
+      return;
+    }
+
+    const { subtotal, taxAmount, total } = this.calculateTotals();
+    const draftId = this.activeSavedOrderId || ('DFT-' + Date.now().toString().slice(-6));
+
+    const draftOrder = {
+      id: draftId,
+      date: new Date().toISOString(),
+      customerName: orderName,
+      seatNumber: '',
+      notes: '',
+      items: JSON.parse(JSON.stringify(this.cart)),
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      total: total
+    };
+
+    StorageManager.addSavedOrder(draftOrder);
+    this.activeSavedOrderId = null;
+    this.currentOrderName = '';
+    if (nameInput) nameInput.value = '';
+
+    const badge = document.getElementById('activeDraftBadge');
+    if (badge) badge.style.display = 'none';
+
+    this.cart = [];
+    this.renderCart();
+    this.updateSavedOrdersBadge();
+
+    App.showToast(`Draft orderan "${orderName}" berhasil disimpan!`, 'success');
+  },
+
+  proceedToPaymentWithDraft() {
+    if (this.cart.length === 0) {
+      App.showToast(I18N.currentLang === 'id' ? 'Keranjang masih kosong' : 'Cart is empty', 'info');
+      return;
+    }
+
+    const nameInput = document.getElementById('cartOrderName');
+    const orderName = (nameInput ? nameInput.value.trim() : '') || this.currentOrderName;
+
+    if (!orderName) {
+      if (nameInput) {
+        nameInput.classList.add('highlight-error');
+        nameInput.focus();
+        App.scrollToCart();
+      }
+      alert('Mohon masukkan Nama Orderan / Pemesan terlebih dahulu sebelum pembayaran.');
+      return;
+    }
+
+    // Semua orderan otomatis terdraft dulu sesuai nama yang memesan sebelum di bayar
+    const { subtotal, taxAmount, total } = this.calculateTotals();
+    const draftId = this.activeSavedOrderId || ('DFT-' + Date.now().toString().slice(-6));
+
+    const draftOrder = {
+      id: draftId,
+      date: new Date().toISOString(),
+      customerName: orderName,
+      seatNumber: '',
+      notes: '',
+      items: JSON.parse(JSON.stringify(this.cart)),
+      subtotal: subtotal,
+      taxAmount: taxAmount,
+      total: total
+    };
+
+    StorageManager.addSavedOrder(draftOrder);
+    this.activeSavedOrderId = draftId;
+    this.currentOrderName = orderName;
+    this.updateSavedOrdersBadge();
+
+    const badge = document.getElementById('activeDraftBadge');
+    if (badge) {
+      badge.style.display = 'inline-block';
+      badge.textContent = `Draft: ${orderName}`;
+    }
+
+    // Sinkronkan nama ke modal pembayaran
+    const custInput = document.getElementById('payCustomerInput');
+    if (custInput) custInput.value = orderName;
+
+    this.openPaymentModal();
+  },
+
+  openSavedOrdersModal() {
+    this.renderSavedOrdersList();
+    const modal = document.getElementById('savedOrdersModal');
+    if (modal) modal.classList.add('active');
+  },
+
+  closeSavedOrdersModal() {
+    const modal = document.getElementById('savedOrdersModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  renderSavedOrdersList() {
+    const container = document.getElementById('savedOrdersList');
+    if (!container) return;
+
+    const orders = StorageManager.getSavedOrders();
+    if (orders.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 40px 10px; color: var(--text-muted);">
+          <div style="font-size: 2.5rem; margin-bottom: 8px;">📋</div>
+          <p style="font-weight: 700;">${I18N.t('noDrafts') || 'Belum ada draft orderan'}</p>
+          <span style="font-size: 0.78rem;">Orderan yang disimpan atau diproses dengan nama pemesan akan terdraft di sini.</span>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = orders.map(ord => {
+      const itemsSummary = (ord.items || []).map(i => `${i.name} (x${i.qty})`).join(', ');
+      const title = ord.customerName ? `👤 ${ord.customerName}` : (ord.seatNumber ? `🪑 ${ord.seatNumber}` : 'Draft Tanpa Nama');
+      const seatTag = (ord.seatNumber && ord.customerName) ? ` • 🪑 ${ord.seatNumber}` : '';
+
+      return `
+        <div class="saved-order-card">
+          <div class="soc-header">
+            <span class="soc-tag">${title}${seatTag}</span>
+            <span class="soc-time">${App.formatDateTime(ord.date)}</span>
+          </div>
+          <div class="soc-items">${itemsSummary}</div>
+          ${ord.notes ? `<div style="font-size: 0.72rem; color: var(--text-muted);">📝 ${ord.notes}</div>` : ''}
+          <div class="soc-footer">
+            <div class="soc-total">${App.formatRupiah(ord.total)}</div>
+            <div class="soc-actions">
+              <button type="button" class="btn-primary-action btn-closing" style="padding: 6px 12px; font-size: 0.78rem;" onclick="POSModule.loadSavedOrder('${ord.id}', true)">
+                💳 Bayar
+              </button>
+              <button type="button" class="btn-primary-action" style="padding: 6px 10px; font-size: 0.78rem; background: var(--bg-surface); color: var(--text-primary); border: 1px solid var(--border-color);" onclick="POSModule.loadSavedOrder('${ord.id}', false)">
+                ✏️ Edit Draft
+              </button>
+              <button type="button" class="btn-primary-action" style="padding: 6px 8px; font-size: 0.78rem; background: transparent; color: var(--expense-red); border: 1px solid transparent;" onclick="POSModule.deleteSavedOrder('${ord.id}')" title="Hapus Draft">
+                🗑️
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  loadSavedOrder(id, openPayment = false) {
+    if (this.cart.length > 0 && !confirm('Ganti pesanan aktif saat ini dengan draft ini?')) {
+      return;
+    }
+
+    const orders = StorageManager.getSavedOrders();
+    const ord = orders.find(o => o.id === id);
+    if (!ord) return;
+
+    this.cart = JSON.parse(JSON.stringify(ord.items || []));
+    this.activeSavedOrderId = ord.id;
+    this.currentOrderName = ord.customerName || ord.seatNumber || '';
+
+    const nameInput = document.getElementById('cartOrderName');
+    if (nameInput) {
+      nameInput.value = this.currentOrderName;
+      nameInput.classList.remove('highlight-error');
+    }
+
+    const badge = document.getElementById('activeDraftBadge');
+    if (badge) {
+      badge.style.display = 'inline-block';
+      badge.textContent = `Draft: ${this.currentOrderName || ord.id}`;
+    }
+
+    this.renderCart();
+
+    const seatInput = document.getElementById('paySeatInput');
+    const custInput = document.getElementById('payCustomerInput');
+    const notesInput = document.getElementById('payNotesInput');
+    if (seatInput) seatInput.value = ord.seatNumber || '';
+    if (custInput) custInput.value = ord.customerName || this.currentOrderName;
+    if (notesInput) notesInput.value = ord.notes || '';
+
+    this.closeSavedOrdersModal();
+
+    if (openPayment) {
+      this.openPaymentModal();
+    } else {
+      const label = [ord.seatNumber ? `Seat ${ord.seatNumber}` : '', ord.customerName].filter(Boolean).join(' - ') || ord.id;
+      App.showToast(`Draft (${label}) dimuat ke keranjang!`, 'info');
+      App.scrollToCart();
+    }
+  },
+
+  deleteSavedOrder(id) {
+    if (!confirm('Hapus draft orderan ini?')) return;
+    StorageManager.removeSavedOrder(id);
+    if (this.activeSavedOrderId === id) {
+      this.activeSavedOrderId = null;
+      const badge = document.getElementById('activeDraftBadge');
+      if (badge) badge.style.display = 'none';
+    }
+    this.renderSavedOrdersList();
+    this.updateSavedOrdersBadge();
+    App.showToast('Draft orderan dihapus', 'info');
+  },
+
+  updateSavedOrdersBadge() {
+    const badge = document.getElementById('savedOrdersCount');
+    const btn = document.getElementById('savedOrdersBtn');
+    const orders = StorageManager.getSavedOrders();
+    const count = orders.length;
+
+    if (badge) badge.textContent = count;
+    if (btn) {
+      if (count > 0) {
+        btn.classList.add('has-items');
+      } else {
+        btn.classList.remove('has-items');
+      }
+    }
   }
 };
 

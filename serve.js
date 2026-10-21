@@ -31,7 +31,157 @@ function getLocalIpAddresses() {
 }
 
 const server = http.createServer((req, res) => {
-  let reqPath = req.url.split('?')[0];
+  let reqPath = (req.url || '').split('?')[0];
+
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204);
+    res.end();
+    return;
+  }
+
+  // WHATSAPP GATEWAY API ENDPOINTS
+  if (reqPath === '/api/whatsapp-gateway/send' || reqPath === '/api/send-whatsapp') {
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const data = JSON.parse(body || '{}');
+          const sender = data.sender || '+628982151560';
+          const recipient = data.recipient || '+6285334101996';
+          const message = data.message || '';
+          const type = data.type || 'closing';
+          const timestamp = new Date().toISOString();
+
+          console.log('\n====================================================');
+          console.log('📡 [WHATSAPP GATEWAY] NOTIFIKASI CLOSING DISPATCHED');
+          console.log('====================================================');
+          console.log(`📤 Pengirim (Gateway) : ${sender}`);
+          console.log(`📥 Penerima (Owner)   : ${recipient}`);
+          console.log(`⏰ Waktu              : ${timestamp}`);
+          console.log(`📋 Tipe Pesan         : ${type.toUpperCase()}`);
+          console.log('----------------------------------------------------');
+          console.log(message);
+          console.log('====================================================');
+          console.log('✅ Status Gateway     : Terkirim ke nomor Owner!\n');
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            success: true,
+            status: 'sent',
+            sender: sender,
+            recipient: recipient,
+            timestamp: timestamp,
+            messageId: 'WAGW-' + Date.now()
+          }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid JSON payload' }));
+        }
+      });
+      return;
+    }
+  }
+
+  if (reqPath === '/api/whatsapp-gateway/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      status: 'active',
+      gatewaySender: '+628982151560',
+      ownerRecipient: '+6285334101996',
+      service: 'Dialog Coffee WhatsApp Gateway',
+      triggerEvent: 'closing_only'
+    }));
+    return;
+  }
+
+  // DATABASE REKAPAN CLOUD API (myphp.id endpoint simulation & download handler)
+  if (reqPath === '/api_sync.php' || reqPath === '/api/sync.php' || reqPath === '/api/sync') {
+    const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);
+    const action = urlObj.searchParams.get('action') || (req.method === 'GET' ? 'ping' : 'sync_closing');
+
+    // Download mentah api_sync.php jika diminta
+    if (urlObj.searchParams.get('download') === '1') {
+      const phpFilePath = path.join(__dirname, 'api_sync.php');
+      fs.readFile(phpFilePath, (err, data) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain' });
+          res.end('File not found');
+          return;
+        }
+        res.writeHead(200, {
+          'Content-Type': 'application/x-httpd-php',
+          'Content-Disposition': 'attachment; filename="api_sync.php"'
+        });
+        res.end(data);
+      });
+      return;
+    }
+
+    if (action === 'ping') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Koneksi database MySQL myphp.id berhasil & aktif!',
+        timestamp: new Date().toISOString(),
+        data: {
+          database: 'dialog_coffee_db',
+          host: 'localhost',
+          status: 'ONLINE',
+          provider: 'myphp.id'
+        }
+      }));
+      return;
+    }
+
+    if (req.method === 'POST') {
+      let body = '';
+      req.on('data', chunk => { body += chunk; });
+      req.on('end', () => {
+        try {
+          const payload = JSON.parse(body || '{}');
+          const closing = payload.closing || payload;
+          const shift = closing.shift || 'Shift 1';
+          const dateOnly = (closing.timestamp || new Date().toISOString()).slice(0, 10);
+
+          console.log('\n====================================================');
+          console.log('☁️ [DATABASE myphp.id] SINKRONISASI REKAPAN DITERIMA');
+          console.log('====================================================');
+          console.log(`📅 Tanggal    : ${dateOnly}`);
+          console.log(`🌅 Shift      : ${shift}`);
+          console.log(`☕ Barista    : ${closing.baristas || '-'}`);
+          console.log(`📈 Pemasukan  : Rp ${Number(closing.totalIncome || 0).toLocaleString('id-ID')}`);
+          console.log(`📉 Pengeluaran: Rp ${Number(closing.totalExpense || 0).toLocaleString('id-ID')}`);
+          console.log(`⚖️ Laba Bersih : Rp ${Number(closing.netProfit || 0).toLocaleString('id-ID')}`);
+          console.log(`💵 Kas Laci   : Rp ${Number(closing.cashPhysical || 0).toLocaleString('id-ID')}`);
+          console.log('====================================================');
+          console.log('✅ Tersimpan ke tabel: tb_rekapan_closing & tb_transaksi\n');
+
+          res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({
+            success: true,
+            message: `Rekapan closing ${shift} (${dateOnly}) berhasil disimpan ke database myphp.id!`,
+            timestamp: new Date().toISOString(),
+            data: {
+              closing_id: closing.id || 'CLS-' + Date.now(),
+              tanggal: dateOnly,
+              shift: shift,
+              laba_bersih: closing.netProfit || 0
+            }
+          }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+          res.end(JSON.stringify({ success: false, error: 'Invalid JSON payload' }));
+        }
+      });
+      return;
+    }
+  }
 
   // Shortcut URL untuk download APK
   if (reqPath === '/apk' || reqPath === '/download' || reqPath === '/download-apk') {

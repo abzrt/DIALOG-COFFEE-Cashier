@@ -99,4 +99,4 @@ npm run android
 
 ---
 
-*DIALOG COFFEE Cashier — Great Coffee, Honest Conversations.*
+*DIALOG COFFEE Cashier — Good Coffee, Good Dialog.*

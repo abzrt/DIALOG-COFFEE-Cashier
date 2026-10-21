@@ -277,7 +277,7 @@ const WordExporter = {
       <w:tr>
         <w:tc>
           <w:tcPr><w:tcW w:w="6450" w:type="dxa"/></w:tcPr>
-          <w:p><w:r><w:t>Jakarta, ${this.escapeXml(this.formatDateOnly(new Date().toISOString()))}</w:t></w:r></w:p>
+          <w:p><w:r><w:t>Nunukan, ${this.escapeXml(this.formatDateOnly(new Date().toISOString()))}</w:t></w:r></w:p>
           <w:p><w:r><w:t>Dibuat &amp; Diverifikasi Oleh,</w:t></w:r></w:p>
           <w:p><w:pPr><w:spacing w:before="1000"/></w:pPr><w:r><w:rPr><w:b/><w:u w:val="single"/></w:rPr><w:t>${this.escapeXml(cashierName)}</w:t></w:r></w:p>
           <w:p><w:r><w:rPr><w:i/></w:rPr><w:t>Kasir / Barista On Duty</w:t></w:r></w:p>

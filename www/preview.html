@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Preview DIALOG COFFEE Cashier - HP & Tablet Mode</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #121214;
+      color: #fafafa;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .preview-header {
+      background: #18181b;
+      border-bottom: 1px solid #27272a;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .preview-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 800;
+      font-size: 1.1rem;
+    }
+    .preview-badge {
+      background: #ffffff;
+      color: #000000;
+      font-size: 0.7rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 900;
+    }
+    .preview-toggles {
+      display: flex;
+      background: #27272a;
+      padding: 3px;
+      border-radius: 999px;
+      gap: 4px;
+    }
+    .preview-btn {
+      background: transparent;
+      border: none;
+      color: #a1a1aa;
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .preview-btn.active {
+      background: #ffffff;
+      color: #09090b;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .preview-stage {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      gap: 32px;
+      overflow-x: auto;
+    }
+    .device-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .device-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #a1a1aa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .phone-frame {
+      width: 412px;
+      height: 870px;
+      background: #000;
+      border-radius: 44px;
+      padding: 12px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 4px #27272a;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .phone-speaker {
+      position: absolute;
+      top: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 80px;
+      height: 4px;
+      background: #333;
+      border-radius: 2px;
+      z-index: 10;
+    }
+    .phone-camera {
+      position: absolute;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 12px;
+      height: 12px;
+      background: #111;
+      border: 2px solid #222;
+      border-radius: 50%;
+      z-index: 10;
+    }
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 32px;
+      border: none;
+      background: #fff;
+      overflow: hidden;
+    }
+    .tablet-frame {
+      width: 820px;
+      height: 870px;
+      background: #000;
+      border-radius: 36px;
+      padding: 14px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 4px #27272a;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .tablet-screen {
+      width: 100%;
+      height: 100%;
+      border-radius: 24px;
+      border: none;
+      background: #fff;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="preview-header">
+    <div class="preview-title">
+      <span>☕ DIALOG COFFEE</span>
+      <span class="preview-badge">LIVE PREVIEW HARMONIZATION</span>
+    </div>
+    <div class="preview-toggles">
+      <a href="dialog-coffee-cashier.apk" download class="preview-btn" style="background: #10b981; color: #ffffff; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">📥 Unduh APK (4.7 MB)</a>
+      <button class="preview-btn" onclick="openReceiptDemo()" style="background: #3f3f46; color: #ffffff;">🧾 Preview Struk (Cetak / PDF)</button>
+      <button class="preview-btn active" onclick="setMode('both')">📱 + 📱 Keduanya</button>
+      <button class="preview-btn" onclick="setMode('phone')">📱 HP (412x870)</button>
+      <button class="preview-btn" onclick="setMode('tablet')">📱 Tablet (820x870)</button>
+    </div>
+  </header>
+
+  <main class="preview-stage" id="previewStage">
+    <!-- Smartphone View -->
+    <div class="device-container" id="phoneContainer">
+      <div class="device-label">📱 HP Android / Smartphone (412px)</div>
+      <div class="phone-frame">
+        <div class="phone-speaker"></div>
+        <div class="phone-camera"></div>
+        <iframe src="index.html" class="phone-screen" id="phoneIframe" onload="if(window.location.hash.includes('receipt')) setTimeout(() => { try { this.contentWindow.App.testReceiptPrintModal(); } catch(e){} }, 400);"></iframe>
+      </div>
+    </div>
+
+    <!-- Tablet View -->
+    <div class="device-container" id="tabletContainer">
+      <div class="device-label">📱 Tablet POS Kasir (820px Dual-Pane)</div>
+      <div class="tablet-frame">
+        <iframe src="index.html" class="tablet-screen" id="tabletIframe" onload="if(window.location.hash.includes('receipt')) setTimeout(() => { try { this.contentWindow.App.testReceiptPrintModal(); } catch(e){} }, 400);"></iframe>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function setMode(mode) {
+      document.querySelectorAll('.preview-btn').forEach(b => {
+        if (b.innerText.includes('Keduanya') || b.innerText.includes('HP (') || b.innerText.includes('Tablet (')) {
+          b.classList.remove('active');
+        }
+      });
+      event.target.classList.add('active');
+
+      const phone = document.getElementById('phoneContainer');
+      const tablet = document.getElementById('tabletContainer');
+
+      if (mode === 'both') {
+        phone.style.display = 'flex';
+        tablet.style.display = 'flex';
+      } else if (mode === 'phone') {
+        phone.style.display = 'flex';
+        tablet.style.display = 'none';
+      } else if (mode === 'tablet') {
+        phone.style.display = 'none';
+        tablet.style.display = 'flex';
+      }
+    }
+
+    function openReceiptDemo() {
+      const phoneIframe = document.getElementById('phoneIframe');
+      const tabletIframe = document.getElementById('tabletIframe');
+      [phoneIframe, tabletIframe].forEach(iframe => {
+        if (iframe && iframe.contentWindow && iframe.contentWindow.App) {
+          iframe.contentWindow.App.testReceiptPrintModal();
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('modal') === 'receipt' || window.location.hash.includes('receipt')) {
+        const phone = document.getElementById('phoneIframe');
+        const tablet = document.getElementById('tabletIframe');
+        if (phone) phone.src = 'index.html?modal=receipt';
+        if (tablet) tablet.src = 'index.html?modal=receipt';
+      }
+    });
+  </script>
+</body>
+</html>

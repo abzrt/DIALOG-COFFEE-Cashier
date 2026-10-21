@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
   TRANSACTIONS: 'dialog_coffee_transactions_v3',
   MENU: 'dialog_coffee_menu_v2',
   SETTINGS: 'dialog_coffee_settings_v2',
-  CLOSINGS: 'dialog_coffee_closings_v3'
+  CLOSINGS: 'dialog_coffee_closings_v3',
+  SAVED_ORDERS: 'dialog_coffee_saved_orders_v1'
 };
 
 // Bersihkan riwayat demo versi sebelumnya secara otomatis
@@ -48,11 +49,12 @@ const DEFAULT_MENU = [
 // Profil dan Pengaturan Toko
 const DEFAULT_SETTINGS = {
   cafeName: 'DIALOG COFFEE',
-  tagline: 'Great Coffee, Honest Conversations',
-  address: 'Jl. Senopati No. 42, Kebayoran Baru, Jakarta Selatan',
+  tagline: 'Good Coffee, Good Dialog',
+  address: 'Jl. Tien Soeharto, Rt. 012 Kec. Nunukan Timur, Kab. Nunukan Kalimantan Utara',
   phone: '0853-3410-1996',
   ownerPhone: '085334101996',
-  instagram: '@dialogcoffee.id',
+  gatewayPhone: '08982151560',
+  instagram: '@dialogcoffee.nnk',
   taxRate: 10,
   taxEnabled: true,
   currency: 'IDR',
@@ -68,7 +70,17 @@ const DEFAULT_SETTINGS = {
   activeBarista2: 'Anca',
   activeCashier: 'Shift 1 (Ardi & Anca)',
 
-  receiptFooter: 'Terima kasih atas kunjungannya!\nNikmati setiap tetes kopi dan percakapan hangat.\nTag kami di IG @dialogcoffee.id'
+  // Owner PIN (Default: 1996) & Barista Password (Default: 6969)
+  ownerPin: '1996',
+  baristaPin: '6969',
+
+  // Cloud Database (myphp.id MySQL Sync)
+  cloudSyncUrl: 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php',
+  cloudApiKey: 'dialog2026',
+  cloudAutoSync: true,
+  lastCloudSync: null,
+
+  receiptFooter: 'Terima kasih atas kunjungannya!\nNikmati setiap tetes kopi dan percakapan hangat.\nTag kami di IG @dialogcoffee.nnk'
 };
 
 const StorageManager = {
@@ -176,7 +188,21 @@ const StorageManager = {
         this.saveSettings(DEFAULT_SETTINGS);
         return DEFAULT_SETTINGS;
       }
-      return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
+      const parsed = JSON.parse(data);
+      // Migrasi data jika masih tersimpan data demo lama di localStorage
+      if (!parsed.tagline || parsed.tagline.includes('Great Coffee') || parsed.tagline.includes('Honest Conversations')) {
+        parsed.tagline = DEFAULT_SETTINGS.tagline;
+      }
+      if (!parsed.address || parsed.address.includes('Senopati')) {
+        parsed.address = DEFAULT_SETTINGS.address;
+      }
+      if (!parsed.instagram || parsed.instagram.includes('@dialogcoffee.id')) {
+        parsed.instagram = DEFAULT_SETTINGS.instagram;
+      }
+      if (!parsed.receiptFooter || parsed.receiptFooter.includes('@dialogcoffee.id')) {
+        parsed.receiptFooter = DEFAULT_SETTINGS.receiptFooter;
+      }
+      return { ...DEFAULT_SETTINGS, ...parsed };
     } catch (e) {
       console.error('Error reading settings:', e);
       return DEFAULT_SETTINGS;
@@ -246,6 +272,50 @@ const StorageManager = {
     } catch (err) {
       return { success: false, error: err.message };
     }
+  },
+
+  // SAVED ORDERS (HOLD / PENDING BILLS)
+  getSavedOrders() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.SAVED_ORDERS);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('Error reading saved orders:', e);
+      return [];
+    }
+  },
+
+  saveAllSavedOrders(list) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.SAVED_ORDERS, JSON.stringify(list || []));
+    } catch (e) {
+      console.error('Error saving saved orders:', e);
+    }
+  },
+
+  addSavedOrder(order) {
+    let list = this.getSavedOrders();
+    if (!order.id) {
+      order.id = 'ORD-' + Date.now().toString().slice(-6);
+    }
+    if (!order.date) {
+      order.date = new Date().toISOString();
+    }
+    const existingIndex = list.findIndex(o => o.id === order.id);
+    if (existingIndex >= 0) {
+      list[existingIndex] = order;
+    } else {
+      list.unshift(order);
+    }
+    this.saveAllSavedOrders(list);
+    return order;
+  },
+
+  removeSavedOrder(id) {
+    let list = this.getSavedOrders();
+    list = list.filter(o => o.id !== id);
+    this.saveAllSavedOrders(list);
+    return list;
   },
 
   resetAllData() {

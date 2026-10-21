@@ -306,7 +306,7 @@ const PDFExporter = {
     doc.setTextColor(...textDark);
 
     // Kiri: Dibuat oleh Kasir
-    doc.text(`Jakarta, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 25, finalY);
+    doc.text(`Nunukan, ${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}`, 25, finalY);
     doc.text('Dibuat & Divalidasi Oleh,', 25, finalY + 5);
     doc.text('( Kasir / Barista On Duty )', 25, finalY + 26);
     doc.setFont('helvetica', 'bold');
@@ -385,10 +385,10 @@ const PDFExporter = {
 
     doc.setFont('courier', 'normal');
     doc.setFontSize(7.5);
-    doc.text(set.tagline || 'Authentic Artisan Coffee & Roastery', 40, 14.5, { align: 'center' });
+    doc.text(set.tagline || 'Good Coffee, Good Dialog', 40, 14.5, { align: 'center' });
 
     // Address (wrap text if long)
-    const addressLines = doc.splitTextToSize(set.address || 'Jl. Melati No. 45, Jakarta Selatan', 70);
+    const addressLines = doc.splitTextToSize(set.address || 'Jl. Tien Soeharto, Rt. 012 Kec. Nunukan Timur, Kab. Nunukan Kalimantan Utara', 70);
     doc.text(addressLines, 40, 18.5, { align: 'center' });
     let curY = 18.5 + (addressLines.length * 3.5);
 
@@ -407,6 +407,8 @@ const PDFExporter = {
     doc.setFontSize(7.5);
     doc.text(`No. Nota : ${trx.id}`, 6, curY); curY += 4;
     doc.text(`Waktu    : ${PDFExporter.formatDateTime(trx.date)}`, 6, curY); curY += 4;
+    if (trx.seatNumber) { doc.text(`Seat/Meja: ${trx.seatNumber}`, 6, curY); curY += 4; }
+    if (trx.customerName) { doc.text(`Pelanggan: ${trx.customerName}`, 6, curY); curY += 4; }
     doc.text(`Shift    : ${trx.shift || set.activeShift || 'Shift 1'}`, 6, curY); curY += 4;
     doc.text(`Barista  : ${trx.baristas || `${set.activeBarista1 || 'Ardi'} & ${set.activeBarista2 || 'Anca'}`}`, 6, curY); curY += 4;
     doc.text(`Metode   : ${trx.paymentMethod || 'Tunai'}`, 6, curY); curY += 4;

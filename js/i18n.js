@@ -40,6 +40,21 @@ const I18N = {
       totalPay: 'Total Bayar:',
       checkoutBtn: 'Lanjut Pembayaran',
       viewCartBtn: 'Lihat Pesanan',
+      seatNumber: 'Nomor Seat / Meja',
+      customerName: 'Nama Pelanggan',
+      holdOrderBtn: 'Simpan ke Draft',
+      holdOrderModalTitle: 'Simpan Order (Draft / Open Bill)',
+      savedOrders: 'Draft Order',
+      savedOrdersTitle: 'Daftar Draft Orderan',
+      noSavedOrders: 'Belum ada draft orderan tersimpan.',
+      draftOrders: 'Draft Order',
+      draftOrdersTitle: 'Daftar Draft Orderan',
+      orderNameLabel: 'Nama Orderan / Pemesan',
+      orderNamePlaceholder: 'Masukkan nama pemesan / meja (Wajib)...',
+      saveDraftBtn: 'Simpan ke Draft',
+      noDrafts: 'Belum ada draft orderan tersimpan.',
+      openAndPay: 'Bayar Sekarang',
+      openAndEdit: 'Buka Keranjang',
 
       // Payment Modal
       payModalTitle: 'Pembayaran Transaksi',
@@ -129,7 +144,20 @@ const I18N = {
       backupDesc: 'Data kasir dan transaksi disimpan aman di perangkat. Anda dapat mengunduh berkas cadangan JSON kapan saja.',
       downloadBackupBtn: 'Unduh Cadangan Data (Backup JSON)',
       restoreLabel: 'Pulihkan Data dari Berkas Cadangan:',
-      resetDemoBtn: 'Reset & Muat Ulang Data Sampel DIALOG COFFEE'
+      resetDemoBtn: 'Reset & Muat Ulang Data Sampel DIALOG COFFEE',
+
+      // Owner Menu & Dashboard
+      ownerTab: 'Owner',
+      ownerPortalTitle: 'Portal Kontrol Arus Kas Owner',
+      ownerPortalDesc: 'Pemantauan alur pemasukan dan pengeluaran secara detil tiap hari, bulan, dan tahun.',
+      ownerDailyTab: 'Alur Kas Harian',
+      ownerMonthlyTab: 'Alur Kas Bulanan',
+      ownerYearlyTab: 'Alur Kas Tahunan',
+      ownerLoginModalTitle: 'Login Khusus Owner',
+      ownerPinLabel: 'PIN Keamanan Owner',
+      ownerPinPlaceholder: 'Masukkan PIN owner...',
+      ownerPinSubmit: 'Masuk Area Owner',
+      ownerLogoutBtn: 'Keluar Sesi Owner'
     },
 
     en: {
@@ -165,6 +193,21 @@ const I18N = {
       totalPay: 'Total Due:',
       checkoutBtn: 'Proceed to Payment',
       viewCartBtn: 'View Order',
+      seatNumber: 'Seat / Table No.',
+      customerName: 'Customer Name',
+      holdOrderBtn: 'Save to Draft',
+      holdOrderModalTitle: 'Save Order (Draft / Open Bill)',
+      savedOrders: 'Draft Orders',
+      savedOrdersTitle: 'Draft Orders List',
+      noSavedOrders: 'No draft orders yet.',
+      draftOrders: 'Draft Orders',
+      draftOrdersTitle: 'Draft Orders List',
+      orderNameLabel: 'Order / Customer Name',
+      orderNamePlaceholder: 'Enter customer name / table (Required)...',
+      saveDraftBtn: 'Save to Draft',
+      noDrafts: 'No draft orders yet.',
+      openAndPay: 'Pay Now',
+      openAndEdit: 'Open Cart',
 
       // Payment Modal
       payModalTitle: 'Payment Checkout',
@@ -254,7 +297,20 @@ const I18N = {
       backupDesc: 'Cashier and financial records are securely kept in local device storage. You can download a JSON backup anytime.',
       downloadBackupBtn: 'Download Full Backup (JSON)',
       restoreLabel: 'Restore Data from Backup File:',
-      resetDemoBtn: 'Reset & Reload DIALOG COFFEE Sample Data'
+      resetDemoBtn: 'Reset & Reload DIALOG COFFEE Sample Data',
+
+      // Owner Menu & Dashboard
+      ownerTab: 'Owner',
+      ownerPortalTitle: 'Owner Cashflow Control Portal',
+      ownerPortalDesc: 'Detailed monitoring of income and expenses per day, month, and year.',
+      ownerDailyTab: 'Daily Cashflow',
+      ownerMonthlyTab: 'Monthly Cashflow',
+      ownerYearlyTab: 'Yearly Cashflow',
+      ownerLoginModalTitle: 'Owner Private Login',
+      ownerPinLabel: 'Owner Security PIN',
+      ownerPinPlaceholder: 'Enter owner PIN...',
+      ownerPinSubmit: 'Enter Owner Area',
+      ownerLogoutBtn: 'Lock / Logout Session'
     }
   },
 

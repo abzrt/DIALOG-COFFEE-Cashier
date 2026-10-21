@@ -29,7 +29,7 @@ if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
 }
 
-const itemsToCopy = ['index.html', 'manifest.json', 'css', 'js', 'assets', 'libs'];
+const itemsToCopy = ['index.html', 'manifest.json', 'css', 'js', 'assets', 'libs', 'api_sync.php', 'database_rekapan.sql', 'download.html', 'preview.html'];
 
 itemsToCopy.forEach(item => {
   const itemSrc = path.join(srcDir, item);

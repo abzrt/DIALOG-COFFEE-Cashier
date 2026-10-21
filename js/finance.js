@@ -118,7 +118,9 @@ const FinanceModule = {
         const matchRef = (t.refNo || '').toLowerCase().includes(query);
         const matchCashier = (t.cashier || '').toLowerCase().includes(query);
         const matchShift = (t.shift || '').toLowerCase().includes(query);
-        if (!matchId && !matchDesc && !matchCat && !matchRef && !matchCashier && !matchShift) return false;
+        const matchCustomer = (t.customerName || '').toLowerCase().includes(query);
+        const matchSeat = (t.seatNumber || '').toLowerCase().includes(query);
+        if (!matchId && !matchDesc && !matchCat && !matchRef && !matchCashier && !matchShift && !matchCustomer && !matchSeat) return false;
       }
 
       return true;
@@ -167,6 +169,7 @@ const FinanceModule = {
           <td>
             <div style="font-weight: 700; font-size: 0.82rem; color: var(--text-primary);">${t.category || '-'}</div>
             <div style="font-size: 0.7rem; color: var(--text-muted);">${t.shift || 'Shift 1'} • ${t.cashier || 'Barista'}</div>
+            ${(t.seatNumber || t.customerName) ? `<div style="font-size: 0.72rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;">${t.seatNumber ? `🪑 ${t.seatNumber}` : ''} ${t.customerName ? `👤 ${t.customerName}` : ''}</div>` : ''}
           </td>
           <td>
             <div style="max-width: 250px; line-height: 1.3;">
@@ -354,17 +357,61 @@ const FinanceModule = {
     App.showToast(`Berhasil mencatat ${type === 'income' ? 'pemasukan' : 'pengeluaran'} ${App.formatRupiah(amount)}`, 'success');
   },
 
-  // CLOSING SHIFT & REKAPAN HARIAN
-  openClosingModal() {
+  // CLOSING SHIFT & REKAPAN HARIAN PER SHIFT
+  selectedClosingShift: 'Shift 1',
+
+  openClosingModal(targetShift) {
     const modal = document.getElementById('closingShiftModal');
     if (!modal) return;
 
+    const settings = StorageManager.getSettings();
+    this.selectedClosingShift = targetShift || settings.activeShift || 'Shift 1';
+    this.calculateAndRenderClosing();
+
+    modal.classList.add('active');
+  },
+
+  onClosingShiftChange(newShift) {
+    this.selectedClosingShift = newShift;
+    this.calculateAndRenderClosing();
+  },
+
+  calculateAndRenderClosing() {
     const all = StorageManager.getTransactions();
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
+    const settings = StorageManager.getSettings();
 
     // Filter transaksi hari ini
     const todayTrx = all.filter(t => t.date && t.date.startsWith(todayStr));
+
+    // Filter transaksi berdasarkan shift yang dipilih
+    let shiftTrx = todayTrx;
+    let shiftLabel = 'Semua Shift (Total Hari Ini)';
+    let baristas = 'Semua Barista';
+
+    if (this.selectedClosingShift === 'Shift 1') {
+      shiftTrx = todayTrx.filter(t => (t.shift || 'Shift 1') === 'Shift 1');
+      shiftLabel = 'Shift 1 (Pagi - Siang)';
+      baristas = (settings.activeShift === 'Shift 1') 
+        ? `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`
+        : 'Ardi & Anca';
+    } else if (this.selectedClosingShift === 'Shift 2') {
+      shiftTrx = todayTrx.filter(t => t.shift === 'Shift 2');
+      shiftLabel = 'Shift 2 (Sore - Malam)';
+      baristas = (settings.activeShift === 'Shift 2') 
+        ? `${settings.activeBarista1 || 'Jhonson'} & ${settings.activeBarista2 || 'Si Pur'}`
+        : 'Jhonson & Si Pur';
+    } else {
+      shiftLabel = 'Semua Shift (Total Hari Ini)';
+      baristas = `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'} (Aktif)`;
+    }
+
+    // Jika ada catatan barista spesifik di transaksi shift ini, utamakan
+    const sampleWithBarista = shiftTrx.find(t => t.baristas);
+    if (sampleWithBarista && sampleWithBarista.baristas) {
+      baristas = sampleWithBarista.baristas;
+    }
 
     let todayIncome = 0;
     let todayExpense = 0;
@@ -373,7 +420,7 @@ const FinanceModule = {
     let expenseCount = 0;
     const todayExpensesList = [];
 
-    todayTrx.forEach(t => {
+    shiftTrx.forEach(t => {
       const amt = Number(t.amount || 0);
       if (t.type === 'income') {
         todayIncome += amt;
@@ -388,36 +435,60 @@ const FinanceModule = {
     });
 
     const netProfit = todayIncome - todayExpense;
-    const settings = StorageManager.getSettings();
 
     this._currentClosingSummary = {
       date: now.toISOString(),
-      shift: settings.activeShift,
-      baristas: `${settings.activeBarista1} & ${settings.activeBarista2}`,
+      shift: this.selectedClosingShift === 'all' ? 'Semua Shift (Total Hari Ini)' : this.selectedClosingShift,
+      shiftLabel: shiftLabel,
+      baristas: baristas,
       totalIncome: todayIncome,
       totalExpense: todayExpense,
       netProfit: netProfit,
       cashBalance: cashBalance,
-      transactionCount: todayTrx.length,
+      transactionCount: shiftTrx.length,
       incomeCount: incomeCount,
       expenseCount: expenseCount,
       expenses: todayExpensesList
     };
 
+    // Update Tab Buttons Active State
+    const tab1 = document.getElementById('closingTabShift1');
+    const tab2 = document.getElementById('closingTabShift2');
+    const tabAll = document.getElementById('closingTabAll');
+    if (tab1) tab1.classList.toggle('active', this.selectedClosingShift === 'Shift 1');
+    if (tab2) tab2.classList.toggle('active', this.selectedClosingShift === 'Shift 2');
+    if (tabAll) tabAll.classList.toggle('active', this.selectedClosingShift === 'all');
+
     // Render data di modal
-    document.getElementById('closingShiftDisplay').textContent = settings.activeShift;
-    document.getElementById('closingBaristaDisplay').textContent = `${settings.activeBarista1} & ${settings.activeBarista2}`;
-    document.getElementById('closingIncomeDisplay').textContent = App.formatRupiah(todayIncome);
-    document.getElementById('closingExpenseDisplay').textContent = App.formatRupiah(todayExpense);
+    const shiftDisplayEl = document.getElementById('closingShiftDisplay');
+    if (shiftDisplayEl) shiftDisplayEl.textContent = shiftLabel;
+
+    const baristaDisplayEl = document.getElementById('closingBaristaDisplay');
+    if (baristaDisplayEl) baristaDisplayEl.textContent = baristas;
+
+    const incomeDisplayEl = document.getElementById('closingIncomeDisplay');
+    if (incomeDisplayEl) incomeDisplayEl.textContent = App.formatRupiah(todayIncome);
+
+    const expenseDisplayEl = document.getElementById('closingExpenseDisplay');
+    if (expenseDisplayEl) expenseDisplayEl.textContent = App.formatRupiah(todayExpense);
     
     const profitEl = document.getElementById('closingProfitDisplay');
-    profitEl.textContent = (netProfit < 0 ? '-' : '+') + App.formatRupiah(Math.abs(netProfit));
-    profitEl.style.color = netProfit >= 0 ? 'var(--income-green)' : 'var(--expense-red)';
+    if (profitEl) {
+      profitEl.textContent = (netProfit < 0 ? '-' : '+') + App.formatRupiah(Math.abs(netProfit));
+      profitEl.style.color = netProfit >= 0 ? 'var(--income-green)' : 'var(--expense-red)';
+    }
 
-    document.getElementById('closingCashDisplay').textContent = App.formatRupiah(cashBalance);
-    document.getElementById('closingCountDisplay').textContent = `${todayTrx.length} (${incomeCount} Masuk, ${expenseCount} Keluar)`;
+    const cashDisplayEl = document.getElementById('closingCashDisplay');
+    if (cashDisplayEl) cashDisplayEl.textContent = App.formatRupiah(cashBalance);
 
-    modal.classList.add('active');
+    const countDisplayEl = document.getElementById('closingCountDisplay');
+    if (countDisplayEl) countDisplayEl.textContent = `${shiftTrx.length} (${incomeCount} Masuk, ${expenseCount} Keluar)`;
+
+    const btnWA = document.getElementById('btnSubmitClosingWA');
+    if (btnWA) {
+      const targetName = this.selectedClosingShift === 'all' ? 'Total Hari Ini' : this.selectedClosingShift;
+      btnWA.innerHTML = `<span>📲</span> Kirim Closing ${targetName} via WA Gateway (+628982151560) ke Owner (+62 85334101996)`;
+    }
   },
 
   closeClosingModal() {
@@ -431,7 +502,13 @@ const FinanceModule = {
     WhatsAppNotifier.notifyClosingShift(this._currentClosingSummary);
     StorageManager.saveClosing(this._currentClosingSummary);
 
-    App.showToast('Rekapan closing harian dibuka di WhatsApp Owner!', 'success');
+    // Otomatis sinkronkan rekapan closing ke database cloud myphp.id
+    if (window.CloudSync && typeof CloudSync.syncClosingRecord === 'function') {
+      CloudSync.syncClosingRecord(this._currentClosingSummary);
+    }
+
+    const shiftName = this.selectedClosingShift === 'all' ? 'Total Hari Ini' : this.selectedClosingShift;
+    App.showToast(`Rekapan closing ${shiftName} berhasil dikirim via WA Gateway ke Owner (+6285334101996)!`, 'success');
     this.closeClosingModal();
   }
 };
