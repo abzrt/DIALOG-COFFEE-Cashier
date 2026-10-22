@@ -100,6 +100,19 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // SERVER INFO API (Untuk deteksi IP lokal otomatis)
+  if (reqPath === '/api/server-info') {
+    const ips = getLocalIpAddresses();
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({
+      port: PORT,
+      ips: ips,
+      primaryIp: ips.length > 0 ? ips[0].address : '192.168.0.101',
+      apkSize: '60.9 MB'
+    }));
+    return;
+  }
+
   // DATABASE REKAPAN CLOUD API (myphp.id endpoint simulation & download handler)
   if (reqPath === '/api_sync.php' || reqPath === '/api/sync.php' || reqPath === '/api/sync') {
     const urlObj = new URL(req.url, `http://${req.headers.host || 'localhost'}`);

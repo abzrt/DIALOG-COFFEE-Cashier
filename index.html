@@ -493,13 +493,13 @@
               </div>
               <div class="form-group">
                 <label>🔐 PIN Keamanan Owner (Akses Pengaturan &amp; Owner)</label>
-                <input type="password" id="cfgOwnerPin" class="form-control" value="1996" placeholder="1996" maxlength="12">
-                <span style="font-size: 0.72rem; color: var(--text-muted);">PIN rahasia pemilik untuk membuka Tab Pengaturan &amp; Dashboard Owner (Default: 1996)</span>
+                <input type="password" id="cfgOwnerPin" class="form-control" value="1996" placeholder="PIN Owner..." maxlength="12">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">PIN rahasia pemilik untuk membuka Tab Pengaturan &amp; Dashboard Owner</span>
               </div>
               <div class="form-group">
                 <label>☕ Password Login Barista</label>
-                <input type="password" id="cfgBaristaPin" class="form-control" value="6969" placeholder="6969" maxlength="12">
-                <span style="font-size: 0.72rem; color: var(--text-muted);">Password untuk login akun Barista ke kasir (Default: 6969)</span>
+                <input type="password" id="cfgBaristaPin" class="form-control" value="6969" placeholder="Password Barista..." maxlength="12">
+                <span style="font-size: 0.72rem; color: var(--text-muted);">Password untuk login akun Barista ke kasir</span>
               </div>
               <div class="form-group" style="display: flex; gap: 12px; align-items: center; margin-top: 6px;">
                 <div style="flex: 1;">
@@ -1510,7 +1510,7 @@
         </div>
 
         <div style="position: relative; margin-bottom: 8px;">
-          <input type="password" id="authPinInput" class="form-control" placeholder="Password Barista..." style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 800; font-family: var(--font-mono); padding: 12px;" maxlength="12" autocomplete="off">
+          <input type="password" id="authPinInput" class="form-control" placeholder="Password Barista..." inputmode="numeric" style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 800; font-family: var(--font-mono); padding: 12px;" maxlength="12" autocomplete="off">
           <button type="button" id="btnToggleAuthEye" onclick="AuthModule.togglePinVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="Tampilkan / Sembunyikan Password">
             👁️
           </button>
@@ -1518,26 +1518,6 @@
 
         <div id="authPinError" style="display: none; color: var(--expense-red); font-size: 0.8rem; font-weight: 700; margin-bottom: 8px;">
           Password salah!
-        </div>
-
-        <div style="font-size: 0.73rem; color: var(--text-muted); margin-bottom: 14px;">
-          💡 <em>Password Standar: <strong>Owner = 1996</strong> | <strong>Barista = 6969</strong></em>
-        </div>
-
-        <!-- Numeric Keypad for fast touchscreen input -->
-        <div class="owner-keypad-grid" style="margin-bottom: 12px;">
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('1')">1</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('2')">2</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('3')">3</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('4')">4</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('5')">5</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('6')">6</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('7')">7</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('8')">8</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('9')">9</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.clearPin()" style="font-size: 0.75rem; color: var(--expense-red);">C</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.appendPinDigit('0')">0</button>
-          <button type="button" class="btn-owner-key" onclick="AuthModule.backspacePin()">⌫</button>
         </div>
       </div>
 
@@ -1571,7 +1551,7 @@
         </p>
 
         <div style="position: relative; margin-bottom: 8px;">
-          <input type="password" id="ownerPinInput" class="form-control" placeholder="PIN Owner..." style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 800; font-family: var(--font-mono); padding: 12px;" maxlength="12" autocomplete="off">
+          <input type="password" id="ownerPinInput" class="form-control" placeholder="PIN Owner..." inputmode="numeric" style="text-align: center; font-size: 1.5rem; letter-spacing: 6px; font-weight: 800; font-family: var(--font-mono); padding: 12px;" maxlength="12" autocomplete="off">
           <button type="button" id="btnTogglePinEye" onclick="OwnerModule.togglePinVisibility()" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; font-size: 1.1rem; cursor: pointer; color: var(--text-muted);" title="Tampilkan / Sembunyikan PIN">
             👁️
           </button>
@@ -1579,26 +1559,6 @@
 
         <div id="ownerPinError" style="display: none; color: var(--expense-red); font-size: 0.78rem; font-weight: 700; margin-bottom: 8px;">
           PIN keamanan salah!
-        </div>
-
-        <div style="font-size: 0.72rem; color: var(--text-muted); margin-bottom: 14px;">
-          💡 <em>PIN Standar Pemilik: <strong>1996</strong></em>
-        </div>
-
-        <!-- Numeric Keypad for fast touch screen typing -->
-        <div class="owner-keypad-grid">
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('1')">1</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('2')">2</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('3')">3</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('4')">4</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('5')">5</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('6')">6</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('7')">7</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('8')">8</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('9')">9</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.clearPin()" style="font-size: 0.75rem; color: var(--expense-red);">C</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.appendPinDigit('0')">0</button>
-          <button type="button" class="btn-owner-key" onclick="OwnerModule.backspacePin()">⌫</button>
         </div>
       </div>
       <div class="modal-footer" style="gap: 8px;">

@@ -6,12 +6,16 @@
 
 const AuthModule = {
   SESSION_KEY: 'dialog_coffee_user_role_v1',
+  REMEMBERED_KEY: 'dialog_coffee_remembered_role_v1',
   selectedRole: 'barista', // 'owner' | 'barista'
 
   init() {
     this.bindEvents();
     const currentRole = this.getCurrentRole();
     if (currentRole) {
+      if (currentRole === 'owner' && window.OwnerModule) {
+        OwnerModule.setLoggedIn(true);
+      }
       this.applyRoleUI(currentRole);
     } else {
       // Not logged in yet: display mandatory login modal on first app launch
@@ -21,7 +25,7 @@ const AuthModule = {
 
   getCurrentRole() {
     try {
-      return sessionStorage.getItem(this.SESSION_KEY);
+      return localStorage.getItem(this.SESSION_KEY) || sessionStorage.getItem(this.SESSION_KEY);
     } catch (e) {
       return null;
     }
@@ -41,6 +45,8 @@ const AuthModule = {
 
   setRole(role) {
     try {
+      localStorage.setItem(this.SESSION_KEY, role);
+      localStorage.setItem(this.REMEMBERED_KEY, role);
       sessionStorage.setItem(this.SESSION_KEY, role);
     } catch (e) {}
     this.applyRoleUI(role);
@@ -48,6 +54,7 @@ const AuthModule = {
 
   clearSession() {
     try {
+      localStorage.removeItem(this.SESSION_KEY);
       sessionStorage.removeItem(this.SESSION_KEY);
     } catch (e) {}
     if (window.OwnerModule) {
@@ -57,6 +64,9 @@ const AuthModule = {
 
   selectRole(role) {
     this.selectedRole = role;
+    try {
+      localStorage.setItem(this.REMEMBERED_KEY, role);
+    } catch (e) {}
     const ownerCard = document.getElementById('roleCardOwner');
     const baristaCard = document.getElementById('roleCardBarista');
     const pinLabel = document.getElementById('authPinLabel');
@@ -102,8 +112,14 @@ const AuthModule = {
     if (cancelBtn) cancelBtn.style.display = allowClose ? 'inline-block' : 'none';
     if (closeBtn) closeBtn.style.display = allowClose ? 'block' : 'none';
 
-    // Set active selection: default to owner if already owner, else barista
-    this.selectRole(current === 'owner' ? 'owner' : 'barista');
+    // Set active selection: remember choice from localStorage or current role, default barista
+    let targetRole = 'barista';
+    try {
+      targetRole = localStorage.getItem(this.REMEMBERED_KEY) || current || 'barista';
+    } catch (e) {
+      targetRole = current || 'barista';
+    }
+    this.selectRole(targetRole);
 
     const err = document.getElementById('authPinError');
     if (err) err.style.display = 'none';
@@ -147,7 +163,7 @@ const AuthModule = {
         }
       } else {
         if (window.App) App.playBeep(260, 0.15, 'sawtooth');
-        this.showError('PIN Owner salah! (Default: 1996)');
+        this.showError('PIN Owner salah! Silakan coba lagi.');
         if (pinInput) { pinInput.value = ''; pinInput.focus(); }
       }
     } else {
@@ -168,7 +184,7 @@ const AuthModule = {
         }
       } else {
         if (window.App) App.playBeep(260, 0.15, 'sawtooth');
-        this.showError('Password Barista salah! (Default: 6969)');
+        this.showError('Password Barista salah! Silakan coba lagi.');
         if (pinInput) { pinInput.value = ''; pinInput.focus(); }
       }
     }

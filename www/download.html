@@ -209,15 +209,15 @@
       <p class="brand-subtitle">Aplikasi POS & Pembukuan Kasir Android v1.0.0<br>Format Standar Debug APK siap pasang di HP Android.</p>
       
       <div class="file-meta" style="width: 100%;">
-        <div>Ukuran: <span class="meta-val">30.6 MB</span></div>
+        <div>Ukuran: <span class="meta-val">60.9 MB</span></div>
         <div>Target: <span class="meta-val">Android 8.0 - 15+</span></div>
         <div>Tipe: <span class="meta-val">Debug APK</span></div>
       </div>
     </div>
 
     <div class="action-card">
-      <a href="dialog-coffee-cashier.apk" download class="action-btn btn-download">
-        <span>⬇️</span> Unduh File APK Terbaru (30.6 MB)
+      <a href="dialog-coffee-cashier.apk" download class="action-btn btn-download" id="apkDownloadBtn">
+        <span>⬇️</span> Unduh File APK Terbaru (60.9 MB)
       </a>
 
       <a href="preview.html" class="action-btn btn-web">
@@ -300,23 +300,39 @@
   </div>
 
   <script>
-    // Generate dynamic QR code based on current host (use Wi-Fi IP if viewing on localhost)
-    let host = window.location.host;
-    if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
-      host = '192.168.100.27:3000';
+    async function initDownloadInfo() {
+      let host = window.location.host;
+      if (host.startsWith('localhost') || host.startsWith('127.0.0.1')) {
+        try {
+          const res = await fetch('/api/server-info');
+          const data = await res.json();
+          if (data && data.primaryIp) {
+            host = `${data.primaryIp}:${data.port || 3000}`;
+          } else {
+            host = '192.168.0.101:3000';
+          }
+        } catch (e) {
+          host = '192.168.0.101:3000';
+        }
+      }
+      const protocol = window.location.protocol;
+      const downloadUrl = `${protocol}//${host}/dialog-coffee-cashier.apk`;
+      
+      const qrTextEl = document.getElementById('qrUrlText');
+      if (qrTextEl) {
+        qrTextEl.innerHTML = `<a href="${downloadUrl}" style="color: #60a5fa; text-decoration: underline;" target="_blank">${downloadUrl}</a>`;
+      }
+      
+      const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(downloadUrl)}`;
+      const qrImg = document.getElementById('qrImage');
+      if (qrImg) {
+        qrImg.src = qrApi;
+        qrImg.onerror = function() {
+          this.src = 'assets/qr_download_apk.png';
+        };
+      }
     }
-    const protocol = window.location.protocol;
-    const downloadUrl = `${protocol}//${host}/dialog-coffee-cashier.apk`;
-    
-    document.getElementById('qrUrlText').innerText = downloadUrl;
-    
-    // Gunakan QR image generator public API (fallback ke assets lokal jika offline)
-    const qrApi = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(downloadUrl)}`;
-    const qrImg = document.getElementById('qrImage');
-    qrImg.src = qrApi;
-    qrImg.onerror = function() {
-      this.src = 'assets/qr_download_apk.png';
-    };
+    initDownloadInfo();
   </script>
 </body>
 </html>

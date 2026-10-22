@@ -25,7 +25,7 @@ const OwnerModule = {
 
   isLoggedIn() {
     try {
-      return sessionStorage.getItem(this.sessionKey) === 'true' || (window.AuthModule && AuthModule.isOwner());
+      return localStorage.getItem(this.sessionKey) === 'true' || sessionStorage.getItem(this.sessionKey) === 'true' || (window.AuthModule && AuthModule.isOwner());
     } catch (e) {
       return false;
     }
@@ -34,8 +34,10 @@ const OwnerModule = {
   setLoggedIn(status) {
     try {
       if (status) {
+        localStorage.setItem(this.sessionKey, 'true');
         sessionStorage.setItem(this.sessionKey, 'true');
       } else {
+        localStorage.removeItem(this.sessionKey);
         sessionStorage.removeItem(this.sessionKey);
       }
     } catch (e) {}
