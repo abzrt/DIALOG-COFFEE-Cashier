@@ -9,8 +9,10 @@ const CloudSync = {
 
   getConfig() {
     const s = StorageManager.getSettings();
+    const defaultUrl = 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php';
+    const currentUrl = (s.cloudSyncUrl || '').trim();
     return {
-      url: (s.cloudSyncUrl || 'api_sync.php').trim(),
+      url: (!currentUrl || currentUrl === 'api_sync.php') ? defaultUrl : currentUrl,
       apiKey: (s.cloudApiKey || 'dialog2026').trim(),
       autoSync: s.cloudAutoSync !== false,
       lastSync: s.lastCloudSync || null

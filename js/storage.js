@@ -56,7 +56,7 @@ const DEFAULT_SETTINGS = {
   gatewayPhone: '08982151560',
   instagram: '@dialogcoffee.nnk',
   taxRate: 10,
-  taxEnabled: true,
+  taxEnabled: false,
   currency: 'IDR',
   language: 'id',
   theme: 'light',
@@ -201,6 +201,9 @@ const StorageManager = {
       }
       if (!parsed.receiptFooter || parsed.receiptFooter.includes('@dialogcoffee.id')) {
         parsed.receiptFooter = DEFAULT_SETTINGS.receiptFooter;
+      }
+      if (!localStorage.getItem('dialog_coffee_tax_configured')) {
+        parsed.taxEnabled = false;
       }
       return { ...DEFAULT_SETTINGS, ...parsed };
     } catch (e) {

@@ -2069,6 +2069,10 @@ body.dark-theme .mcb-count {
     display: none;
   }
 
+  .brand-badge {
+    display: none;
+  }
+
   /* Compact Navigation Tabs on Tablets */
   .nav-tabs {
     display: flex;
@@ -2083,12 +2087,71 @@ body.dark-theme .mcb-count {
   }
 
   .shift-chip {
-    padding: 4px 8px;
+    padding: 4px 7px;
     font-size: 0.72rem;
-    max-width: 130px;
+    gap: 4px;
+    height: 34px;
+    max-width: 90px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
+  }
+
+  /* Cegah header terpotong di tablet */
+  .top-appbar {
+    gap: 8px;
+  }
+
+  .brand-section {
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  .brand-info h1 {
+    white-space: nowrap;
+  }
+
+  .nav-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-tab-btn {
+    flex-shrink: 0;
+  }
+
+  .appbar-actions {
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .appbar-actions .icon-btn {
+    width: 34px;
+    min-width: 34px;
+    height: 34px;
+    padding: 0;
+    font-size: 0.78rem;
+  }
+
+  .appbar-actions .user-role-chip {
+    width: 34px;
+    height: 34px;
+    min-width: 34px;
+    padding: 0;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .appbar-actions .user-role-chip #topUserRoleText,
+  .appbar-actions .user-role-chip #topUserRoleText + span {
+    display: none;
   }
 
   .bottom-nav-bar {
@@ -3140,6 +3203,40 @@ body.dark-theme .user-role-chip.role-chip-owner {
   }
 }
 
+@media (max-width: 767px) {
+  .user-role-chip {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    padding: 0;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .user-role-chip #topUserRoleText,
+  .user-role-chip #topUserRoleText + span {
+    display: none;
+  }
+}
+
+/* Akun aktif (Owner / Barista) di dalam tombol shift */
+.shift-chip .shift-role-text {
+  padding-right: 6px;
+  border-right: 1px solid var(--border-color);
+}
+
+@media (max-width: 1180px) {
+  .shift-chip .shift-role-text {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .shift-chip {
+    max-width: 120px;
+  }
+}
+
 /* Auth Modal Role Selector Cards */
 .role-selector-grid {
   display: grid;
@@ -3214,4 +3311,131 @@ body.dark-theme .role-card.selected {
   color: var(--text-muted);
   line-height: 1.25;
 }
+
+/* ==========================================================================
+   APP SPLASH SCREEN (ANIMATED OPENING SCREEN)
+   ========================================================================== */
+.app-splash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background-color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s;
+  pointer-events: all;
+}
+
+body.dark-theme .app-splash-overlay {
+  background-color: #09090b;
+}
+
+.app-splash-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: splashFadeIn 0.6s ease-out forwards;
+}
+
+.app-splash-logo-wrap {
+  width: 110px;
+  height: 110px;
+  border-radius: 28px;
+  padding: 12px;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+body.dark-theme .app-splash-logo-wrap {
+  background: #18181b;
+  border-color: #27272a;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+.app-splash-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 18px;
+}
+
+.app-splash-title {
+  font-size: 1.45rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #09090b;
+  margin: 0 0 6px 0;
+  font-family: var(--font-main);
+}
+
+body.dark-theme .app-splash-title {
+  color: #fafafa;
+}
+
+.app-splash-tagline {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #71717a;
+  margin: 0 0 32px 0;
+  letter-spacing: 0.5px;
+}
+
+.app-splash-loader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.app-splash-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid #e4e4e7;
+  border-top-color: #09090b;
+  border-radius: 50%;
+  animation: splashSpin 0.8s linear infinite;
+}
+
+body.dark-theme .app-splash-spinner {
+  border-color: #27272a;
+  border-top-color: #ffffff;
+}
+
+.app-splash-loading-text {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.app-splash-overlay.splash-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@keyframes splashFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes splashSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 

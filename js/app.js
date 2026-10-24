@@ -12,6 +12,7 @@ const App = {
   init() {
     this.initTheme();
     this.initAudio();
+    this.soundEnabled = StorageManager.getSettings().soundEnabled !== false;
     this.initClock();
     this.bindNavigation();
     this.initBackButton();
@@ -42,6 +43,20 @@ const App = {
     }
 
     console.log('☕ DIALOG COFFEE Cashier (Monochrome Edition) initialized.');
+
+    // Sembunyikan Splash Screen secara halus
+    this.hideSplashScreen();
+  },
+
+  hideSplashScreen() {
+    const splash = document.getElementById('appSplashScreen');
+    if (!splash) return;
+    setTimeout(() => {
+      splash.classList.add('splash-hidden');
+      setTimeout(() => {
+        splash.style.display = 'none';
+      }, 550);
+    }, 1200); // Tampilkan splash screen 1.2 detik untuk animasi logo & memuat data
   },
 
   // THEME MANAGEMENT (MONOCHROME LIGHT / DARK)
@@ -52,16 +67,31 @@ const App = {
   },
 
   setTheme(theme) {
-    if (theme === 'dark') {
+    const isDark = theme === 'dark';
+    if (isDark) {
       document.body.classList.add('dark-theme');
     } else {
       document.body.classList.remove('dark-theme');
     }
     localStorage.setItem('dialog_coffee_theme', theme);
+
+    // Sinkronkan statusbar Android native
+    if (window.AndroidBridge && typeof window.AndroidBridge.setStatusBarTheme === 'function') {
+      try {
+        window.AndroidBridge.setStatusBarTheme(isDark);
+      } catch (e) {}
+    }
+
+    // Perbarui meta theme-color browser
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', isDark ? '#09090b' : '#ffffff');
+    }
+
     const btn = document.getElementById('themeToggleBtn');
     if (btn) {
-      btn.textContent = theme === 'dark' ? '☀️' : '🌙';
-      btn.title = theme === 'dark' ? 'Ganti ke Tema Putih' : 'Ganti ke Tema Gelap';
+      btn.textContent = isDark ? '☀️' : '🌙';
+      btn.title = isDark ? 'Ganti ke Tema Putih' : 'Ganti ke Tema Gelap';
     }
   },
 
@@ -85,7 +115,7 @@ const App = {
     const shiftChip = document.getElementById('topShiftDisplay');
     if (shiftChip) {
       const w = window.innerWidth;
-      if (w <= 480) {
+      if (w <= 480 || (w >= 768 && w <= 1180)) {
         shiftChip.textContent = `S${(s.activeShift || '1').replace(/\D/g, '') || '1'}`;
       } else if (w <= 767) {
         shiftChip.textContent = `${s.activeShift || 'Shift 1'}`;
@@ -131,6 +161,12 @@ const App = {
       b2Select.innerHTML = baristas.map(b => 
         `<option value="${b}" ${b === s.activeBarista2 ? 'selected' : ''}>${b}</option>`
       ).join('');
+    }
+
+    // Tampilkan akun aktif (Owner / Barista)
+    const roleTextEl = document.getElementById('shiftModalRoleText');
+    if (roleTextEl) {
+      roleTextEl.textContent = (window.AuthModule && AuthModule.isOwner()) ? '👑 Owner' : '☕ Barista';
     }
 
     modal.classList.add('active');
@@ -200,10 +236,13 @@ const App = {
     } catch (e) {}
   },
 
-  toggleSound() {
-    this.soundEnabled = !this.soundEnabled;
-    const btn = document.getElementById('soundToggleBtn');
-    if (btn) btn.textContent = this.soundEnabled ? '🔔' : '🔕';
+  toggleSound(forceValue) {
+    this.soundEnabled = typeof forceValue === 'boolean' ? forceValue : !this.soundEnabled;
+    const s = StorageManager.getSettings();
+    s.soundEnabled = this.soundEnabled;
+    StorageManager.saveSettings(s);
+    const soundCheck = document.getElementById('cfgSoundEnabled');
+    if (soundCheck) soundCheck.checked = this.soundEnabled;
     this.showToast(this.soundEnabled ? 'Suara Diaktifkan' : 'Suara Dimatikan', 'info');
   },
 
@@ -337,6 +376,9 @@ const App = {
     const taxCheck = document.getElementById('cfgTaxEnabled');
     if (taxCheck) taxCheck.checked = !!s.taxEnabled;
 
+    const soundCheck = document.getElementById('cfgSoundEnabled');
+    if (soundCheck) soundCheck.checked = s.soundEnabled !== false;
+
     const autoSyncCheck = document.getElementById('cfgCloudAutoSync');
     if (autoSyncCheck) autoSyncCheck.checked = s.cloudAutoSync !== false;
 
@@ -359,15 +401,16 @@ const App = {
           ownerPhone: document.getElementById('cfgOwnerPhone').value.trim() || '085334101996',
           ownerPin: (document.getElementById('cfgOwnerPin') ? document.getElementById('cfgOwnerPin').value.trim() : '') || '1996',
           baristaPin: (document.getElementById('cfgBaristaPin') ? document.getElementById('cfgBaristaPin').value.trim() : '') || '6969',
-          cloudSyncUrl: (document.getElementById('cfgCloudSyncUrl') ? document.getElementById('cfgCloudSyncUrl').value.trim() : '') || 'api_sync.php',
-          cloudApiKey: (document.getElementById('cfgCloudApiKey') ? document.getElementById('cfgCloudApiKey').value.trim() : '') || 'dialog2026',
-          cloudAutoSync: document.getElementById('cfgCloudAutoSync') ? document.getElementById('cfgCloudAutoSync').checked : true,
+          cloudSyncUrl: document.getElementById('cfgCloudSyncUrl') ? document.getElementById('cfgCloudSyncUrl').value.trim() : (StorageManager.getSettings().cloudSyncUrl || 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php'),
+          cloudApiKey: document.getElementById('cfgCloudApiKey') ? document.getElementById('cfgCloudApiKey').value.trim() : (StorageManager.getSettings().cloudApiKey || 'dialog2026'),
+          cloudAutoSync: document.getElementById('cfgCloudAutoSync') ? document.getElementById('cfgCloudAutoSync').checked : (StorageManager.getSettings().cloudAutoSync !== false),
           taxRate: Number(document.getElementById('cfgTaxRate').value) || 0,
           taxEnabled: document.getElementById('cfgTaxEnabled').checked,
           receiptFooter: document.getElementById('cfgReceiptFooter').value
         };
 
         StorageManager.saveSettings(updated);
+        try { localStorage.setItem('dialog_coffee_tax_configured', '1'); } catch (e) {}
         this.loadSettingsForm();
         if (window.POSModule) POSModule.renderCart();
         App.playBeep(660, 0.08);
@@ -576,21 +619,49 @@ const App = {
     this.showToast('Menutup aplikasi...', 'info');
 
     setTimeout(() => {
-      // 1. Capacitor Native exit
-      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+      // 1. AndroidBridge Interface (Custom Native Android Bridge)
+      if (window.AndroidBridge && typeof window.AndroidBridge.exitApp === 'function') {
+        window.AndroidBridge.exitApp();
+        return;
+      }
+
+      // 2. Capacitor App Plugin Native exit
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App && typeof window.Capacitor.Plugins.App.exitApp === 'function') {
         window.Capacitor.Plugins.App.exitApp();
         return;
       }
-      // 2. Cordova / WebView exit
+
+      // 3. Cordova / WebView exit
       if (navigator.app && navigator.app.exitApp) {
         navigator.app.exitApp();
         return;
       }
-      // 3. Standard Window Close
+
+      // 4. Standard Window Close
       try {
         window.close();
       } catch (e) {}
+
+      // 5. Fallback Browser: jika browser memblokir window.close(), tampilkan layar sesi ditutup
+      setTimeout(() => {
+        this.renderExitScreen();
+      }, 350);
     }, 300);
+  },
+
+  renderExitScreen() {
+    document.body.innerHTML = `
+      <div style="min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #09090b; color: #f4f4f5; text-align: center; padding: 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+        <div style="font-size: 3.5rem; margin-bottom: 16px;">☕</div>
+        <h2 style="font-size: 1.5rem; font-weight: 800; margin-bottom: 8px;">Aplikasi Kasir DIALOG COFFEE Ditutup</h2>
+        <p style="font-size: 0.95rem; color: #a1a1aa; max-width: 360px; line-height: 1.5; margin-bottom: 24px;">
+          Sesi kasir telah dihentikan dengan aman. Seluruh data transaksi dan pembukuan tersimpan rapi. Anda dapat menutup tab browser ini.
+        </p>
+        <button onclick="window.location.reload()" style="background: #e4e4e7; color: #18181b; border: none; padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.9rem;">
+          🔄 Buka Kasir Kembali
+        </button>
+      </div>
+    `;
   }
 };
 

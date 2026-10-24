@@ -16,6 +16,32 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <!-- ===================================================================
+       SPLASH SCREEN RESMI APLIKASI DIALOG COFFEE
+       =================================================================== -->
+  <div id="appSplashScreen" class="app-splash-overlay" onclick="this.classList.add('splash-hidden'); setTimeout(() => this.style.display='none', 500);">
+    <div class="app-splash-content">
+      <div class="app-splash-logo-wrap">
+        <img src="assets/dialog_logo.jpg" alt="DIALOG COFFEE" class="app-splash-logo">
+      </div>
+      <h1 class="app-splash-title">DIALOG COFFEE</h1>
+      <p class="app-splash-tagline">Kasir &amp; Pembukuan Keuangan</p>
+      <div class="app-splash-loader">
+        <span class="app-splash-spinner"></span>
+        <span class="app-splash-loading-text">Memuat sistem kasir...</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    // Safeguard Fallback: Pastikan splash screen otomatis fade-out maksimal dalam 1.5 detik
+    setTimeout(function() {
+      var sp = document.getElementById('appSplashScreen');
+      if (sp && !sp.classList.contains('splash-hidden')) {
+        sp.classList.add('splash-hidden');
+        setTimeout(function() { sp.style.display = 'none'; }, 500);
+      }
+    }, 1500);
+  </script>
 
   <div class="app-shell">
     <!-- TOP APP BAR -->
@@ -52,20 +78,10 @@
 
       <!-- Right Appbar Actions -->
       <div class="appbar-actions">
-        <!-- Akun Login Aktif: Klik untuk Ganti Akun -->
-        <div class="user-role-chip role-chip-barista" id="topUserRoleChip" onclick="AuthModule.openLoginModal(true)" title="Akun Aktif: Klik untuk Ganti Akun (Owner / Barista)">
+        <!-- Shift, Barista & Akun Aktif (Owner / Barista) jadi satu -->
+        <div class="shift-chip" onclick="App.openShiftModal()" title="Klik untuk mengatur Shift, Barista On Duty & Ganti Akun">
           <span id="topUserRoleIcon">☕</span>
-          <span id="topUserRoleText">Barista</span>
-          <span style="font-size: 0.65rem; opacity: 0.6; margin-left: 2px;">⇅</span>
-        </div>
-
-        <!-- Tombol Akses Cepat Login / Dashboard Owner -->
-        <button class="icon-btn owner-appbar-btn" id="topOwnerBtn" onclick="OwnerModule.handleOwnerClick()" title="Login Khusus Owner / Kontrol Arus Kas">
-          👑
-        </button>
-
-        <!-- Shift & Barista Chip (Click to configure) -->
-        <div class="shift-chip" onclick="App.openShiftModal()" title="Klik untuk mengatur Shift & Barista On Duty">
+          <span id="topUserRoleText" class="shift-role-text">Barista</span>
           <div class="status-dot"></div>
           <span id="topShiftDisplay">Shift 1</span>
           <span style="font-size: 0.65rem; color: var(--text-muted);">▼</span>
@@ -81,9 +97,9 @@
           🌙
         </button>
 
-        <!-- Sound Toggle -->
-        <button class="icon-btn" id="soundToggleBtn" onclick="App.toggleSound()" title="Efek Suara">
-          🔔
+        <!-- Close / Exit App Button -->
+        <button class="icon-btn" id="topExitBtn" onclick="App.openExitModal()" title="Keluar / Tutup Aplikasi" style="color: var(--expense-red, #ef4444);">
+          🚪
         </button>
       </div>
     </header>
@@ -546,67 +562,29 @@
             </div>
           </div>
 
-          <!-- Cloud Database Sync (myphp.id / MySQL) Settings -->
+          <!-- Cloud Database Sync (myphp.id / MySQL) -->
           <div class="settings-card">
             <h3><span>🌐</span> <span>Database Rekapan Cloud (myphp.id / MySQL)</span></h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-              Hubungkan kasir DIALOG COFFEE ke akun database MySQL di <strong>myphp.id</strong> agar rekapan closing, transaksi harian, dan pembukuan tersimpan aman di server cloud secara online.
+              Koneksi database cloud berjalan otomatis di latar belakang untuk mengamankan rekapan closing dan transaksi kasir ke server <strong>myphp.id</strong>.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
-              <div class="form-group" style="margin-bottom: 0;">
-                <label style="font-size: 0.82rem; font-weight: 700;">🔗 URL Endpoint API myphp.id:</label>
-                <input type="text" id="cfgCloudSyncUrl" class="form-control" placeholder="https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php" value="https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php">
-                <span style="font-size: 0.72rem; color: var(--text-muted);">Tautan API database cloud di hosting Anda: <code>https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php</code></span>
-              </div>
-
-              <div class="form-group" style="margin-bottom: 0;">
-                <label style="font-size: 0.82rem; font-weight: 700;">🔑 Kunci Rahasia API (X-Api-Key):</label>
-                <input type="text" id="cfgCloudApiKey" class="form-control" placeholder="dialog2026" value="dialog2026">
-              </div>
-
-              <div style="display: flex; align-items: center; gap: 8px; margin-top: 4px;">
-                <input type="checkbox" id="cfgCloudAutoSync" style="width: 18px; height: 18px;" checked>
-                <label for="cfgCloudAutoSync" style="cursor: pointer; font-size: 0.82rem; font-weight: 600;">
-                  Otomatis kirim rekapan ke database myphp.id setiap kali proses <strong>Closing Shift</strong>
-                </label>
-              </div>
-
               <div id="cloudSyncStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
                 <span class="cloud-sync-last-time">Status: Siap diuji</span>
               </div>
 
-              <!-- Action buttons -->
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
-                <button type="button" class="btn-primary-action btn-closing" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.testConnection(document.getElementById('cfgCloudSyncUrl').value)">
+                <button type="button" class="btn-primary-action btn-closing" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.testConnection()" title="Uji koneksi ke database cloud myphp.id">
                   <span>🔌</span> Uji Koneksi Database
                 </button>
-                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.syncAllData()">
+                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.syncAllData()" title="Sinkronkan seluruh data rekapan ke database myphp.id">
                   <span>☁️</span> Sinkronkan Seluruh Data
                 </button>
-              </div>
-
-              <!-- Download files helper for myphp.id hosting -->
-              <div style="border-top: 1.5px dashed var(--border-color); padding-top: 12px; margin-top: 4px;">
-                <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px;">
-                  📦 Berkas Siap Pakai untuk myphp.id:
-                </div>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                  <button type="button" class="btn-primary-action" style="background: var(--bg-surface); color: var(--text-primary); border: 1.5px solid var(--border-color); flex: 1; justify-content: center; font-size: 0.78rem;" onclick="CloudSync.downloadPHP()">
-                    <span>📥</span> Unduh api_sync.php
-                  </button>
-                  <button type="button" class="btn-primary-action" style="background: var(--bg-surface); color: var(--text-primary); border: 1.5px solid var(--border-color); flex: 1; justify-content: center; font-size: 0.78rem;" onclick="CloudSync.downloadSQL()">
-                    <span>📄</span> Unduh database_rekapan.sql
-                  </button>
-                </div>
-                <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 6px; line-height: 1.4;">
-                  💡 <strong>Cara Pasang di myphp.id:</strong> 1) Import <code>database_rekapan.sql</code> di phpMyAdmin. 2) Upload <code>api_sync.php</code> ke folder website myphp.id Anda dan sesuaikan username &amp; password database.
-                </div>
               </div>
             </div>
           </div>
 
-          <!-- Data Backup & Reset -->
           <div class="settings-card">
             <h3><span>🛡️</span> <span data-i18n="backupTitle">Manajemen Cadangan Data &amp; Pemulihan</span></h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;" data-i18n="backupDesc">
@@ -1317,6 +1295,14 @@
         <button class="btn-close-modal" onclick="App.closeShiftModal()">✕</button>
       </div>
       <div class="modal-body">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--bg-surface); padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); margin-bottom: 4px;">
+          <div style="font-size: 0.85rem; color: var(--text-secondary);">
+            Akun Aktif: <strong id="shiftModalRoleText" style="color: var(--text-primary);">☕ Barista</strong>
+          </div>
+          <button type="button" class="btn-primary-action" id="btnShiftSwitchAccount" style="background: var(--bg-card); color: var(--text-primary); border: 1.5px solid var(--border-color); padding: 6px 12px; font-size: 0.8rem;" onclick="App.closeShiftModal(); AuthModule.openLoginModal(true);">
+            ⇅ Ganti Akun
+          </button>
+        </div>
         <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
           Setiap shift bertugas terdiri dari <strong>dua orang barista</strong> (Ardi, Anca, Jhonson, Si Pur). Nama shift dan barista akan dicatat di setiap struk, transaksi, dan laporan.
         </p>
