@@ -57,15 +57,36 @@ if (function_exists('mysqli_report')) {
 $conn = null;
 $connectException = null;
 
-try {
-    $conn = @new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
-} catch (Throwable $e) {
-    $connectException = $e->getMessage();
+// Optimasi koneksi cepat: prioritaskan 127.0.0.1 / localhost dengan timeout 2 detik
+$hostsToTry = [$DB_HOST];
+if ($DB_HOST === 'localhost') {
+    $hostsToTry = ['127.0.0.1', 'localhost'];
+}
+
+foreach ($hostsToTry as $hostCandidate) {
+    try {
+        $c = mysqli_init();
+        if ($c) {
+            $c->options(MYSQLI_OPT_CONNECT_TIMEOUT, 2);
+            if (@$c->real_connect($hostCandidate, $DB_USER, $DB_PASS, $DB_NAME)) {
+                $conn = $c;
+                break;
+            }
+        }
+    } catch (Throwable $e) {
+        $connectException = $e->getMessage();
+    }
 }
 
 if (!$conn || $conn->connect_error) {
     try {
-        $conn = @new mysqli($DB_HOST, $DB_USER, $DB_PASS);
+        $c = mysqli_init();
+        if ($c) {
+            $c->options(MYSQLI_OPT_CONNECT_TIMEOUT, 2);
+            if (@$c->real_connect($DB_HOST, $DB_USER, $DB_PASS)) {
+                $conn = $c;
+            }
+        }
     } catch (Throwable $e) {
         if (!$connectException) $connectException = $e->getMessage();
     }
@@ -73,7 +94,7 @@ if (!$conn || $conn->connect_error) {
     if (!$conn || $conn->connect_error) {
         $errDetail = ($conn && $conn->connect_error) ? $conn->connect_error : ($connectException ?: 'Koneksi ditolak');
         if ($action === 'ping') {
-            sendResponse(false, 'Gagal terhubung ke MySQL: ' . $errDetail . '. Pastikan username dan password MySQL di cPanel sudah sesuai serta sudah ditambahkan ke database (Add User to Database).', null, 200);
+            sendResponse(false, 'Gagal terhubung ke MySQL: ' . $errDetail . '. Pastikan username dan password MySQL di cPanel sudah sesuai.', null, 200);
         } else {
             sendResponse(false, 'Database connection error: ' . $errDetail, null, 200);
         }
@@ -81,7 +102,7 @@ if (!$conn || $conn->connect_error) {
 
     @$conn->query("CREATE DATABASE IF NOT EXISTS `$DB_NAME` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
     if (!@$conn->select_db($DB_NAME)) {
-        sendResponse(false, "Database '$DB_NAME' belum ditemukan di server MySQL. Silakan pastikan database sudah dibuat di akun hosting Anda.", null, 200);
+        sendResponse(false, "Database '$DB_NAME' belum ditemukan di server MySQL.", null, 200);
     }
 }
 
@@ -90,8 +111,10 @@ if ($conn) {
     @$conn->set_charset('utf8mb4');
 }
 
-// Inisialisasi Tabel Otomatis jika belum dibuat
-initTablesIfNotExist($conn);
+// Inisialisasi tabel penuh hanya pada aksi ping / setup agar request pergantian PIN merespons instan
+if ($action === 'ping') {
+    initTablesIfNotExist($conn);
+}
 
 function initTablesIfNotExist($db) {
     $sql1 = "CREATE TABLE IF NOT EXISTS `tb_rekapan_closing` (
@@ -338,17 +361,29 @@ if ($action === 'save_settings') {
         sendResponse(false, 'Data pengaturan tidak valid.', null, 400);
     }
 
-    $stmt = $conn->prepare("INSERT INTO tb_pengaturan (kunci, nilai) VALUES (?, ?) ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)");
-    $savedCount = 0;
-    foreach ($settingsData as $key => $val) {
-        if ($key === 'api_key') continue;
-        $k = strval($key);
-        $v = is_scalar($val) ? strval($val) : json_encode($val, JSON_UNESCAPED_UNICODE);
-        $stmt->bind_param('ss', $k, $v);
-        $stmt->execute();
-        $savedCount++;
+    $stmt = @$conn->prepare("INSERT INTO tb_pengaturan (kunci, nilai) VALUES (?, ?) ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)");
+    if (!$stmt) {
+        @$conn->query("CREATE TABLE IF NOT EXISTS `tb_pengaturan` (
+          `kunci` VARCHAR(64) NOT NULL,
+          `nilai` TEXT NOT NULL,
+          `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          PRIMARY KEY (`kunci`)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
+        $stmt = $conn->prepare("INSERT INTO tb_pengaturan (kunci, nilai) VALUES (?, ?) ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)");
     }
-    $stmt->close();
+
+    $savedCount = 0;
+    if ($stmt) {
+        foreach ($settingsData as $key => $val) {
+            if ($key === 'api_key') continue;
+            $k = strval($key);
+            $v = is_scalar($val) ? strval($val) : json_encode($val, JSON_UNESCAPED_UNICODE);
+            $stmt->bind_param('ss', $k, $v);
+            $stmt->execute();
+            $savedCount++;
+        }
+        $stmt->close();
+    }
 
     sendResponse(true, 'Pengaturan & Password berhasil disinkronkan ke Cloud Database!', [
         'saved_count' => $savedCount,

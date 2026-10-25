@@ -254,33 +254,43 @@ const CloudSync = {
       }
     };
 
-    const trySync = async (targetEndpoint) => {
+    const trySync = async (targetEndpoint, timeoutMs = 3500) => {
       const targetUrl = this.resolveUrl(targetEndpoint);
       const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=save_settings';
-      const resp = await fetch(syncUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'X-Api-Key': cfg.apiKey
-        },
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      return await resp.json();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const resp = await fetch(syncUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Api-Key': cfg.apiKey
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return await resp.json();
+      } catch (err) {
+        clearTimeout(timer);
+        throw err;
+      }
     };
 
     try {
-      const res = await trySync(cfg.url);
+      const res = await trySync(cfg.url, 3000);
       if (res && res.success) {
-        console.log('✅ Password/Pengaturan berhasil disinkronkan ke Cloud:', res);
+        console.log('⚡ Password/Pengaturan berhasil disinkronkan ke Cloud (Respon Cepat):', res);
         return true;
       }
     } catch (e) {
       if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
         try {
-          const resLocal = await trySync('api_sync.php');
+          const resLocal = await trySync('api_sync.php', 2000);
           if (resLocal && resLocal.success) {
-            console.log('✅ Password/Pengaturan tersinkron ke local test server:', resLocal);
+            console.log('⚡ Password/Pengaturan tersinkron ke local test server (Respon Cepat):', resLocal);
             return true;
           }
         } catch (errLocal) {}
@@ -290,20 +300,30 @@ const CloudSync = {
     return false;
   },
 
-  async fetchSettingsFromCloud() {
+  async fetchSettingsFromCloud(timeoutMs = 2500) {
     const cfg = this.getConfig();
     const tryFetch = async (targetEndpoint) => {
       const targetUrl = this.resolveUrl(targetEndpoint);
       const fetchUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=get_settings&t=' + Date.now();
-      const resp = await fetch(fetchUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'X-Api-Key': cfg.apiKey
-        }
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      return await resp.json();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+      try {
+        const resp = await fetch(fetchUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+            'X-Api-Key': cfg.apiKey
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return await resp.json();
+      } catch (err) {
+        clearTimeout(timer);
+        throw err;
+      }
     };
 
     let res = null;

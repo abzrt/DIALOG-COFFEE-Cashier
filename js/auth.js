@@ -156,9 +156,9 @@ const AuthModule = {
     }
 
     if (this.selectedRole === 'owner') {
-      // Tarik dari cloud jika tidak cocok secara lokal
+      // Tarik dari cloud jika tidak cocok secara lokal (cepat 1.5 detik)
       if (enteredPin !== expectedOwnerPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
-        await CloudSync.fetchSettingsFromCloud();
+        await CloudSync.fetchSettingsFromCloud(1500);
         settings = StorageManager.getSettings();
         expectedOwnerPin = (settings.ownerPin || '1996').trim();
       }
@@ -179,9 +179,9 @@ const AuthModule = {
         if (pinInput) { pinInput.value = ''; pinInput.focus(); }
       }
     } else {
-      // Role Barista: Sinkronkan dengan cloud jika password yang diinput tidak cocok dengan lokal
+      // Role Barista: Sinkronkan dengan cloud jika password yang diinput tidak cocok dengan lokal (cepat 1.5 detik)
       if (enteredPin !== expectedBaristaPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
-        await CloudSync.fetchSettingsFromCloud();
+        await CloudSync.fetchSettingsFromCloud(1500);
         settings = StorageManager.getSettings();
         expectedBaristaPin = (settings.baristaPin || '6969').trim();
       }
