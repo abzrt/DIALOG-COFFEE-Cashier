@@ -87,40 +87,70 @@ const CloudSync = {
     const cfg = this.getConfig();
     if (!cfg.autoSync) return;
 
-    const targetUrl = this.resolveUrl(cfg.url);
-    const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=sync_closing';
+    const payload = {
+      api_key: cfg.apiKey,
+      closing: closingSummary
+    };
 
-    console.log('☁️ Mengirim rekapan closing ke database myphp.id...');
+    const trySync = async (endpoint, timeoutMs = 15000) => {
+      const targetUrl = this.resolveUrl(endpoint);
+      const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=sync_closing';
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const resp = await fetch(syncUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json; charset=utf-8',
+            'X-Api-Key': cfg.apiKey
+          },
+          body: JSON.stringify(payload),
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return await resp.json();
+      } catch (err) {
+        clearTimeout(timer);
+        throw err;
+      }
+    };
+
+    console.log('☁️ Mengirim rekapan closing ke database cloud...');
 
     try {
-      const resp = await fetch(syncUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json; charset=utf-8',
-          'X-Api-Key': cfg.apiKey
-        },
-        body: JSON.stringify({
-          api_key: cfg.apiKey,
-          closing: closingSummary
-        })
-      });
-
-      if (resp.ok) {
-        const res = await resp.json();
-        if (res.success) {
-          console.log('✅ Rekapan closing berhasil tersimpan di database myphp.id:', res);
-          const s = StorageManager.getSettings();
-          s.lastCloudSync = new Date().toISOString();
-          StorageManager.saveSettings(s);
-          this.updateStatusBadge();
-          if (window.App) {
-            App.showToast('Rekapan closing tersimpan di database cloud (myphp.id)!', 'success');
-          }
+      const res = await trySync(cfg.url, 15000);
+      if (res && res.success) {
+        console.log('✅ Rekapan closing berhasil tersimpan di database cloud:', res);
+        const s = StorageManager.getSettings();
+        s.lastCloudSync = new Date().toISOString();
+        StorageManager.saveSettings(s);
+        this.updateStatusBadge();
+        if (window.App) {
+          App.showToast('✅ Rekapan closing tersimpan otomatis di database!', 'success');
         }
+        return true;
       }
     } catch (e) {
+      if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
+        try {
+          const resLocal = await trySync('api_sync.php', 4000);
+          if (resLocal && resLocal.success) {
+            console.log('✅ Rekapan closing tersimpan di local server database:', resLocal);
+            const s = StorageManager.getSettings();
+            s.lastCloudSync = new Date().toISOString();
+            StorageManager.saveSettings(s);
+            this.updateStatusBadge();
+            if (window.App) {
+              App.showToast('✅ Rekapan closing tersimpan otomatis di database!', 'success');
+            }
+            return true;
+          }
+        } catch (errLocal) {}
+      }
       console.warn('Gagal sinkronisasi closing ke cloud (offline/server down):', e);
     }
+    return false;
   },
 
   async syncAllData() {
@@ -224,21 +254,33 @@ const CloudSync = {
     if (window.App) App.showToast('Mengunduh api_sync.php untuk diunggah ke hosting myphp.id', 'info');
   },
 
+  _fetchPromise: null,
+
   init() {
     this.fetchSettingsFromCloud();
     if (!this._syncInterval) {
       this._syncInterval = setInterval(() => {
-        this.fetchSettingsFromCloud();
-      }, 60000);
+        const isLoginModalActive = document.getElementById('accountLoginModal')?.classList.contains('active');
+        if (isLoginModalActive || document.visibilityState === 'visible') {
+          this.fetchSettingsFromCloud(5000);
+        }
+      }, 5000);
     }
     window.addEventListener('focus', () => {
-      this.fetchSettingsFromCloud();
+      this.fetchSettingsFromCloud(5000);
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        this.fetchSettingsFromCloud();
+        this.fetchSettingsFromCloud(5000);
       }
     });
+    window.addEventListener('touchstart', () => {
+      const now = Date.now();
+      if (!this._lastTouchSync || now - this._lastTouchSync > 10000) {
+        this._lastTouchSync = now;
+        this.fetchSettingsFromCloud(5000);
+      }
+    }, { passive: true });
   },
 
   async syncSettingsToCloud(settings) {
@@ -254,7 +296,7 @@ const CloudSync = {
       }
     };
 
-    const trySync = async (targetEndpoint, timeoutMs = 3500) => {
+    const trySync = async (targetEndpoint, timeoutMs = 15000) => {
       const targetUrl = this.resolveUrl(targetEndpoint);
       const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=save_settings';
       const controller = new AbortController();
@@ -280,7 +322,7 @@ const CloudSync = {
     };
 
     try {
-      const res = await trySync(cfg.url, 3000);
+      const res = await trySync(cfg.url, 15000);
       if (res && res.success) {
         console.log('⚡ Password/Pengaturan berhasil disinkronkan ke Cloud (Respon Cepat):', res);
         return true;
@@ -288,7 +330,7 @@ const CloudSync = {
     } catch (e) {
       if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
         try {
-          const resLocal = await trySync('api_sync.php', 2000);
+          const resLocal = await trySync('api_sync.php', 3000);
           if (resLocal && resLocal.success) {
             console.log('⚡ Password/Pengaturan tersinkron ke local test server (Respon Cepat):', resLocal);
             return true;
@@ -300,68 +342,78 @@ const CloudSync = {
     return false;
   },
 
-  async fetchSettingsFromCloud(timeoutMs = 2500) {
-    const cfg = this.getConfig();
-    const tryFetch = async (targetEndpoint) => {
-      const targetUrl = this.resolveUrl(targetEndpoint);
-      const fetchUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=get_settings&t=' + Date.now();
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
+  async fetchSettingsFromCloud(timeoutMs = 15000) {
+    if (this._fetchPromise) {
+      return this._fetchPromise;
+    }
 
-      try {
-        const resp = await fetch(fetchUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-            'X-Api-Key': cfg.apiKey
-          },
-          signal: controller.signal
-        });
-        clearTimeout(timer);
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-        return await resp.json();
-      } catch (err) {
-        clearTimeout(timer);
-        throw err;
-      }
-    };
+    this._fetchPromise = (async () => {
+      const cfg = this.getConfig();
+      const tryFetch = async (targetEndpoint) => {
+        const targetUrl = this.resolveUrl(targetEndpoint);
+        const fetchUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=get_settings&t=' + Date.now();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    let res = null;
-    try {
-      res = await tryFetch(cfg.url);
-    } catch (e) {
-      if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
         try {
-          res = await tryFetch('api_sync.php');
-        } catch (errLocal) {}
-      }
-    }
+          const resp = await fetch(fetchUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'X-Api-Key': cfg.apiKey
+            },
+            signal: controller.signal
+          });
+          clearTimeout(timer);
+          if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+          return await resp.json();
+        } catch (err) {
+          clearTimeout(timer);
+          throw err;
+        }
+      };
 
-    if (res && res.success && res.data) {
-      const cloudData = res.data;
-      const s = StorageManager.getSettings();
-      let hasChange = false;
-
-      if (cloudData.baristaPin && String(cloudData.baristaPin).trim() !== String(s.baristaPin).trim()) {
-        console.log(`🔄 Password barista diperbarui dari Cloud: ${s.baristaPin} -> ${cloudData.baristaPin}`);
-        s.baristaPin = String(cloudData.baristaPin).trim();
-        hasChange = true;
-      }
-      if (cloudData.ownerPin && String(cloudData.ownerPin).trim() !== String(s.ownerPin).trim()) {
-        s.ownerPin = String(cloudData.ownerPin).trim();
-        hasChange = true;
+      let res = null;
+      try {
+        res = await tryFetch(cfg.url);
+      } catch (e) {
+        if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
+          try {
+            res = await tryFetch('api_sync.php');
+          } catch (errLocal) {}
+        }
       }
 
-      if (hasChange) {
-        StorageManager.saveSettings(s);
-        const cfgBaristaInput = document.getElementById('cfgBaristaPin');
-        if (cfgBaristaInput) cfgBaristaInput.value = s.baristaPin;
-        const cfgOwnerInput = document.getElementById('cfgOwnerPin');
-        if (cfgOwnerInput) cfgOwnerInput.value = s.ownerPin;
+      if (res && res.success && res.data) {
+        const cloudData = res.data;
+        const s = StorageManager.getSettings();
+        let hasChange = false;
+
+        if (cloudData.baristaPin && String(cloudData.baristaPin).trim() !== String(s.baristaPin).trim()) {
+          console.log(`🔄 Password barista diperbarui dari Cloud: ${s.baristaPin} -> ${cloudData.baristaPin}`);
+          s.baristaPin = String(cloudData.baristaPin).trim();
+          hasChange = true;
+        }
+        if (cloudData.ownerPin && String(cloudData.ownerPin).trim() !== String(s.ownerPin).trim()) {
+          s.ownerPin = String(cloudData.ownerPin).trim();
+          hasChange = true;
+        }
+
+        if (hasChange) {
+          StorageManager.saveSettings(s);
+          const cfgBaristaInput = document.getElementById('cfgBaristaPin');
+          if (cfgBaristaInput) cfgBaristaInput.value = s.baristaPin;
+          const cfgOwnerInput = document.getElementById('cfgOwnerPin');
+          if (cfgOwnerInput) cfgOwnerInput.value = s.ownerPin;
+        }
+        return cloudData;
       }
-      return cloudData;
-    }
-    return null;
+      return null;
+    })().finally(() => {
+      this._fetchPromise = null;
+    });
+
+    return this._fetchPromise;
   }
 };
 

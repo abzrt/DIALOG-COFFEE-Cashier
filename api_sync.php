@@ -33,6 +33,15 @@ $API_KEY = 'dialog2026';                                    // Kunci rahasia sin
 
 // Baca parameter aksi
 $action = isset($_GET['action']) ? $_GET['action'] : (isset($_POST['action']) ? $_POST['action'] : 'ping');
+$SETTINGS_CACHE_FILE = __DIR__ . '/settings_cache.json';
+
+// UNDUH SOURCE api_sync.php (JIKA DIMINTA OLEH TOMBOL PENGATURAN)
+if (isset($_GET['download']) && $_GET['download'] == '1') {
+    header('Content-Type: application/x-httpd-php');
+    header('Content-Disposition: attachment; filename="api_sync.php"');
+    readfile(__FILE__);
+    exit;
+}
 
 // Helper response JSON
 function sendResponse($success, $message, $data = null, $code = 200) {
@@ -46,6 +55,14 @@ function sendResponse($success, $message, $data = null, $code = 200) {
     exit;
 }
 
+// RESPONS KILAT GET_SETTINGS (0-2ms TANPA MENUNGGU KONEKSI MYSQL)
+if ($action === 'get_settings' && file_exists($SETTINGS_CACHE_FILE)) {
+    $cached = @json_decode(file_get_contents($SETTINGS_CACHE_FILE), true);
+    if ($cached && is_array($cached) && !empty($cached['baristaPin'])) {
+        sendResponse(true, 'Pengaturan cloud berhasil diambil (Instant Cache)', $cached);
+    }
+}
+
 // =============================================================================
 // 3. KONEKSI KE DATABASE MYSQL
 // =============================================================================
@@ -57,52 +74,31 @@ if (function_exists('mysqli_report')) {
 $conn = null;
 $connectException = null;
 
-// Optimasi koneksi cepat: prioritaskan 127.0.0.1 / localhost dengan timeout 2 detik
-$hostsToTry = [$DB_HOST];
-if ($DB_HOST === 'localhost') {
-    $hostsToTry = ['127.0.0.1', 'localhost'];
-}
-
-foreach ($hostsToTry as $hostCandidate) {
-    try {
-        $c = mysqli_init();
-        if ($c) {
-            $c->options(MYSQLI_OPT_CONNECT_TIMEOUT, 2);
-            if (@$c->real_connect($hostCandidate, $DB_USER, $DB_PASS, $DB_NAME)) {
-                $conn = $c;
-                break;
-            }
-        }
-    } catch (Throwable $e) {
-        $connectException = $e->getMessage();
-    }
+// Koneksi instan ke MySQL cPanel
+try {
+    $conn = @new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
+} catch (Throwable $e) {
+    $connectException = $e->getMessage();
 }
 
 if (!$conn || $conn->connect_error) {
+    $altHost = ($DB_HOST === 'localhost') ? '127.0.0.1' : 'localhost';
     try {
-        $c = mysqli_init();
-        if ($c) {
-            $c->options(MYSQLI_OPT_CONNECT_TIMEOUT, 2);
-            if (@$c->real_connect($DB_HOST, $DB_USER, $DB_PASS)) {
-                $conn = $c;
-            }
+        $c = @new mysqli($altHost, $DB_USER, $DB_PASS, $DB_NAME);
+        if ($c && !$c->connect_error) {
+            $conn = $c;
         }
     } catch (Throwable $e) {
         if (!$connectException) $connectException = $e->getMessage();
     }
+}
 
-    if (!$conn || $conn->connect_error) {
-        $errDetail = ($conn && $conn->connect_error) ? $conn->connect_error : ($connectException ?: 'Koneksi ditolak');
-        if ($action === 'ping') {
-            sendResponse(false, 'Gagal terhubung ke MySQL: ' . $errDetail . '. Pastikan username dan password MySQL di cPanel sudah sesuai.', null, 200);
-        } else {
-            sendResponse(false, 'Database connection error: ' . $errDetail, null, 200);
-        }
-    }
-
-    @$conn->query("CREATE DATABASE IF NOT EXISTS `$DB_NAME` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-    if (!@$conn->select_db($DB_NAME)) {
-        sendResponse(false, "Database '$DB_NAME' belum ditemukan di server MySQL.", null, 200);
+if (!$conn || $conn->connect_error) {
+    $errDetail = ($conn && $conn->connect_error) ? $conn->connect_error : ($connectException ?: 'Koneksi ditolak');
+    if ($action === 'ping') {
+        sendResponse(false, 'Gagal terhubung ke MySQL: ' . $errDetail . '. Pastikan username dan password MySQL di cPanel sudah sesuai.', null, 200);
+    } else {
+        sendResponse(false, 'Database connection error: ' . $errDetail, null, 200);
     }
 }
 
@@ -361,6 +357,15 @@ if ($action === 'save_settings') {
         sendResponse(false, 'Data pengaturan tidak valid.', null, 400);
     }
 
+    // 1. Simpan seketika ke file cache JSON agar get_settings di HP Barista langsung dapat data baru dalam 1ms
+    $cleanCache = [];
+    foreach ($settingsData as $k => $v) {
+        if ($k === 'api_key') continue;
+        $cleanCache[strval($k)] = is_scalar($v) ? strval($v) : $v;
+    }
+    @file_put_contents($SETTINGS_CACHE_FILE, json_encode($cleanCache, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+
+    // 2. Simpan permanen ke tabel MySQL tb_pengaturan
     $stmt = @$conn->prepare("INSERT INTO tb_pengaturan (kunci, nilai) VALUES (?, ?) ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)");
     if (!$stmt) {
         @$conn->query("CREATE TABLE IF NOT EXISTS `tb_pengaturan` (
@@ -369,16 +374,14 @@ if ($action === 'save_settings') {
           `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (`kunci`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
-        $stmt = $conn->prepare("INSERT INTO tb_pengaturan (kunci, nilai) VALUES (?, ?) ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)");
+        $stmt = @$conn->prepare("INSERT INTO tb_pengaturan (kunci, nilai) VALUES (?, ?) ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)");
     }
 
     $savedCount = 0;
     if ($stmt) {
-        foreach ($settingsData as $key => $val) {
-            if ($key === 'api_key') continue;
-            $k = strval($key);
-            $v = is_scalar($val) ? strval($val) : json_encode($val, JSON_UNESCAPED_UNICODE);
-            $stmt->bind_param('ss', $k, $v);
+        foreach ($cleanCache as $k => $v) {
+            $valStr = is_scalar($v) ? strval($v) : json_encode($v, JSON_UNESCAPED_UNICODE);
+            $stmt->bind_param('ss', $k, $valStr);
             $stmt->execute();
             $savedCount++;
         }
@@ -387,13 +390,13 @@ if ($action === 'save_settings') {
 
     sendResponse(true, 'Pengaturan & Password berhasil disinkronkan ke Cloud Database!', [
         'saved_count' => $savedCount,
-        'baristaPin' => isset($settingsData['baristaPin']) ? $settingsData['baristaPin'] : null
+        'baristaPin' => isset($cleanCache['baristaPin']) ? $cleanCache['baristaPin'] : null
     ]);
 }
 
 // AKSI 6: AMBIL PENGATURAN / PASSWORD TERBARU DARI CLOUD
 if ($action === 'get_settings') {
-    $q = $conn->query("SELECT kunci, nilai FROM tb_pengaturan");
+    $q = @$conn->query("SELECT kunci, nilai FROM tb_pengaturan");
     $settings = [
         'baristaPin' => '6969',
         'ownerPin' => '1996'
@@ -403,6 +406,7 @@ if ($action === 'get_settings') {
             $settings[$row['kunci']] = $row['nilai'];
         }
     }
+    @file_put_contents($SETTINGS_CACHE_FILE, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
     sendResponse(true, 'Pengaturan cloud berhasil diambil', $settings);
 }
 

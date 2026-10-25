@@ -163,7 +163,7 @@ const FinanceModule = {
           </td>
           <td>
             <span class="type-pill ${isIncome ? 'income' : 'expense'}">
-              ${isIncome ? '▲ Masuk' : '▼ Keluar'}
+              ${isIncome ? (isId ? '▲ Masuk' : '▲ Income') : (isId ? '▼ Keluar' : '▼ Expense')}
             </span>
           </td>
           <td>
@@ -437,7 +437,9 @@ const FinanceModule = {
     const netProfit = todayIncome - todayExpense;
 
     this._currentClosingSummary = {
+      id: 'CLS-' + Date.now(),
       date: now.toISOString(),
+      timestamp: now.toISOString(),
       shift: this.selectedClosingShift === 'all' ? 'Semua Shift (Total Hari Ini)' : this.selectedClosingShift,
       shiftLabel: shiftLabel,
       baristas: baristas,
@@ -445,10 +447,13 @@ const FinanceModule = {
       totalExpense: todayExpense,
       netProfit: netProfit,
       cashBalance: cashBalance,
+      cashPhysical: cashBalance,
       transactionCount: shiftTrx.length,
+      trxCount: shiftTrx.length,
       incomeCount: incomeCount,
       expenseCount: expenseCount,
-      expenses: todayExpensesList
+      expenses: todayExpensesList,
+      transactions: shiftTrx
     };
 
     // Update Tab Buttons Active State
@@ -502,9 +507,14 @@ const FinanceModule = {
     WhatsAppNotifier.notifyClosingShift(this._currentClosingSummary);
     StorageManager.saveClosing(this._currentClosingSummary);
 
-    // Otomatis sinkronkan rekapan closing ke database cloud myphp.id
-    if (window.CloudSync && typeof CloudSync.syncClosingRecord === 'function') {
-      CloudSync.syncClosingRecord(this._currentClosingSummary);
+    // Otomatis sinkronkan seluruh rekapan closing dan transaksi ke database cloud
+    if (window.CloudSync) {
+      if (typeof CloudSync.syncClosingRecord === 'function') {
+        CloudSync.syncClosingRecord(this._currentClosingSummary);
+      }
+      if (typeof CloudSync.syncAllData === 'function') {
+        CloudSync.syncAllData();
+      }
     }
 
     const shiftName = this.selectedClosingShift === 'all' ? 'Total Hari Ini' : this.selectedClosingShift;

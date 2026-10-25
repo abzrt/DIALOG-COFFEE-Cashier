@@ -157,7 +157,122 @@ const I18N = {
       ownerPinLabel: 'PIN Keamanan Owner',
       ownerPinPlaceholder: 'Masukkan PIN owner...',
       ownerPinSubmit: 'Masuk Area Owner',
-      ownerLogoutBtn: 'Keluar Sesi Owner'
+      ownerLogoutBtn: 'Keluar Sesi Owner',
+
+      // Table Headers
+      thDateId: 'Tanggal & ID',
+      thTimeId: 'Jam & ID',
+      thType: 'Tipe',
+      thCategoryShift: 'Kategori & Shift',
+      thDescription: 'Keterangan / Rincian',
+      thDescriptionMenu: 'Keterangan / Rincian Menu',
+      thMethod: 'Metode',
+      thAmount: 'Nominal',
+      thAction: 'Aksi',
+      thDetail: 'Detail',
+
+      // Auth & Role Modal
+      authModalTitle: 'Login Akun DIALOG COFFEE',
+      appSubTitle: 'Sistem Kasir & Pembukuan',
+      selectRolePrompt: 'Pilih peran akun Anda untuk melanjutkan:',
+      fullAccessBadge: 'Akses Penuh',
+      ownerCardDesc: 'Pengaturan & Arus Kas',
+      dailyCashierBadge: 'Kasir Harian',
+      baristaCardDesc: 'Kasir POS & Pesanan',
+      enterOwnerPin: '👑 Masukkan PIN Pemilik (Owner):',
+      enterBaristaPin: '☕ Masukkan PIN Barista:',
+      loginAsOwner: 'Masuk Sebagai Owner',
+      loginAsBarista: 'Masuk Sebagai Barista',
+      ownerAccountLogin: 'Login Akun Owner',
+      baristaAccountLogin: 'Login Akun Barista',
+      pinIncorrect: 'PIN salah!',
+      checking: 'Checking...',
+
+      // Settings Extra
+      instagramLabel: '📸 Akun Instagram Cafe',
+      gatewayPhoneLabel: '📡 Nomor WhatsApp Gateway (Pengirim)',
+      gatewayPhoneHint: 'Nomor gateway pengirim (+628982151560) khusus untuk mengirim rekapan closing',
+      ownerPhoneHint: 'Nomor WhatsApp Owner (+62 85334101996) penerima rekapan closing kasir',
+      ownerPinSettingLabel: '🔐 PIN Keamanan Owner (Akses Pengaturan & Owner)',
+      ownerPinHint: 'PIN rahasia pemilik untuk membuka Tab Pengaturan & Dashboard Owner',
+      baristaPinLabel: '☕ PIN Login Barista',
+      baristaPinHint: 'PIN untuk login akun Barista ke kasir',
+      printerSettingsTitle: 'Printer & Struk Kasir',
+      printerSettingsDesc: 'Pengaturan pencetakan struk transaksi kasir. Kompatibel dengan printer thermal POS 80mm/58mm (Bluetooth, USB, WiFi, Network) serta opsi simpan struk format PDF jika printer belum terhubung.',
+      testPrintBtn: 'Uji Cetak Printer',
+      testPdfBtn: 'Uji Simpan PDF',
+      cloudDbTitle: 'Database Rekapan Cloud (myphp.id / MySQL)',
+      cloudDbDesc: 'Koneksi database cloud berjalan otomatis di latar belakang untuk mengamankan rekapan closing dan transaksi kasir ke server myphp.id.',
+      testDbBtn: 'Uji Koneksi Database',
+      syncAllDbBtn: 'Sinkronkan Seluruh Data',
+      clearTrxHistoryBtn: 'Kosongkan Seluruh Riwayat Transaksi (Mulai Dari Nol)',
+      resetSettingsDefaultBtn: 'Reset Menu & Pengaturan Default',
+
+      // Menu Management (Owner)
+      menuManagementTitle: 'Kelola & Edit Menu Cafe (Khusus Owner)',
+      menuManagementDesc: 'Ubah nama, harga jual satuan, atau kategori pada semua menu kasir DIALOG COFFEE yang aktif.',
+      searchMenuPlaceholder: '🔍 Cari menu...',
+      addMenuBtn: 'Tambah Menu',
+      resetDefaultBtn: 'Reset Default',
+      editMenuTitle: 'Edit Menu Cafe',
+      addMenuTitle: 'Tambah Menu Baru',
+      addToMenuBtn: 'Tambah ke Menu',
+      menuNameLabel: '☕ Nama Menu:',
+      menuNamePlaceholder: 'Contoh: DIALOG COFFEE, AMERICANO, dll...',
+      menuPriceLabel: '💵 Harga Satuan (Rp):',
+      menuCategoryLabel: '🏷️ Kategori:',
+      menuBadgeLabel: '⭐ Badge / Label (Opsional):',
+      menuBadgePlaceholder: 'Contoh: Favorit, Terlaris, Best Pick...',
+      menuDescLabel: '📝 Deskripsi Singkat:',
+      menuDescPlaceholder: 'Keterangan rasa atau komposisi menu...',
+      deleteMenuBtn: 'Hapus Menu',
+      saveChangesBtn: 'Simpan Perubahan',
+      menuNotFound: 'Menu tidak ditemukan',
+      menuNotFoundSub: 'Coba gunakan kata kunci pencarian atau kategori lain.',
+      catCustom: '✨ Custom / Lainnya',
+
+      // Custom Menu POS Modal
+      customMenuTitle: 'Tambah Custom Menu',
+      customMenuDesc: 'Masukkan item pesanan khusus atau menu di luar daftar tetap:',
+      customItemNameLabel: '📝 Nama Menu / Item Custom:',
+      customItemNamePlaceholder: 'Contoh: Extra Espresso Shot, Snack, dsb...',
+      customItemPriceLabel: '💵 Harga Satuan (Rp):',
+      customItemQtyLabel: '🔢 Jumlah (Qty):',
+      customItemCategoryLabel: '🏷️ Kategori Menu:',
+      customItemSavePermanentLabel: 'Simpan ke daftar menu tetap (bisa dipilih lagi nanti)',
+      addToCartBtn: 'Masukkan ke Pesanan',
+
+      // Exit Modal
+      exitModalTitle: 'Keluar dari Aplikasi',
+      exitModalHeading: 'Tutup Aplikasi Kasir?',
+      exitModalDesc: 'Apakah Anda ingin keluar dari aplikasi DIALOG COFFEE? Seluruh data kasir dan pembukuan shift tetap tersimpan aman.',
+      exitConfirmBtn: 'Keluar',
+
+      // Additional UI keys
+      switchAccountBtn: '⇅ Ganti Akun',
+      closeThisShiftBtn: 'Closing Shift Ini',
+      selectShiftToClose: 'Pilih Shift yang Ditutup:',
+      totalTodayTab: '📊 Total Hari Ini',
+      incomeThisShift: 'Pemasukan Shift Ini:',
+      expenseThisShift: 'Pengeluaran Shift Ini:',
+      netProfitThisShift: 'Laba Bersih Shift Ini:',
+      physicalCashInDrawer: 'Uang Fisik Kas di Laci:',
+      trxCountLabel: 'Jumlah Transaksi:',
+      closeOrCancel: 'Tutup / Batal',
+      activeDraftBadge: 'Draft Aktif',
+      saveBtn: 'Simpan',
+      txVolume: 'Volume Transaksi',
+      downloadWordDocBtn: 'Unduh Dokumen Word (.docx)',
+      downloadPdfDocBtn: 'Unduh Dokumen PDF (.pdf)',
+      downloadCsvBtn: 'Unduh Berkas CSV / Excel (.csv)',
+      incomeCashBtn: '▲ Pemasukan Kas',
+      expenseCashBtn: '▼ Pengeluaran Kas',
+      trxCategoryLabel: 'Kategori Transaksi',
+      trxAmountLabel: 'Nominal Transaksi (Rp)',
+      trxDateTimeLabel: 'Tanggal & Waktu Transaksi',
+      trxDescLabel: 'Keterangan / Rincian Detail Transaksi',
+      trxPicLabel: 'Penanggung Jawab / Barista',
+      trxRefLabel: 'Nomor Referensi / Nomor Nota Supplier (Opsional)'
     },
 
     en: {
@@ -310,7 +425,122 @@ const I18N = {
       ownerPinLabel: 'Owner Security PIN',
       ownerPinPlaceholder: 'Enter owner PIN...',
       ownerPinSubmit: 'Enter Owner Area',
-      ownerLogoutBtn: 'Lock / Logout Session'
+      ownerLogoutBtn: 'Lock / Logout Session',
+
+      // Table Headers
+      thDateId: 'Date & ID',
+      thTimeId: 'Time & ID',
+      thType: 'Type',
+      thCategoryShift: 'Category & Shift',
+      thDescription: 'Description / Details',
+      thDescriptionMenu: 'Item Details & Menu',
+      thMethod: 'Method',
+      thAmount: 'Amount',
+      thAction: 'Action',
+      thDetail: 'Detail',
+
+      // Auth & Role Modal
+      authModalTitle: 'DIALOG COFFEE Account Login',
+      appSubTitle: 'POS & Ledger System',
+      selectRolePrompt: 'Select your account role to proceed:',
+      fullAccessBadge: 'Full Access',
+      ownerCardDesc: 'Settings & Cash Flow',
+      dailyCashierBadge: 'Daily Cashier',
+      baristaCardDesc: 'POS Cashier & Orders',
+      enterOwnerPin: '👑 Enter Owner PIN:',
+      enterBaristaPin: '☕ Enter Barista PIN:',
+      loginAsOwner: 'Log In as Owner',
+      loginAsBarista: 'Log In as Barista',
+      ownerAccountLogin: 'Owner Account Login',
+      baristaAccountLogin: 'Barista Account Login',
+      pinIncorrect: 'PIN incorrect!',
+      checking: 'Checking...',
+
+      // Settings Extra
+      instagramLabel: '📸 Cafe Instagram Account',
+      gatewayPhoneLabel: '📡 WhatsApp Gateway Number (Sender)',
+      gatewayPhoneHint: 'Sender gateway number (+628982151560) used to send closing summaries',
+      ownerPhoneHint: "Owner's WhatsApp number (+62 85334101996) receiving cashier closing summaries",
+      ownerPinSettingLabel: '🔐 Owner Security PIN (Settings & Owner Access)',
+      ownerPinHint: 'Secret owner PIN to open Settings Tab & Owner Dashboard',
+      baristaPinLabel: '☕ Barista Login PIN',
+      baristaPinHint: 'PIN for Barista cashier login',
+      printerSettingsTitle: 'Printer & Thermal Receipt',
+      printerSettingsDesc: 'Cashier receipt printing settings. Compatible with 80mm/58mm POS thermal printers (Bluetooth, USB, WiFi, Network) and PDF receipt saving option.',
+      testPrintBtn: 'Test Print',
+      testPdfBtn: 'Test Save PDF',
+      cloudDbTitle: 'Cloud Database Sync (myphp.id / MySQL)',
+      cloudDbDesc: 'Automatic cloud database connection to secure closing summaries and cashier transactions to myphp.id server.',
+      testDbBtn: 'Test DB Connection',
+      syncAllDbBtn: 'Sync All Records',
+      clearTrxHistoryBtn: 'Clear All Transaction History (Fresh Start)',
+      resetSettingsDefaultBtn: 'Reset Menu & Default Settings',
+
+      // Menu Management (Owner)
+      menuManagementTitle: 'Manage & Edit Cafe Menu (Owner Only)',
+      menuManagementDesc: 'Update name, unit price, or category across all active DIALOG COFFEE menu items.',
+      searchMenuPlaceholder: '🔍 Search menu...',
+      addMenuBtn: 'Add Menu',
+      resetDefaultBtn: 'Reset Default',
+      editMenuTitle: 'Edit Cafe Menu',
+      addMenuTitle: 'Add New Menu Item',
+      addToMenuBtn: 'Add to Menu',
+      menuNameLabel: '☕ Item Name:',
+      menuNamePlaceholder: 'e.g., DIALOG COFFEE, AMERICANO...',
+      menuPriceLabel: '💵 Unit Price (Rp):',
+      menuCategoryLabel: '🏷️ Category:',
+      menuBadgeLabel: '⭐ Badge / Label (Optional):',
+      menuBadgePlaceholder: 'e.g., Favorite, Best Seller, Top Pick...',
+      menuDescLabel: '📝 Short Description:',
+      menuDescPlaceholder: 'Flavor notes or ingredients...',
+      deleteMenuBtn: 'Delete Item',
+      saveChangesBtn: 'Save Changes',
+      menuNotFound: 'No menu item found',
+      menuNotFoundSub: 'Try a different search keyword or category filter.',
+      catCustom: '✨ Custom / Others',
+
+      // Custom Menu POS Modal
+      customMenuTitle: 'Add Custom Menu Item',
+      customMenuDesc: 'Enter custom item or special order outside standard menu:',
+      customItemNameLabel: '📝 Custom Item Name:',
+      customItemNamePlaceholder: 'e.g., Extra Espresso Shot, Snack, etc...',
+      customItemPriceLabel: '💵 Unit Price (Rp):',
+      customItemQtyLabel: '🔢 Quantity (Qty):',
+      customItemCategoryLabel: '🏷️ Menu Category:',
+      customItemSavePermanentLabel: 'Save to permanent menu list (reusable later)',
+      addToCartBtn: 'Add to Order',
+
+      // Exit Modal
+      exitModalTitle: 'Exit Application',
+      exitModalHeading: 'Exit Cashier App?',
+      exitModalDesc: 'Are you sure you want to exit DIALOG COFFEE? All cashier data and shift records remain safely stored.',
+      exitConfirmBtn: 'Exit',
+
+      // Additional UI keys
+      switchAccountBtn: '⇅ Switch Account',
+      closeThisShiftBtn: 'Close This Shift',
+      selectShiftToClose: 'Select Shift to Close:',
+      totalTodayTab: '📊 Today Total',
+      incomeThisShift: 'This Shift Income:',
+      expenseThisShift: 'This Shift Expense:',
+      netProfitThisShift: 'This Shift Net Profit:',
+      physicalCashInDrawer: 'Physical Cash in Drawer:',
+      trxCountLabel: 'Transaction Count:',
+      closeOrCancel: 'Close / Cancel',
+      activeDraftBadge: 'Active Draft',
+      saveBtn: 'Save',
+      txVolume: 'Transaction Volume',
+      downloadWordDocBtn: 'Download Word Document (.docx)',
+      downloadPdfDocBtn: 'Download PDF Document (.pdf)',
+      downloadCsvBtn: 'Download CSV / Excel File (.csv)',
+      incomeCashBtn: '▲ Cash Income',
+      expenseCashBtn: '▼ Cash Expense',
+      trxCategoryLabel: 'Transaction Category',
+      trxAmountLabel: 'Transaction Amount (Rp)',
+      trxDateTimeLabel: 'Transaction Date & Time',
+      trxDescLabel: 'Transaction Details / Description',
+      trxPicLabel: 'Person in Charge / Barista',
+      trxRefLabel: 'Reference / Invoice No. (Optional)'
     }
   },
 
@@ -353,12 +583,24 @@ const I18N = {
       langBtn.title = lang === 'id' ? 'Switch to English' : 'Ganti ke Bahasa Indonesia';
     }
 
-    // Refresh modules if initialized
+    // Refresh dynamic modules if initialized
     if (window.POSModule && typeof POSModule.renderCategories === 'function') {
       POSModule.renderCategories();
     }
-    if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
+    if (window.POSModule && typeof POSModule.renderCart === 'function') {
+      POSModule.renderCart();
+    }
+    if (window.FinanceModule && typeof FinanceModule.renderCategoryOptions === 'function') {
       FinanceModule.renderCategoryOptions();
+    }
+    if (window.FinanceModule && typeof FinanceModule.renderTable === 'function') {
+      FinanceModule.renderTable();
+    }
+    if (window.App && typeof App.renderSettingsMenuList === 'function') {
+      App.renderSettingsMenuList();
+    }
+    if (window.AuthModule && typeof AuthModule.selectRole === 'function') {
+      AuthModule.selectRole(AuthModule.selectedRole || 'barista');
     }
   },
 

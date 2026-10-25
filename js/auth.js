@@ -80,22 +80,26 @@ const AuthModule = {
     if (role === 'owner') {
       if (ownerCard) ownerCard.classList.add('selected');
       if (baristaCard) baristaCard.classList.remove('selected');
-      if (pinLabel) pinLabel.innerHTML = '👑 Masukkan PIN Pemilik (Owner):';
-      if (pinInput) pinInput.placeholder = 'PIN Owner...';
-      if (roleTitle) roleTitle.textContent = 'Login Akun Owner';
-      if (submitBtn) submitBtn.innerHTML = '<span>👑</span> Masuk Sebagai Owner';
+      if (pinLabel) pinLabel.innerHTML = I18N.t('enterOwnerPin');
+      if (pinInput) pinInput.placeholder = '****';
+      if (roleTitle) roleTitle.textContent = I18N.t('ownerAccountLogin');
+      if (submitBtn) submitBtn.innerHTML = `<span>👑</span> ${I18N.t('loginAsOwner')}`;
     } else {
       if (baristaCard) baristaCard.classList.add('selected');
       if (ownerCard) ownerCard.classList.remove('selected');
-      if (pinLabel) pinLabel.innerHTML = '☕ Masukkan Password Barista:';
-      if (pinInput) pinInput.placeholder = 'Password Barista...';
-      if (roleTitle) roleTitle.textContent = 'Login Akun Barista';
-      if (submitBtn) submitBtn.innerHTML = '<span>☕</span> Masuk Sebagai Barista';
+      if (pinLabel) pinLabel.innerHTML = I18N.t('enterBaristaPin');
+      if (pinInput) pinInput.placeholder = '****';
+      if (roleTitle) roleTitle.textContent = I18N.t('baristaAccountLogin');
+      if (submitBtn) submitBtn.innerHTML = `<span>☕</span> ${I18N.t('loginAsBarista')}`;
     }
 
     if (pinInput) {
       pinInput.value = '';
       setTimeout(() => pinInput.focus(), 150);
+    }
+
+    if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
+      CloudSync.fetchSettingsFromCloud(5000);
     }
   },
 
@@ -156,9 +160,15 @@ const AuthModule = {
     }
 
     if (this.selectedRole === 'owner') {
-      // Tarik dari cloud jika tidak cocok secara lokal (cepat 1.5 detik)
+      // Tarik dari cloud jika tidak cocok secara lokal
       if (enteredPin !== expectedOwnerPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
-        await CloudSync.fetchSettingsFromCloud(1500);
+        const errEl = document.getElementById('authPinError');
+        if (errEl) {
+          errEl.textContent = '🔄 Checking...';
+          errEl.style.display = 'block';
+          errEl.style.color = 'var(--primary, #c9933a)';
+        }
+        await CloudSync.fetchSettingsFromCloud(15000);
         settings = StorageManager.getSettings();
         expectedOwnerPin = (settings.ownerPin || '1996').trim();
       }
@@ -175,13 +185,19 @@ const AuthModule = {
         }
       } else {
         if (window.App) App.playBeep(260, 0.15, 'sawtooth');
-        this.showError('PIN Owner salah! Silakan coba lagi.');
+        this.showError('PIN salah!');
         if (pinInput) { pinInput.value = ''; pinInput.focus(); }
       }
     } else {
-      // Role Barista: Sinkronkan dengan cloud jika password yang diinput tidak cocok dengan lokal (cepat 1.5 detik)
+      // Role Barista: Sinkronkan dengan cloud jika password yang diinput tidak cocok dengan lokal
       if (enteredPin !== expectedBaristaPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
-        await CloudSync.fetchSettingsFromCloud(1500);
+        const errEl = document.getElementById('authPinError');
+        if (errEl) {
+          errEl.textContent = '🔄 Checking...';
+          errEl.style.display = 'block';
+          errEl.style.color = 'var(--primary, #c9933a)';
+        }
+        await CloudSync.fetchSettingsFromCloud(15000);
         settings = StorageManager.getSettings();
         expectedBaristaPin = (settings.baristaPin || '6969').trim();
       }
@@ -202,7 +218,7 @@ const AuthModule = {
         }
       } else {
         if (window.App) App.playBeep(260, 0.15, 'sawtooth');
-        this.showError('Password Barista salah! Silakan coba lagi.');
+        this.showError('PIN salah!');
         if (pinInput) { pinInput.value = ''; pinInput.focus(); }
       }
     }
@@ -213,6 +229,7 @@ const AuthModule = {
     if (err) {
       err.textContent = msg;
       err.style.display = 'block';
+      err.style.color = '';
     }
   },
 

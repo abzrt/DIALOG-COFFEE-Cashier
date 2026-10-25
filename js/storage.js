@@ -51,7 +51,7 @@ const DEFAULT_SETTINGS = {
   cafeName: 'DIALOG COFFEE',
   tagline: 'Good Coffee, Good Dialog',
   address: 'Jl. Tien Soeharto, Rt. 012 Kec. Nunukan Timur, Kab. Nunukan Kalimantan Utara',
-  phone: '0853-3410-1996',
+  phone: '085334101996',
   ownerPhone: '085334101996',
   gatewayPhone: '08982151560',
   instagram: '@dialogcoffee.nnk',
@@ -180,6 +180,17 @@ const StorageManager = {
     }
   },
 
+  getDefaultMenu() {
+    return JSON.parse(JSON.stringify(DEFAULT_MENU));
+  },
+
+  resetMenuToDefault() {
+    const def = JSON.parse(JSON.stringify(DEFAULT_MENU));
+    this.saveMenu(def);
+    return def;
+  },
+
+
   // SETTINGS & SHIFT
   getSettings() {
     try {
@@ -201,6 +212,9 @@ const StorageManager = {
       }
       if (!parsed.receiptFooter || parsed.receiptFooter.includes('@dialogcoffee.id')) {
         parsed.receiptFooter = DEFAULT_SETTINGS.receiptFooter;
+      }
+      if (!parsed.phone || parsed.phone === '0853-3410-1996') {
+        parsed.phone = '085334101996';
       }
       if (!localStorage.getItem('dialog_coffee_tax_configured')) {
         parsed.taxEnabled = false;

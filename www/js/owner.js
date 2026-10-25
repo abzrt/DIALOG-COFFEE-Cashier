@@ -161,7 +161,7 @@ const OwnerModule = {
       this.renderAll();
     } else {
       if (window.App) App.playBeep(260, 0.15, 'sawtooth');
-      this.showLoginError('PIN keamanan salah! Silakan coba lagi.');
+      this.showLoginError('PIN salah!');
       if (pinInput) {
         pinInput.value = '';
         pinInput.focus();

@@ -12,6 +12,7 @@ const POSModule = {
   isCartInView: false,
   activeSavedOrderId: null,
   currentOrderName: '',
+  editingCustomId: null,
 
   init() {
     this.renderCategories();
@@ -112,24 +113,9 @@ const POSModule = {
       return matchCat && matchSearch;
     });
 
-    const customCardHtml = `
-      <div class="menu-card custom-menu-card" onclick="POSModule.openCustomMenuModal()" style="border: 2px dashed var(--border-color); cursor: pointer; background: var(--card-bg, #ffffff);">
-        <div class="card-top">
-          <div class="item-icon-box" style="background: var(--text-primary); color: var(--bg-surface);">✨</div>
-          <span class="badge-tag" style="background: var(--text-primary); color: var(--bg-surface);">Kustom</span>
-        </div>
-        <div class="item-title">+ Custom Menu</div>
-        <div class="item-desc">Input pesanan kustom / menu khusus secara manual</div>
-        <div class="card-bottom">
-          <div class="item-price" style="font-size: 0.8rem; color: var(--text-muted);">Bebas Harga</div>
-          <div class="add-btn">+</div>
-        </div>
-      </div>
-    `;
-
     if (filtered.length === 0) {
-      container.innerHTML = customCardHtml + `
-        <div style="grid-column: 2 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+      container.innerHTML = `
+        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
           <div style="font-size: 2.5rem; margin-bottom: 8px;">🔍</div>
           <p>${I18N.currentLang === 'id' ? 'Menu tidak ditemukan.' : 'No menu items found.'}</p>
         </div>
@@ -137,13 +123,19 @@ const POSModule = {
       return;
     }
 
-    container.innerHTML = customCardHtml + filtered.map(item => `
+    container.innerHTML = filtered.map(item => {
+      const isCustom = item.category === 'custom' || (item.id && String(item.id).startsWith('custom-')) || item.badge === 'Custom';
+      const bgImg = isCustom ? 'assets/dialog_logo.jpg' : (item.image || 'assets/menu/dialog_coffee.jpg');
+      const bgClass = isCustom ? 'menu-card-bg menu-card-bg-logo' : 'menu-card-bg';
+
+      return `
       <div class="menu-card" onclick="POSModule.addToCart('${item.id}')">
-        <div class="menu-card-bg" style="background-image: url('${item.image || 'assets/menu/dialog_coffee.jpg'}');"></div>
+        <div class="${bgClass}" style="background-image: url('${bgImg}');"></div>
         <div class="card-top">
           <div class="item-icon-box">${item.icon || '☕'}</div>
           ${item.badge ? `<span class="badge-tag">${item.badge}</span>` : ''}
         </div>
+
         <div class="item-title">${item.name}</div>
         <div class="item-desc">${item.desc || ''}</div>
         <div class="card-bottom">
@@ -151,7 +143,8 @@ const POSModule = {
           <div class="add-btn">+</div>
         </div>
       </div>
-    `).join('');
+    `;
+    }).join('');
   },
 
   addToCart(itemId) {
@@ -924,17 +917,33 @@ const POSModule = {
 
   // CUSTOM MENU MODAL HANDLERS
   openCustomMenuModal() {
+    this.editingCustomId = null;
     const modal = document.getElementById('customMenuModal');
     if (!modal) return;
     const nameInput = document.getElementById('customItemName');
     const priceInput = document.getElementById('customItemPrice');
     const qtyInput = document.getElementById('customItemQty');
+    const catInput = document.getElementById('customItemCategory');
     const err = document.getElementById('customMenuError');
     const perm = document.getElementById('customItemSavePermanent');
+    const title = document.getElementById('customMenuModalTitle');
+    const desc = document.getElementById('customMenuModalDesc');
+    const qtyWrap = document.getElementById('customItemQtyWrap');
+    const permWrap = document.getElementById('customItemPermanentWrap');
+    const deleteBtn = document.getElementById('btnDeleteCustomModal');
+    const submitText = document.getElementById('customMenuSubmitText');
+
+    if (title) title.textContent = 'Tambah Custom Menu';
+    if (desc) desc.textContent = 'Masukkan item pesanan khusus atau menu di luar daftar tetap:';
+    if (qtyWrap) qtyWrap.style.display = 'block';
+    if (permWrap) permWrap.style.display = 'flex';
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (submitText) submitText.textContent = 'Masukkan ke Pesanan';
 
     if (nameInput) nameInput.value = '';
     if (priceInput) priceInput.value = '';
     if (qtyInput) qtyInput.value = '1';
+    if (catInput) catInput.value = 'custom';
     if (perm) perm.checked = false;
     if (err) { err.style.display = 'none'; err.textContent = ''; }
 
@@ -942,7 +951,61 @@ const POSModule = {
     setTimeout(() => { if (nameInput) nameInput.focus(); }, 150);
   },
 
+  openEditCustomMenuModal(itemId) {
+    const menu = StorageManager.getMenu();
+    const item = menu.find(m => m.id === itemId);
+    if (!item) return;
+
+    this.editingCustomId = itemId;
+    const modal = document.getElementById('customMenuModal');
+    if (!modal) return;
+
+    const nameInput = document.getElementById('customItemName');
+    const priceInput = document.getElementById('customItemPrice');
+    const catInput = document.getElementById('customItemCategory');
+    const err = document.getElementById('customMenuError');
+    const title = document.getElementById('customMenuModalTitle');
+    const desc = document.getElementById('customMenuModalDesc');
+    const qtyWrap = document.getElementById('customItemQtyWrap');
+    const permWrap = document.getElementById('customItemPermanentWrap');
+    const deleteBtn = document.getElementById('btnDeleteCustomModal');
+    const submitText = document.getElementById('customMenuSubmitText');
+
+    if (title) title.textContent = 'Edit Custom Menu';
+    if (desc) desc.textContent = 'Ubah detail menu custom atau hapus dari daftar:';
+    if (qtyWrap) qtyWrap.style.display = 'none';
+    if (permWrap) permWrap.style.display = 'none';
+    if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+    if (submitText) submitText.textContent = 'Simpan Perubahan';
+
+    if (nameInput) nameInput.value = item.name || '';
+    if (priceInput) priceInput.value = item.price || 0;
+    if (catInput) catInput.value = item.category || 'custom';
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+    modal.classList.add('active');
+    setTimeout(() => { if (nameInput) nameInput.focus(); }, 150);
+  },
+
+  deleteCustomMenu(itemId) {
+    if (!itemId) return;
+    const menu = StorageManager.getMenu();
+    const item = menu.find(m => m.id === itemId);
+    const itemName = item ? item.name : 'menu';
+
+    if (!confirm(`Hapus custom menu "${itemName}" dari daftar menu?`)) {
+      return;
+    }
+
+    const updatedMenu = menu.filter(m => m.id !== itemId);
+    StorageManager.saveMenu(updatedMenu);
+    this.renderMenu();
+    this.closeCustomMenuModal();
+    App.showToast(`Menu "${itemName}" berhasil dihapus dari daftar menu.`, 'info');
+  },
+
   closeCustomMenuModal() {
+    this.editingCustomId = null;
     const modal = document.getElementById('customMenuModal');
     if (modal) modal.classList.remove('active');
   },
@@ -979,6 +1042,33 @@ const POSModule = {
       return;
     }
 
+    // MODE EDIT
+    if (this.editingCustomId) {
+      const menuList = StorageManager.getMenu();
+      const idx = menuList.findIndex(m => m.id === this.editingCustomId);
+      if (idx !== -1) {
+        menuList[idx].name = name;
+        menuList[idx].price = price;
+        menuList[idx].category = category;
+        StorageManager.saveMenu(menuList);
+
+        // Update nama & harga di keranjang belanja jika menu ini ada di cart
+        this.cart.forEach(c => {
+          if (c.id === this.editingCustomId) {
+            c.name = name;
+            c.price = price;
+          }
+        });
+        this.renderCart();
+      }
+
+      this.renderMenu();
+      this.closeCustomMenuModal();
+      App.showToast(`Menu custom "${name}" berhasil diperbarui!`, 'success');
+      return;
+    }
+
+    // MODE TAMBAH BARU
     const customId = 'custom-' + Date.now();
 
     // Jika dipilih untuk disimpan permanen ke daftar menu
@@ -992,7 +1082,7 @@ const POSModule = {
         desc: 'Menu Custom DIALOG COFFEE',
         badge: 'Custom',
         icon: '✨',
-        image: 'assets/menu/dialog_coffee.jpg'
+        image: 'assets/dialog_logo.jpg'
       });
       StorageManager.saveMenu(menuList);
       this.renderMenu();
@@ -1016,6 +1106,7 @@ const POSModule = {
     this.closeCustomMenuModal();
     App.showToast(`Custom menu "${name}" (${qty}x) ditambahkan ke pesanan!`, 'success');
   }
+
 };
 
 window.POSModule = POSModule;

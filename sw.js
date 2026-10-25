@@ -1,4 +1,5 @@
-const CACHE_NAME = 'dialog-coffee-cache-v1';
+const CACHE_NAME = 'dialog-coffee-cache-v15';
+
 const ASSETS_TO_CACHE = [
   './',
   './index.html',
@@ -9,6 +10,8 @@ const ASSETS_TO_CACHE = [
   './js/pos.js',
   './js/finance.js',
   './js/reports.js',
+  './js/auth.js',
+  './js/cloud-sync.js',
   './js/export-pdf.js',
   './js/export-word.js',
   './libs/jspdf.umd.min.js',
@@ -19,10 +22,9 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
 });
 
@@ -30,16 +32,23 @@ self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
-        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+        keys.map(k => caches.delete(k))
       );
     }).then(() => self.clients.claim())
   );
 });
 
 self.addEventListener('fetch', (e) => {
+  if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then((res) => {
-      return res || fetch(e.request);
-    })
+    fetch(e.request)
+      .then((networkRes) => {
+        if (networkRes && networkRes.status === 200) {
+          const clone = networkRes.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+        }
+        return networkRes;
+      })
+      .catch(() => caches.match(e.request))
   );
 });

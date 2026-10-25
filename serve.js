@@ -254,7 +254,9 @@ const server = http.createServer((req, res) => {
     const headers = {
       'Content-Type': MIME_TYPES[ext] || 'application/octet-stream',
       'Content-Length': stats.size,
-      'Cache-Control': 'no-cache'
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
     };
 
     if (ext === '.apk') {

@@ -20,6 +20,7 @@ const App = {
     window.addEventListener('resize', () => this.loadShiftHeader());
     this.loadSettingsForm();
     this.bindSettingsEvents();
+    this.renderSettingsMenuList();
 
     // Inisialisasi i18n
     if (window.I18N) I18N.init();
@@ -323,7 +324,9 @@ const App = {
       OwnerModule.renderAll();
     } else if (tabId === 'settings') {
       this.loadSettingsForm();
+      this.renderSettingsMenuList();
     }
+
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
@@ -389,8 +392,15 @@ const App = {
   bindSettingsEvents() {
     const form = document.getElementById('settingsForm');
     if (form) {
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const origBtnText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = '<span>⏳</span> Menyimpan ke Database Cloud...';
+        }
+
         const updated = {
           ...StorageManager.getSettings(),
           cafeName: document.getElementById('cfgCafeName').value.trim() || 'DIALOG COFFEE',
@@ -415,12 +425,26 @@ const App = {
         this.loadSettingsForm();
         if (window.POSModule) POSModule.renderCart();
 
+        let cloudSuccess = false;
         if (window.CloudSync && CloudSync.syncSettingsToCloud) {
-          CloudSync.syncSettingsToCloud(updated);
+          try {
+            cloudSuccess = await CloudSync.syncSettingsToCloud(updated);
+          } catch (err) {
+            console.warn('Sync settings error:', err);
+          }
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = origBtnText;
         }
 
         App.playBeep(660, 0.08);
-        this.showToast('Pengaturan cafe dan password berhasil disimpan & disinkronkan ke Cloud!', 'success');
+        if (cloudSuccess) {
+          this.showToast('✅ Pengaturan & PIN berhasil tersimpan di Database Cloud!', 'success');
+        } else {
+          this.showToast('Pengaturan tersimpan lokal. Database cloud akan disinkronkan otomatis.', 'info');
+        }
       });
     }
 
@@ -478,6 +502,269 @@ const App = {
       });
     }
   },
+
+  toggleSettingsPin(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    if (input.type === 'password') {
+      input.type = 'text';
+      if (btn) btn.textContent = '🔒';
+    } else {
+      input.type = 'password';
+      if (btn) btn.textContent = '👁️';
+    }
+  },
+
+  // =========================================================================
+  // OWNER MENU MANAGEMENT (PENGATURAN MENU KHUSUS OWNER)
+  // =========================================================================
+  renderSettingsMenuList() {
+    const container = document.getElementById('settingsMenuListContainer');
+    if (!container) return;
+
+    const searchInput = document.getElementById('settingsMenuSearchInput');
+    const catSelect = document.getElementById('settingsMenuCategoryFilter');
+    const query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+    const selectedCat = catSelect ? catSelect.value : 'all';
+
+    const menu = StorageManager.getMenu();
+
+    const filtered = menu.filter(item => {
+      const matchCat = (selectedCat === 'all') || (item.category === selectedCat);
+      const matchQuery = !query || 
+        (item.name && item.name.toLowerCase().includes(query)) ||
+        (item.category && item.category.toLowerCase().includes(query)) ||
+        (item.badge && item.badge.toLowerCase().includes(query));
+      return matchCat && matchQuery;
+    });
+
+    if (filtered.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+          <div style="font-size: 2.2rem; margin-bottom: 6px;">🔍</div>
+          <p style="font-weight: 700; margin: 0;">${I18N.t('menuNotFound')}</p>
+          <span style="font-size: 0.78rem;">${I18N.t('menuNotFoundSub')}</span>
+        </div>
+      `;
+      return;
+    }
+
+    const catLabels = {
+      'coffee-flavor': '☕ Coffee & Flavor',
+      'signature': '⭐ Signature Drinks',
+      'non-coffee': '🍵 Non-Coffee',
+      'custom': I18N.t('catCustom')
+    };
+
+    container.innerHTML = filtered.map(item => {
+      const isCustom = item.category === 'custom' || (item.id && String(item.id).startsWith('custom-')) || item.badge === 'Custom';
+      const bgImg = isCustom ? 'assets/dialog_logo.jpg' : (item.image || 'assets/menu/dialog_coffee.jpg');
+      const catLabel = catLabels[item.category] || item.category || 'Menu';
+
+      return `
+        <div class="settings-menu-item-row">
+          <div class="settings-menu-item-thumb">
+            <img src="${bgImg}" alt="${item.name}" onerror="this.src='assets/dialog_logo.jpg'">
+          </div>
+          <div class="settings-menu-item-details">
+            <div class="settings-menu-item-name">
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;">${item.name}</span>
+              ${item.badge ? `<span class="badge-tag" style="font-size: 0.6rem; padding: 2px 6px; flex-shrink: 0;">${item.badge}</span>` : ''}
+            </div>
+            <div class="settings-menu-item-price-val">${App.formatRupiah(item.price)}</div>
+            <div class="settings-menu-item-meta">${catLabel}${item.desc ? ` • ${item.desc}` : ''}</div>
+          </div>
+          <div class="settings-menu-item-actions">
+            <button type="button" class="btn-table-action" title="${I18N.currentLang === 'en' ? 'Edit Item' : 'Edit Menu'}" onclick="App.openEditMenuModal('${item.id}')">
+              ✏️
+            </button>
+            <button type="button" class="btn-table-action delete" title="${I18N.currentLang === 'en' ? 'Delete Item' : 'Hapus Menu'}" onclick="App.deleteMenuItem('${item.id}')">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `;
+
+    }).join('');
+  },
+
+  openEditMenuModal(itemId) {
+    const menu = StorageManager.getMenu();
+    const item = menu.find(m => String(m.id) === String(itemId));
+    if (!item) return;
+
+    const modal = document.getElementById('settingsMenuEditModal');
+    if (!modal) return;
+
+    const idInput = document.getElementById('ownerMenuEditId');
+    const nameInput = document.getElementById('ownerMenuEditName');
+    const priceInput = document.getElementById('ownerMenuEditPrice');
+    const catInput = document.getElementById('ownerMenuEditCategory');
+    const badgeInput = document.getElementById('ownerMenuEditBadge');
+    const descInput = document.getElementById('ownerMenuEditDesc');
+    const title = document.getElementById('ownerMenuModalTitle');
+    const saveText = document.getElementById('btnSaveOwnerMenuText');
+    const deleteBtn = document.getElementById('btnDeleteOwnerMenuItem');
+    const err = document.getElementById('ownerMenuEditError');
+
+    if (idInput) idInput.value = item.id;
+    if (nameInput) nameInput.value = item.name || '';
+    if (priceInput) priceInput.value = item.price || 0;
+    if (catInput) catInput.value = item.category || 'coffee-flavor';
+    if (badgeInput) badgeInput.value = item.badge || '';
+    if (descInput) descInput.value = item.desc || '';
+    if (title) title.textContent = I18N.t('editMenuTitle');
+    if (saveText) saveText.textContent = I18N.t('saveChangesBtn');
+    if (deleteBtn) deleteBtn.style.display = 'inline-flex';
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+    modal.classList.add('active');
+    setTimeout(() => { if (nameInput) nameInput.focus(); }, 150);
+  },
+
+  openAddMenuModal() {
+    const modal = document.getElementById('settingsMenuEditModal');
+    if (!modal) return;
+
+    const idInput = document.getElementById('ownerMenuEditId');
+    const nameInput = document.getElementById('ownerMenuEditName');
+    const priceInput = document.getElementById('ownerMenuEditPrice');
+    const catInput = document.getElementById('ownerMenuEditCategory');
+    const badgeInput = document.getElementById('ownerMenuEditBadge');
+    const descInput = document.getElementById('ownerMenuEditDesc');
+    const title = document.getElementById('ownerMenuModalTitle');
+    const saveText = document.getElementById('btnSaveOwnerMenuText');
+    const deleteBtn = document.getElementById('btnDeleteOwnerMenuItem');
+    const err = document.getElementById('ownerMenuEditError');
+
+    if (idInput) idInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (priceInput) priceInput.value = '';
+    if (catInput) catInput.value = 'coffee-flavor';
+    if (badgeInput) badgeInput.value = '';
+    if (descInput) descInput.value = '';
+    if (title) title.textContent = I18N.t('addMenuTitle');
+    if (saveText) saveText.textContent = I18N.t('addToMenuBtn');
+    if (deleteBtn) deleteBtn.style.display = 'none';
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+    modal.classList.add('active');
+    setTimeout(() => { if (nameInput) nameInput.focus(); }, 150);
+  },
+
+  closeEditMenuModal() {
+    const modal = document.getElementById('settingsMenuEditModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  saveMenuModal() {
+    const idInput = document.getElementById('ownerMenuEditId');
+    const nameInput = document.getElementById('ownerMenuEditName');
+    const priceInput = document.getElementById('ownerMenuEditPrice');
+    const catInput = document.getElementById('ownerMenuEditCategory');
+    const badgeInput = document.getElementById('ownerMenuEditBadge');
+    const descInput = document.getElementById('ownerMenuEditDesc');
+    const err = document.getElementById('ownerMenuEditError');
+
+    const id = idInput ? idInput.value.trim() : '';
+    const name = nameInput ? nameInput.value.trim() : '';
+    const price = Number(priceInput ? priceInput.value : 0);
+    const category = catInput ? catInput.value : 'coffee-flavor';
+    const badge = badgeInput ? badgeInput.value.trim() : '';
+    const desc = descInput ? descInput.value.trim() : '';
+
+    if (!name) {
+      if (err) { err.textContent = 'Silakan masukkan nama menu!'; err.style.display = 'block'; }
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    if (isNaN(price) || price < 0) {
+      if (err) { err.textContent = 'Harga harus berupa angka valid (minimal Rp 0)!'; err.style.display = 'block'; }
+      if (priceInput) priceInput.focus();
+      return;
+    }
+
+    const menu = StorageManager.getMenu();
+
+    if (id) {
+      // EDIT MENU YANG SUDAH ADA
+      const idx = menu.findIndex(m => String(m.id) === String(id));
+      if (idx !== -1) {
+        menu[idx].name = name;
+        menu[idx].price = price;
+        menu[idx].category = category;
+        menu[idx].badge = badge;
+        menu[idx].desc = desc;
+      }
+    } else {
+      // TAMBAH MENU BARU
+      const newId = 'menu-' + Date.now();
+      menu.push({
+        id: newId,
+        name: name,
+        price: price,
+        category: category,
+        badge: badge,
+        desc: desc || 'Menu DIALOG COFFEE',
+        icon: category === 'non-coffee' ? '🍵' : '☕',
+        image: 'assets/dialog_logo.jpg'
+      });
+    }
+
+    StorageManager.saveMenu(menu);
+    this.renderSettingsMenuList();
+    if (window.POSModule) {
+      POSModule.renderMenu();
+      if (id && POSModule.cart) {
+        POSModule.cart.forEach(c => {
+          if (String(c.id) === String(id)) {
+            c.name = name;
+            c.price = price;
+          }
+        });
+        POSModule.renderCart();
+      }
+    }
+
+    this.closeEditMenuModal();
+    this.playBeep(660, 0.08);
+    this.showToast(`Menu "${name}" berhasil ${id ? 'diperbarui' : 'ditambahkan'}!`, 'success');
+  },
+
+  deleteMenuItem(itemId) {
+    if (!itemId) return;
+    const menu = StorageManager.getMenu();
+    const item = menu.find(m => String(m.id) === String(itemId));
+    const itemName = item ? item.name : 'menu';
+
+    if (!confirm(`Apakah Anda yakin ingin menghapus menu "${itemName}" dari daftar kasir?`)) {
+      return;
+    }
+
+    const updated = menu.filter(m => String(m.id) !== String(itemId));
+
+    StorageManager.saveMenu(updated);
+    this.renderSettingsMenuList();
+    if (window.POSModule) {
+      POSModule.renderMenu();
+    }
+    this.closeEditMenuModal();
+    this.showToast(`Menu "${itemName}" berhasil dihapus.`, 'info');
+  },
+
+  resetMenuToDefault() {
+    if (!confirm('Kembalikan semua daftar menu ke menu bawaan resmi DIALOG COFFEE? Semua perubahan harga dan menu tambahan akan direset.')) {
+      return;
+    }
+    StorageManager.resetMenuToDefault();
+    this.renderSettingsMenuList();
+    if (window.POSModule) {
+      POSModule.renderMenu();
+    }
+    this.showToast('Daftar menu berhasil dikembalikan ke standar DIALOG COFFEE!', 'success');
+  },
+
 
 
   scrollToCart() {
