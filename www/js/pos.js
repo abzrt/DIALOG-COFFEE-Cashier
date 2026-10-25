@@ -74,7 +74,8 @@ const POSModule = {
       { id: 'all', label: isId ? '☕ Semua Menu' : '☕ All Items' },
       { id: 'non-coffee', label: '🍵 Non-Coffee' },
       { id: 'signature', label: '⭐ Signature Drinks' },
-      { id: 'coffee-flavor', label: '☕ Coffee & Flavor' }
+      { id: 'coffee-flavor', label: '☕ Coffee & Flavor' },
+      { id: 'custom', label: '✨ Custom Menu' }
     ];
 
     container.innerHTML = categories.map(cat => `
@@ -82,7 +83,13 @@ const POSModule = {
               onclick="POSModule.setCategory('${cat.id}')">
         ${cat.label}
       </button>
-    `).join('');
+    `).join('') + `
+      <button type="button" class="category-chip custom-menu-action-chip" 
+              onclick="POSModule.openCustomMenuModal()" 
+              style="border: 1.5px dashed var(--border-color); font-weight: 700; background: var(--bg-surface); display: inline-flex; align-items: center; gap: 4px;" title="Tambah Item / Menu Custom">
+        <span>➕</span> ${isId ? 'Input Custom' : 'Custom Item'}
+      </button>
+    `;
   },
 
   setCategory(catId) {
@@ -105,9 +112,24 @@ const POSModule = {
       return matchCat && matchSearch;
     });
 
+    const customCardHtml = `
+      <div class="menu-card custom-menu-card" onclick="POSModule.openCustomMenuModal()" style="border: 2px dashed var(--border-color); cursor: pointer; background: var(--card-bg, #ffffff);">
+        <div class="card-top">
+          <div class="item-icon-box" style="background: var(--text-primary); color: var(--bg-surface);">✨</div>
+          <span class="badge-tag" style="background: var(--text-primary); color: var(--bg-surface);">Kustom</span>
+        </div>
+        <div class="item-title">+ Custom Menu</div>
+        <div class="item-desc">Input pesanan kustom / menu khusus secara manual</div>
+        <div class="card-bottom">
+          <div class="item-price" style="font-size: 0.8rem; color: var(--text-muted);">Bebas Harga</div>
+          <div class="add-btn">+</div>
+        </div>
+      </div>
+    `;
+
     if (filtered.length === 0) {
-      container.innerHTML = `
-        <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+      container.innerHTML = customCardHtml + `
+        <div style="grid-column: 2 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
           <div style="font-size: 2.5rem; margin-bottom: 8px;">🔍</div>
           <p>${I18N.currentLang === 'id' ? 'Menu tidak ditemukan.' : 'No menu items found.'}</p>
         </div>
@@ -115,7 +137,7 @@ const POSModule = {
       return;
     }
 
-    container.innerHTML = filtered.map(item => `
+    container.innerHTML = customCardHtml + filtered.map(item => `
       <div class="menu-card" onclick="POSModule.addToCart('${item.id}')">
         <div class="menu-card-bg" style="background-image: url('${item.image || 'assets/menu/dialog_coffee.jpg'}');"></div>
         <div class="card-top">
@@ -898,6 +920,101 @@ const POSModule = {
         btn.classList.remove('has-items');
       }
     }
+  },
+
+  // CUSTOM MENU MODAL HANDLERS
+  openCustomMenuModal() {
+    const modal = document.getElementById('customMenuModal');
+    if (!modal) return;
+    const nameInput = document.getElementById('customItemName');
+    const priceInput = document.getElementById('customItemPrice');
+    const qtyInput = document.getElementById('customItemQty');
+    const err = document.getElementById('customMenuError');
+    const perm = document.getElementById('customItemSavePermanent');
+
+    if (nameInput) nameInput.value = '';
+    if (priceInput) priceInput.value = '';
+    if (qtyInput) qtyInput.value = '1';
+    if (perm) perm.checked = false;
+    if (err) { err.style.display = 'none'; err.textContent = ''; }
+
+    modal.classList.add('active');
+    setTimeout(() => { if (nameInput) nameInput.focus(); }, 150);
+  },
+
+  closeCustomMenuModal() {
+    const modal = document.getElementById('customMenuModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  submitCustomMenu() {
+    const nameInput = document.getElementById('customItemName');
+    const priceInput = document.getElementById('customItemPrice');
+    const qtyInput = document.getElementById('customItemQty');
+    const catInput = document.getElementById('customItemCategory');
+    const permInput = document.getElementById('customItemSavePermanent');
+    const err = document.getElementById('customMenuError');
+
+    const name = (nameInput ? nameInput.value.trim() : '');
+    const price = Number(priceInput ? priceInput.value : 0);
+    const qty = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1, 10) || 1);
+    const category = catInput ? catInput.value : 'custom';
+    const isPermanent = permInput ? permInput.checked : false;
+
+    if (!name) {
+      if (err) {
+        err.textContent = 'Silakan masukkan nama menu / item custom!';
+        err.style.display = 'block';
+      }
+      if (nameInput) nameInput.focus();
+      return;
+    }
+
+    if (isNaN(price) || price < 0) {
+      if (err) {
+        err.textContent = 'Harga harus berupa angka valid (minimal Rp 0)!';
+        err.style.display = 'block';
+      }
+      if (priceInput) priceInput.focus();
+      return;
+    }
+
+    const customId = 'custom-' + Date.now();
+
+    // Jika dipilih untuk disimpan permanen ke daftar menu
+    if (isPermanent) {
+      const menuList = StorageManager.getMenu();
+      menuList.push({
+        id: customId,
+        name: name,
+        category: category,
+        price: price,
+        desc: 'Menu Custom DIALOG COFFEE',
+        badge: 'Custom',
+        icon: '✨',
+        image: 'assets/menu/dialog_coffee.jpg'
+      });
+      StorageManager.saveMenu(menuList);
+      this.renderMenu();
+    }
+
+    // Masukkan langsung ke keranjang belanja
+    const existing = this.cart.find(c => c.name.toLowerCase() === name.toLowerCase() && c.price === price);
+    if (existing) {
+      existing.qty += qty;
+    } else {
+      this.cart.push({
+        id: customId,
+        name: name,
+        price: price,
+        qty: qty
+      });
+    }
+
+    App.playBeep(660, 0.08);
+    this.renderCart();
+    this.closeCustomMenuModal();
+    App.showToast(`Custom menu "${name}" (${qty}x) ditambahkan ke pesanan!`, 'success');
   }
 };
 
