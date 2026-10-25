@@ -152,12 +152,45 @@ const server = http.createServer((req, res) => {
       return;
     }
 
+    if (action === 'get_settings') {
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({
+        success: true,
+        message: 'Pengaturan cloud berhasil diambil',
+        timestamp: new Date().toISOString(),
+        data: global.serverSettings || { baristaPin: '6969', ownerPin: '1996' }
+      }));
+      return;
+    }
+
     if (req.method === 'POST') {
       let body = '';
       req.on('data', chunk => { body += chunk; });
       req.on('end', () => {
         try {
           const payload = JSON.parse(body || '{}');
+
+          if (action === 'save_settings') {
+            const newSettings = payload.settings || payload;
+            global.serverSettings = Object.assign(global.serverSettings || { baristaPin: '6969', ownerPin: '1996' }, newSettings);
+            console.log('\n====================================================');
+            console.log('🔐 [SINKRONISASI PASSWORD / PENGATURAN]');
+            console.log('====================================================');
+            console.log(`🔑 Password Barista Baru: ${global.serverSettings.baristaPin}`);
+            console.log(`👑 PIN Owner           : ${global.serverSettings.ownerPin}`);
+            console.log(`⏰ Waktu Sinkron       : ${new Date().toISOString()}`);
+            console.log('====================================================\n');
+
+            res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' });
+            res.end(JSON.stringify({
+              success: true,
+              message: 'Pengaturan & Password berhasil disinkronkan ke Cloud Database!',
+              timestamp: new Date().toISOString(),
+              data: global.serverSettings
+            }));
+            return;
+          }
+
           const closing = payload.closing || payload;
           const shift = closing.shift || 'Shift 1';
           const dateOnly = (closing.timestamp || new Date().toISOString()).slice(0, 10);

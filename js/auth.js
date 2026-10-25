@@ -125,6 +125,11 @@ const AuthModule = {
     if (err) err.style.display = 'none';
 
     modal.classList.add('active');
+
+    // Sinkronkan password terbaru dari cloud saat modal dibuka
+    if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
+      CloudSync.fetchSettingsFromCloud();
+    }
   },
 
   closeLoginModal() {
@@ -137,13 +142,13 @@ const AuthModule = {
     if (modal) modal.classList.remove('active');
   },
 
-  submitLogin() {
+  async submitLogin() {
     const pinInput = document.getElementById('authPinInput');
     const enteredPin = (pinInput ? pinInput.value : '').trim();
-    const settings = StorageManager.getSettings();
+    let settings = StorageManager.getSettings();
 
-    const expectedOwnerPin = (settings.ownerPin || '1996').trim();
-    const expectedBaristaPin = (settings.baristaPin || '6969').trim();
+    let expectedOwnerPin = (settings.ownerPin || '1996').trim();
+    let expectedBaristaPin = (settings.baristaPin || '6969').trim();
 
     if (!enteredPin) {
       this.showError('Silakan masukkan PIN / Password terlebih dahulu.');
@@ -151,7 +156,14 @@ const AuthModule = {
     }
 
     if (this.selectedRole === 'owner') {
-      if (enteredPin === expectedOwnerPin || enteredPin === '1996') {
+      // Tarik dari cloud jika tidak cocok secara lokal
+      if (enteredPin !== expectedOwnerPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
+        await CloudSync.fetchSettingsFromCloud();
+        settings = StorageManager.getSettings();
+        expectedOwnerPin = (settings.ownerPin || '1996').trim();
+      }
+
+      if (enteredPin === expectedOwnerPin) {
         this.setRole('owner');
         if (window.OwnerModule) OwnerModule.setLoggedIn(true);
         if (pinInput) pinInput.value = '';
@@ -167,8 +179,14 @@ const AuthModule = {
         if (pinInput) { pinInput.value = ''; pinInput.focus(); }
       }
     } else {
-      // Role Barista
-      if (enteredPin === expectedBaristaPin || enteredPin === '6969') {
+      // Role Barista: Sinkronkan dengan cloud jika password yang diinput tidak cocok dengan lokal
+      if (enteredPin !== expectedBaristaPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
+        await CloudSync.fetchSettingsFromCloud();
+        settings = StorageManager.getSettings();
+        expectedBaristaPin = (settings.baristaPin || '6969').trim();
+      }
+
+      if (enteredPin === expectedBaristaPin) {
         this.setRole('barista');
         if (window.OwnerModule) OwnerModule.setLoggedIn(false);
         if (pinInput) pinInput.value = '';

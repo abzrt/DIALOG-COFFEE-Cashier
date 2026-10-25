@@ -30,6 +30,7 @@ const App = {
     if (window.ReportsModule) ReportsModule.init();
     if (window.OwnerModule) OwnerModule.init();
     if (window.AuthModule) AuthModule.init();
+    if (window.CloudSync && CloudSync.init) CloudSync.init();
 
     // Service Worker
     if ('serviceWorker' in navigator) {
@@ -413,8 +414,13 @@ const App = {
         try { localStorage.setItem('dialog_coffee_tax_configured', '1'); } catch (e) {}
         this.loadSettingsForm();
         if (window.POSModule) POSModule.renderCart();
+
+        if (window.CloudSync && CloudSync.syncSettingsToCloud) {
+          CloudSync.syncSettingsToCloud(updated);
+        }
+
         App.playBeep(660, 0.08);
-        this.showToast('Pengaturan cafe dan nomor WhatsApp berhasil disimpan!', 'success');
+        this.showToast('Pengaturan cafe dan password berhasil disimpan & disinkronkan ke Cloud!', 'success');
       });
     }
 

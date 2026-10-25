@@ -10,3 +10,4 @@ test_output.docx
 preview_*.png
 local.properties
 android/local.properties
+.vscode/

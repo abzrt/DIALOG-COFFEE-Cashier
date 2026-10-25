@@ -168,6 +168,14 @@ function initTablesIfNotExist($db) {
       PRIMARY KEY (`tanggal`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
     @$db->query($sql4);
+
+    $sql5 = "CREATE TABLE IF NOT EXISTS `tb_pengaturan` (
+      `kunci` VARCHAR(64) NOT NULL,
+      `nilai` TEXT NOT NULL,
+      `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      PRIMARY KEY (`kunci`)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
+    @$db->query($sql5);
 }
 
 // =============================================================================
@@ -323,6 +331,46 @@ if ($action === 'get_rekapan') {
     sendResponse(true, 'Data rekapan berhasil diambil dari database MySQL myphp.id', $results);
 }
 
+// AKSI 5: SIMPAN PENGATURAN / PASSWORD BARISTA KE CLOUD
+if ($action === 'save_settings') {
+    $settingsData = isset($payload['settings']) ? $payload['settings'] : $payload;
+    if (empty($settingsData) || !is_array($settingsData)) {
+        sendResponse(false, 'Data pengaturan tidak valid.', null, 400);
+    }
+
+    $stmt = $conn->prepare("INSERT INTO tb_pengaturan (kunci, nilai) VALUES (?, ?) ON DUPLICATE KEY UPDATE nilai = VALUES(nilai)");
+    $savedCount = 0;
+    foreach ($settingsData as $key => $val) {
+        if ($key === 'api_key') continue;
+        $k = strval($key);
+        $v = is_scalar($val) ? strval($val) : json_encode($val, JSON_UNESCAPED_UNICODE);
+        $stmt->bind_param('ss', $k, $v);
+        $stmt->execute();
+        $savedCount++;
+    }
+    $stmt->close();
+
+    sendResponse(true, 'Pengaturan & Password berhasil disinkronkan ke Cloud Database!', [
+        'saved_count' => $savedCount,
+        'baristaPin' => isset($settingsData['baristaPin']) ? $settingsData['baristaPin'] : null
+    ]);
+}
+
+// AKSI 6: AMBIL PENGATURAN / PASSWORD TERBARU DARI CLOUD
+if ($action === 'get_settings') {
+    $q = $conn->query("SELECT kunci, nilai FROM tb_pengaturan");
+    $settings = [
+        'baristaPin' => '6969',
+        'ownerPin' => '1996'
+    ];
+    if ($q) {
+        while ($row = $q->fetch_assoc()) {
+            $settings[$row['kunci']] = $row['nilai'];
+        }
+    }
+    sendResponse(true, 'Pengaturan cloud berhasil diambil', $settings);
+}
+
 // Fallback Helper Functions
 function saveTransactionBatch($db, $trxList, $closingId = null) {
     $count = 0;
@@ -415,4 +463,4 @@ function updateDailyAggregate($db, $dateStr) {
 }
 
 // Fallback jika aksi tidak dikenali
-sendResponse(false, 'Aksi tidak valid. Gunakan action=ping, action=sync_closing, action=sync_all, atau action=get_rekapan.', null, 400);
+sendResponse(false, 'Aksi tidak valid. Gunakan action=ping, action=sync_closing, action=sync_all, action=get_rekapan, action=save_settings, atau action=get_settings.', null, 400);

@@ -130,4 +130,20 @@ FROM `tb_arus_kas_harian`
 GROUP BY YEAR(`tanggal`)
 ORDER BY `tahun` DESC;
 
+-- -----------------------------------------------------------------------------
+-- 7. TABEL: tb_pengaturan (Pengaturan Sinkronisasi Antar Device, PIN Owner & Password Barista)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `tb_pengaturan` (
+  `kunci` VARCHAR(64) NOT NULL COMMENT 'Kunci konfigurasi (baristaPin, ownerPin, dll)',
+  `nilai` TEXT NOT NULL COMMENT 'Nilai pengaturan terkini',
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`kunci`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+INSERT INTO `tb_pengaturan` (`kunci`, `nilai`) VALUES 
+('baristaPin', '6969'),
+('ownerPin', '1996')
+ON DUPLICATE KEY UPDATE `kunci` = `kunci`;
+
 COMMIT;
+

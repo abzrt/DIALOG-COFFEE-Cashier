@@ -222,6 +222,126 @@ const CloudSync = {
     a.click();
     document.body.removeChild(a);
     if (window.App) App.showToast('Mengunduh api_sync.php untuk diunggah ke hosting myphp.id', 'info');
+  },
+
+  init() {
+    this.fetchSettingsFromCloud();
+    if (!this._syncInterval) {
+      this._syncInterval = setInterval(() => {
+        this.fetchSettingsFromCloud();
+      }, 60000);
+    }
+    window.addEventListener('focus', () => {
+      this.fetchSettingsFromCloud();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.fetchSettingsFromCloud();
+      }
+    });
+  },
+
+  async syncSettingsToCloud(settings) {
+    if (!settings) settings = StorageManager.getSettings();
+    const cfg = this.getConfig();
+    const payload = {
+      api_key: cfg.apiKey,
+      settings: {
+        baristaPin: settings.baristaPin || '6969',
+        ownerPin: settings.ownerPin || '1996',
+        cafeName: settings.cafeName || 'DIALOG COFFEE',
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    const trySync = async (targetEndpoint) => {
+      const targetUrl = this.resolveUrl(targetEndpoint);
+      const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=save_settings';
+      const resp = await fetch(syncUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Api-Key': cfg.apiKey
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return await resp.json();
+    };
+
+    try {
+      const res = await trySync(cfg.url);
+      if (res && res.success) {
+        console.log('✅ Password/Pengaturan berhasil disinkronkan ke Cloud:', res);
+        return true;
+      }
+    } catch (e) {
+      if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
+        try {
+          const resLocal = await trySync('api_sync.php');
+          if (resLocal && resLocal.success) {
+            console.log('✅ Password/Pengaturan tersinkron ke local test server:', resLocal);
+            return true;
+          }
+        } catch (errLocal) {}
+      }
+      console.warn('Gagal menyinkronkan pengaturan ke cloud:', e);
+    }
+    return false;
+  },
+
+  async fetchSettingsFromCloud() {
+    const cfg = this.getConfig();
+    const tryFetch = async (targetEndpoint) => {
+      const targetUrl = this.resolveUrl(targetEndpoint);
+      const fetchUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=get_settings&t=' + Date.now();
+      const resp = await fetch(fetchUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-Api-Key': cfg.apiKey
+        }
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return await resp.json();
+    };
+
+    let res = null;
+    try {
+      res = await tryFetch(cfg.url);
+    } catch (e) {
+      if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
+        try {
+          res = await tryFetch('api_sync.php');
+        } catch (errLocal) {}
+      }
+    }
+
+    if (res && res.success && res.data) {
+      const cloudData = res.data;
+      const s = StorageManager.getSettings();
+      let hasChange = false;
+
+      if (cloudData.baristaPin && String(cloudData.baristaPin).trim() !== String(s.baristaPin).trim()) {
+        console.log(`🔄 Password barista diperbarui dari Cloud: ${s.baristaPin} -> ${cloudData.baristaPin}`);
+        s.baristaPin = String(cloudData.baristaPin).trim();
+        hasChange = true;
+      }
+      if (cloudData.ownerPin && String(cloudData.ownerPin).trim() !== String(s.ownerPin).trim()) {
+        s.ownerPin = String(cloudData.ownerPin).trim();
+        hasChange = true;
+      }
+
+      if (hasChange) {
+        StorageManager.saveSettings(s);
+        const cfgBaristaInput = document.getElementById('cfgBaristaPin');
+        if (cfgBaristaInput) cfgBaristaInput.value = s.baristaPin;
+        const cfgOwnerInput = document.getElementById('cfgOwnerPin');
+        if (cfgOwnerInput) cfgOwnerInput.value = s.ownerPin;
+      }
+      return cloudData;
+    }
+    return null;
   }
 };
 
