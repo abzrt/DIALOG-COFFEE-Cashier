@@ -291,12 +291,24 @@ const CloudSync = {
     this._isSavingSettings = true;
     this._syncVersion++;
     const cfg = this.getConfig();
+    const currentMenu = (window.StorageManager && StorageManager.getMenu) ? StorageManager.getMenu() : [];
     const payload = {
       api_key: cfg.apiKey,
       settings: {
         baristaPin: String(settings.baristaPin ?? '6969').trim() || '6969',
         ownerPin: String(settings.ownerPin ?? '1996').trim() || '1996',
         cafeName: settings.cafeName || 'DIALOG COFFEE',
+        tagline: settings.tagline || '',
+        address: settings.address || '',
+        phone: settings.phone || '',
+        instagram: settings.instagram || '',
+        gatewayPhone: settings.gatewayPhone || '',
+        ownerPhone: settings.ownerPhone || '',
+        taxRate: Number(settings.taxRate) || 0,
+        taxEnabled: settings.taxEnabled === true,
+        receiptFooter: settings.receiptFooter || '',
+        baristas: settings.baristas || ['Ardi', 'Anca', 'Jhonson', 'Si Pur'],
+        menuList: currentMenu,
         updatedAt: new Date().toISOString()
       }
     };
@@ -408,6 +420,7 @@ const CloudSync = {
         const s = StorageManager.getSettings();
         let hasChange = false;
         let baristaPinChanged = false;
+        let menuChanged = false;
 
         if (cloudData.baristaPin !== undefined && cloudData.baristaPin !== null && String(cloudData.baristaPin).trim() !== '') {
           const newBaristaPin = String(cloudData.baristaPin).trim();
@@ -425,6 +438,73 @@ const CloudSync = {
             hasChange = true;
           }
         }
+        if (cloudData.cafeName && cloudData.cafeName !== s.cafeName) {
+          s.cafeName = cloudData.cafeName;
+          hasChange = true;
+        }
+        if (cloudData.tagline !== undefined && cloudData.tagline !== s.tagline) {
+          s.tagline = cloudData.tagline;
+          hasChange = true;
+        }
+        if (cloudData.address !== undefined && cloudData.address !== s.address) {
+          s.address = cloudData.address;
+          hasChange = true;
+        }
+        if (cloudData.phone !== undefined && cloudData.phone !== s.phone) {
+          s.phone = cloudData.phone;
+          hasChange = true;
+        }
+        if (cloudData.instagram !== undefined && cloudData.instagram !== s.instagram) {
+          s.instagram = cloudData.instagram;
+          hasChange = true;
+        }
+        if (cloudData.gatewayPhone !== undefined && cloudData.gatewayPhone !== s.gatewayPhone) {
+          s.gatewayPhone = cloudData.gatewayPhone;
+          hasChange = true;
+        }
+        if (cloudData.ownerPhone !== undefined && cloudData.ownerPhone !== s.ownerPhone) {
+          s.ownerPhone = cloudData.ownerPhone;
+          hasChange = true;
+        }
+        if (cloudData.taxRate !== undefined && Number(cloudData.taxRate) !== Number(s.taxRate)) {
+          s.taxRate = Number(cloudData.taxRate);
+          hasChange = true;
+        }
+        if (cloudData.taxEnabled !== undefined) {
+          const newTaxEnabled = cloudData.taxEnabled === true || cloudData.taxEnabled === 'true' || cloudData.taxEnabled === 1 || cloudData.taxEnabled === '1';
+          if (newTaxEnabled !== !!s.taxEnabled) {
+            s.taxEnabled = newTaxEnabled;
+            hasChange = true;
+          }
+        }
+        if (cloudData.receiptFooter !== undefined && cloudData.receiptFooter !== s.receiptFooter) {
+          s.receiptFooter = cloudData.receiptFooter;
+          hasChange = true;
+        }
+        if (cloudData.baristas !== undefined) {
+          let bList = cloudData.baristas;
+          if (typeof bList === 'string') {
+            try { bList = JSON.parse(bList); } catch (e) {}
+          }
+          if (Array.isArray(bList) && bList.length > 0 && JSON.stringify(bList) !== JSON.stringify(s.baristas)) {
+            s.baristas = bList;
+            hasChange = true;
+          }
+        }
+
+        // Sinkronisasi Menu Produk, Harga, Kategori & Deskripsi ke Kasir Barista
+        let cloudMenu = cloudData.menuList || cloudData.menu;
+        if (typeof cloudMenu === 'string') {
+          try { cloudMenu = JSON.parse(cloudMenu); } catch (e) {}
+        }
+        if (Array.isArray(cloudMenu) && cloudMenu.length > 0) {
+          const localMenu = StorageManager.getMenu();
+          if (JSON.stringify(cloudMenu) !== JSON.stringify(localMenu)) {
+            console.log('🔄 Menu produk & harga diperbarui dari Cloud!');
+            StorageManager.saveMenu(cloudMenu);
+            menuChanged = true;
+          }
+        }
 
         if (hasChange) {
           StorageManager.saveSettings(s);
@@ -436,6 +516,9 @@ const CloudSync = {
           if (cfgOwnerInput && document.activeElement !== cfgOwnerInput) {
             cfgOwnerInput.value = s.ownerPin;
           }
+          if (window.App && App.loadShiftHeader) {
+            App.loadShiftHeader();
+          }
 
           // Jika di perangkat ini sedang login sebagai Barista dan Owner mengubah password Barista, wajibkan login ulang dengan PIN baru
           if (baristaPinChanged && window.AuthModule && AuthModule.isBarista()) {
@@ -444,6 +527,16 @@ const CloudSync = {
             if (window.App && App.showToast) {
               App.showToast('🔐 Password Barista telah diperbarui oleh Owner. Silakan login dengan PIN baru.', 'info');
             }
+          }
+        }
+
+        if (menuChanged) {
+          if (window.POSModule) {
+            POSModule.renderMenu();
+            POSModule.renderCart();
+          }
+          if (window.App && App.renderSettingsMenuList && App.activeTab === 'settings') {
+            App.renderSettingsMenuList();
           }
         }
         return cloudData;

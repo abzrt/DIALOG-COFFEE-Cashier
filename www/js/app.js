@@ -727,6 +727,10 @@ const App = {
       }
     }
 
+    if (window.CloudSync && CloudSync.syncSettingsToCloud) {
+      CloudSync.syncSettingsToCloud();
+    }
+
     this.closeEditMenuModal();
     this.playBeep(660, 0.08);
     this.showToast(`Menu "${name}" berhasil ${id ? 'diperbarui' : 'ditambahkan'}!`, 'success');
@@ -749,6 +753,9 @@ const App = {
     if (window.POSModule) {
       POSModule.renderMenu();
     }
+    if (window.CloudSync && CloudSync.syncSettingsToCloud) {
+      CloudSync.syncSettingsToCloud();
+    }
     this.closeEditMenuModal();
     this.showToast(`Menu "${itemName}" berhasil dihapus.`, 'info');
   },
@@ -761,6 +768,9 @@ const App = {
     this.renderSettingsMenuList();
     if (window.POSModule) {
       POSModule.renderMenu();
+    }
+    if (window.CloudSync && CloudSync.syncSettingsToCloud) {
+      CloudSync.syncSettingsToCloud();
     }
     this.showToast('Daftar menu berhasil dikembalikan ke standar DIALOG COFFEE!', 'success');
   },

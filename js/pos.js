@@ -1051,6 +1051,9 @@ const POSModule = {
         menuList[idx].price = price;
         menuList[idx].category = category;
         StorageManager.saveMenu(menuList);
+        if (window.CloudSync && CloudSync.syncSettingsToCloud) {
+          CloudSync.syncSettingsToCloud();
+        }
 
         // Update nama & harga di keranjang belanja jika menu ini ada di cart
         this.cart.forEach(c => {
@@ -1086,6 +1089,9 @@ const POSModule = {
       });
       StorageManager.saveMenu(menuList);
       this.renderMenu();
+      if (window.CloudSync && CloudSync.syncSettingsToCloud) {
+        CloudSync.syncSettingsToCloud();
+      }
     }
 
     // Masukkan langsung ke keranjang belanja

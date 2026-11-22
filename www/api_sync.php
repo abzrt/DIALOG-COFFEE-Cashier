@@ -192,11 +192,12 @@ function initTablesIfNotExist($db) {
 
     $sql5 = "CREATE TABLE IF NOT EXISTS `tb_pengaturan` (
       `kunci` VARCHAR(64) NOT NULL,
-      `nilai` TEXT NOT NULL,
+      `nilai` LONGTEXT NOT NULL,
       `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       PRIMARY KEY (`kunci`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;";
     @$db->query($sql5);
+    @$db->query("ALTER TABLE `tb_pengaturan` MODIFY COLUMN `nilai` LONGTEXT NOT NULL");
 }
 
 // =============================================================================
@@ -372,7 +373,7 @@ if ($action === 'save_settings') {
     if (!$stmt) {
         @$conn->query("CREATE TABLE IF NOT EXISTS `tb_pengaturan` (
           `kunci` VARCHAR(64) NOT NULL,
-          `nilai` TEXT NOT NULL,
+          `nilai` LONGTEXT NOT NULL,
           `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
           PRIMARY KEY (`kunci`)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;");
@@ -405,7 +406,9 @@ if ($action === 'get_settings') {
     ];
     if ($q) {
         while ($row = $q->fetch_assoc()) {
-            $settings[$row['kunci']] = $row['nilai'];
+            $val = $row['nilai'];
+            $dec = @json_decode($val, true);
+            $settings[$row['kunci']] = ($dec !== null && (is_array($dec) || is_object($dec))) ? $dec : $val;
         }
     }
     @file_put_contents($SETTINGS_CACHE_FILE, json_encode($settings, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
