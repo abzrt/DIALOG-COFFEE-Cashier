@@ -14,6 +14,8 @@ header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Api-Key');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
 
 // Tangani Preflight Request dari browser / Capacitor Android
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -58,7 +60,7 @@ function sendResponse($success, $message, $data = null, $code = 200) {
 // RESPONS KILAT GET_SETTINGS (0-2ms TANPA MENUNGGU KONEKSI MYSQL)
 if ($action === 'get_settings' && file_exists($SETTINGS_CACHE_FILE)) {
     $cached = @json_decode(file_get_contents($SETTINGS_CACHE_FILE), true);
-    if ($cached && is_array($cached) && !empty($cached['baristaPin'])) {
+    if ($cached && is_array($cached) && isset($cached['baristaPin']) && $cached['baristaPin'] !== '') {
         sendResponse(true, 'Pengaturan cloud berhasil diambil (Instant Cache)', $cached);
     }
 }

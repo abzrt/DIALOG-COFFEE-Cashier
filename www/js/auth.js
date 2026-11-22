@@ -160,17 +160,17 @@ const AuthModule = {
     }
 
     if (this.selectedRole === 'owner') {
-      // Tarik dari cloud jika tidak cocok secara lokal
-      if (enteredPin !== expectedOwnerPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
+      // Selalu sinkronkan PIN terbaru dari cloud sebelum verifikasi agar perubahan PIN langsung berlaku di semua perangkat
+      if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
         const errEl = document.getElementById('authPinError');
-        if (errEl) {
+        if (errEl && enteredPin !== expectedOwnerPin) {
           errEl.textContent = '🔄 Checking...';
           errEl.style.display = 'block';
           errEl.style.color = 'var(--primary, #c9933a)';
         }
-        await CloudSync.fetchSettingsFromCloud(15000);
+        await CloudSync.fetchSettingsFromCloud(6000, true);
         settings = StorageManager.getSettings();
-        expectedOwnerPin = (settings.ownerPin || '1996').trim();
+        expectedOwnerPin = String(settings.ownerPin ?? '1996').trim() || '1996';
       }
 
       if (enteredPin === expectedOwnerPin) {
@@ -189,17 +189,17 @@ const AuthModule = {
         if (pinInput) { pinInput.value = ''; pinInput.focus(); }
       }
     } else {
-      // Role Barista: Sinkronkan dengan cloud jika password yang diinput tidak cocok dengan lokal
-      if (enteredPin !== expectedBaristaPin && window.CloudSync && CloudSync.fetchSettingsFromCloud) {
+      // Role Barista: Selalu tarik PIN terbaru dari cloud sebelum verifikasi agar PIN lama otomatis tertolak di semua perangkat
+      if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
         const errEl = document.getElementById('authPinError');
-        if (errEl) {
+        if (errEl && enteredPin !== expectedBaristaPin) {
           errEl.textContent = '🔄 Checking...';
           errEl.style.display = 'block';
           errEl.style.color = 'var(--primary, #c9933a)';
         }
-        await CloudSync.fetchSettingsFromCloud(15000);
+        await CloudSync.fetchSettingsFromCloud(6000, true);
         settings = StorageManager.getSettings();
-        expectedBaristaPin = (settings.baristaPin || '6969').trim();
+        expectedBaristaPin = String(settings.baristaPin ?? '6969').trim() || '6969';
       }
 
       if (enteredPin === expectedBaristaPin) {

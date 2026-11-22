@@ -150,7 +150,7 @@ const OwnerModule = {
       return;
     }
 
-    if (enteredPin === realPin || enteredPin === '1996') {
+    if (enteredPin === realPin) {
       this.setLoggedIn(true);
       this.closeLoginModal();
       if (window.App) {

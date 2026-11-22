@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dialog-coffee-cache-v15';
+const CACHE_NAME = 'dialog-coffee-cache-v16';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -39,7 +39,7 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET') return;
+  if (e.request.method !== 'GET' || e.request.url.includes('api_sync.php')) return;
   e.respondWith(
     fetch(e.request)
       .then((networkRes) => {

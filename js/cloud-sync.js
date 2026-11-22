@@ -255,9 +255,11 @@ const CloudSync = {
   },
 
   _fetchPromise: null,
+  _isSavingSettings: false,
+  _syncVersion: 0,
 
   init() {
-    this.fetchSettingsFromCloud();
+    this.fetchSettingsFromCloud(8000, true);
     if (!this._syncInterval) {
       this._syncInterval = setInterval(() => {
         const isLoginModalActive = document.getElementById('accountLoginModal')?.classList.contains('active');
@@ -271,10 +273,11 @@ const CloudSync = {
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        this.fetchSettingsFromCloud(5000);
+        this.fetchSettingsFromCloud(5000, true);
       }
     });
-    window.addEventListener('touchstart', () => {
+    window.addEventListener('touchstart', (e) => {
+      if (e && e.target && e.target.closest && e.target.closest('#settingsForm')) return;
       const now = Date.now();
       if (!this._lastTouchSync || now - this._lastTouchSync > 10000) {
         this._lastTouchSync = now;
@@ -285,12 +288,14 @@ const CloudSync = {
 
   async syncSettingsToCloud(settings) {
     if (!settings) settings = StorageManager.getSettings();
+    this._isSavingSettings = true;
+    this._syncVersion++;
     const cfg = this.getConfig();
     const payload = {
       api_key: cfg.apiKey,
       settings: {
-        baristaPin: settings.baristaPin || '6969',
-        ownerPin: settings.ownerPin || '1996',
+        baristaPin: String(settings.baristaPin ?? '6969').trim() || '6969',
+        ownerPin: String(settings.ownerPin ?? '1996').trim() || '1996',
         cafeName: settings.cafeName || 'DIALOG COFFEE',
         updatedAt: new Date().toISOString()
       }
@@ -298,13 +303,14 @@ const CloudSync = {
 
     const trySync = async (targetEndpoint, timeoutMs = 15000) => {
       const targetUrl = this.resolveUrl(targetEndpoint);
-      const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=save_settings';
+      const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=save_settings&t=' + Date.now();
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
 
       try {
         const resp = await fetch(syncUrl, {
           method: 'POST',
+          cache: 'no-store',
           headers: {
             'Content-Type': 'application/json; charset=utf-8',
             'X-Api-Key': cfg.apiKey
@@ -338,14 +344,21 @@ const CloudSync = {
         } catch (errLocal) {}
       }
       console.warn('Gagal menyinkronkan pengaturan ke cloud:', e);
+    } finally {
+      this._isSavingSettings = false;
     }
     return false;
   },
 
-  async fetchSettingsFromCloud(timeoutMs = 15000) {
-    if (this._fetchPromise) {
+  async fetchSettingsFromCloud(timeoutMs = 15000, forceFresh = false) {
+    if (this._isSavingSettings) {
+      return null;
+    }
+    if (this._fetchPromise && !forceFresh) {
       return this._fetchPromise;
     }
+
+    const fetchVersion = this._syncVersion;
 
     this._fetchPromise = (async () => {
       const cfg = this.getConfig();
@@ -358,6 +371,7 @@ const CloudSync = {
         try {
           const resp = await fetch(fetchUrl, {
             method: 'GET',
+            cache: 'no-store',
             headers: {
               'Accept': 'application/json',
               'X-Api-Key': cfg.apiKey
@@ -384,27 +398,53 @@ const CloudSync = {
         }
       }
 
+      // Abaikan hasil fetch jika Owner baru saja menyimpan pengaturan selama request berlangsung
+      if (this._isSavingSettings || fetchVersion !== this._syncVersion) {
+        return null;
+      }
+
       if (res && res.success && res.data) {
         const cloudData = res.data;
         const s = StorageManager.getSettings();
         let hasChange = false;
+        let baristaPinChanged = false;
 
-        if (cloudData.baristaPin && String(cloudData.baristaPin).trim() !== String(s.baristaPin).trim()) {
-          console.log(`🔄 Password barista diperbarui dari Cloud: ${s.baristaPin} -> ${cloudData.baristaPin}`);
-          s.baristaPin = String(cloudData.baristaPin).trim();
-          hasChange = true;
+        if (cloudData.baristaPin !== undefined && cloudData.baristaPin !== null && String(cloudData.baristaPin).trim() !== '') {
+          const newBaristaPin = String(cloudData.baristaPin).trim();
+          if (newBaristaPin !== String(s.baristaPin).trim()) {
+            console.log(`🔄 Password barista diperbarui dari Cloud: ${s.baristaPin} -> ${newBaristaPin}`);
+            s.baristaPin = newBaristaPin;
+            hasChange = true;
+            baristaPinChanged = true;
+          }
         }
-        if (cloudData.ownerPin && String(cloudData.ownerPin).trim() !== String(s.ownerPin).trim()) {
-          s.ownerPin = String(cloudData.ownerPin).trim();
-          hasChange = true;
+        if (cloudData.ownerPin !== undefined && cloudData.ownerPin !== null && String(cloudData.ownerPin).trim() !== '') {
+          const newOwnerPin = String(cloudData.ownerPin).trim();
+          if (newOwnerPin !== String(s.ownerPin).trim()) {
+            s.ownerPin = newOwnerPin;
+            hasChange = true;
+          }
         }
 
         if (hasChange) {
           StorageManager.saveSettings(s);
           const cfgBaristaInput = document.getElementById('cfgBaristaPin');
-          if (cfgBaristaInput) cfgBaristaInput.value = s.baristaPin;
+          if (cfgBaristaInput && document.activeElement !== cfgBaristaInput) {
+            cfgBaristaInput.value = s.baristaPin;
+          }
           const cfgOwnerInput = document.getElementById('cfgOwnerPin');
-          if (cfgOwnerInput) cfgOwnerInput.value = s.ownerPin;
+          if (cfgOwnerInput && document.activeElement !== cfgOwnerInput) {
+            cfgOwnerInput.value = s.ownerPin;
+          }
+
+          // Jika di perangkat ini sedang login sebagai Barista dan Owner mengubah password Barista, wajibkan login ulang dengan PIN baru
+          if (baristaPinChanged && window.AuthModule && AuthModule.isBarista()) {
+            AuthModule.clearSession();
+            AuthModule.openLoginModal(false);
+            if (window.App && App.showToast) {
+              App.showToast('🔐 Password Barista telah diperbarui oleh Owner. Silakan login dengan PIN baru.', 'info');
+            }
+          }
         }
         return cloudData;
       }
