@@ -133,7 +133,10 @@ const POSModule = {
         <div class="${bgClass}" style="background-image: url('${bgImg}');"></div>
         <div class="card-top">
           <div class="item-icon-box">${item.icon || '☕'}</div>
-          ${item.badge ? `<span class="badge-tag">${item.badge}</span>` : ''}
+          <div style="display: flex; align-items: center; gap: 4px;">
+            ${item.badge ? `<span class="badge-tag">${item.badge}</span>` : ''}
+            ${isCustom ? `<button type="button" class="btn-table-action" onclick="event.stopPropagation(); POSModule.openEditCustomMenuModal('${item.id}')" title="Edit Custom Menu" style="padding: 2px 6px; font-size: 0.72rem; min-width: unset; height: auto; border-radius: 6px;">✏️</button>` : ''}
+          </div>
         </div>
 
         <div class="item-title">${item.name}</div>
@@ -944,7 +947,7 @@ const POSModule = {
     if (priceInput) priceInput.value = '';
     if (qtyInput) qtyInput.value = '1';
     if (catInput) catInput.value = 'custom';
-    if (perm) perm.checked = false;
+    if (perm) perm.checked = true;
     if (err) { err.style.display = 'none'; err.textContent = ''; }
 
     modal.classList.add('active');
@@ -1000,6 +1003,9 @@ const POSModule = {
     const updatedMenu = menu.filter(m => m.id !== itemId);
     StorageManager.saveMenu(updatedMenu);
     this.renderMenu();
+    if (window.CloudSync && CloudSync.syncSettingsToCloud) {
+      CloudSync.syncSettingsToCloud();
+    }
     this.closeCustomMenuModal();
     App.showToast(`Menu "${itemName}" berhasil dihapus dari daftar menu.`, 'info');
   },

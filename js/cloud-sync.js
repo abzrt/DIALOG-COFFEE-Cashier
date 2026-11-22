@@ -535,7 +535,7 @@ const CloudSync = {
             POSModule.renderMenu();
             POSModule.renderCart();
           }
-          if (window.App && App.renderSettingsMenuList && App.activeTab === 'settings') {
+          if (window.App && App.renderSettingsMenuList) {
             App.renderSettingsMenuList();
           }
         }
