@@ -377,6 +377,92 @@ if ($action === 'get_rekapan') {
     sendResponse(true, 'Data rekapan berhasil diambil dari database MySQL myphp.id', $results);
 }
 
+// AKSI 4B: AMBIL SELURUH TRANSAKSI & CLOSING UNTUK LOGIN OWNER DARI CLOUD
+if ($action === 'get_transactions' || $action === 'get_all_data') {
+    $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 1000;
+    if ($limit <= 0 || $limit > 5000) $limit = 1000;
+
+    $qTrx = $conn->query("SELECT * FROM tb_transaksi ORDER BY tanggal_waktu DESC LIMIT $limit");
+    $transactions = [];
+    $trxIds = [];
+
+    if ($qTrx) {
+        while ($row = $qTrx->fetch_assoc()) {
+            $tid = $row['trx_id'];
+            $trxIds[] = "'" . $conn->real_escape_string($tid) . "'";
+            $transactions[$tid] = [
+                'id' => $tid,
+                'closingId' => $row['closing_id'],
+                'date' => $row['tanggal_waktu'],
+                'type' => $row['tipe'],
+                'category' => $row['kategori'],
+                'amount' => floatval($row['nominal']),
+                'paymentMethod' => $row['metode_pembayaran'],
+                'shift' => $row['shift'],
+                'baristas' => $row['kasir_barista'],
+                'cashier' => $row['kasir_barista'],
+                'customerName' => $row['nama_pelanggan'],
+                'seatNumber' => $row['nomor_seat'],
+                'description' => $row['keterangan'],
+                'refNo' => $row['nomor_referensi'],
+                'subtotal' => floatval($row['subtotal']),
+                'taxAmount' => floatval($row['pajak']),
+                'items' => []
+            ];
+        }
+    }
+
+    if (!empty($trxIds)) {
+        $qItems = $conn->query("SELECT * FROM tb_transaksi_items WHERE trx_id IN (" . implode(',', $trxIds) . ")");
+        if ($qItems) {
+            while ($it = $qItems->fetch_assoc()) {
+                $tid = $it['trx_id'];
+                if (isset($transactions[$tid])) {
+                    $transactions[$tid]['items'][] = [
+                        'id' => $it['menu_id'],
+                        'name' => $it['nama_produk'],
+                        'category' => $it['kategori_produk'],
+                        'price' => floatval($it['harga_satuan']),
+                        'quantity' => intval($it['jumlah']),
+                        'total' => floatval($it['total_harga'])
+                    ];
+                }
+            }
+        }
+    }
+
+    $qClosing = $conn->query("SELECT * FROM tb_rekapan_closing ORDER BY waktu DESC LIMIT 100");
+    $closings = [];
+    if ($qClosing) {
+        while ($c = $qClosing->fetch_assoc()) {
+            $parsedJson = !empty($c['data_json']) ? @json_decode($c['data_json'], true) : null;
+            if ($parsedJson && is_array($parsedJson)) {
+                $closings[] = $parsedJson;
+            } else {
+                $closings[] = [
+                    'id' => $c['closing_id'],
+                    'date' => $c['tanggal'],
+                    'timestamp' => $c['waktu'],
+                    'shift' => $c['shift'],
+                    'baristas' => $c['barista'],
+                    'totalIncome' => floatval($c['total_pemasukan']),
+                    'totalExpense' => floatval($c['total_pengeluaran']),
+                    'netProfit' => floatval($c['laba_bersih']),
+                    'cashBalance' => floatval($c['kas_laci_fisik']),
+                    'cashPhysical' => floatval($c['kas_laci_fisik']),
+                    'transactionCount' => intval($c['jumlah_transaksi']),
+                    'trxCount' => intval($c['jumlah_transaksi'])
+                ];
+            }
+        }
+    }
+
+    sendResponse(true, 'Data transaksi dan closing berhasil diambil dari database cloud', [
+        'transactions' => array_values($transactions),
+        'closings' => $closings
+    ]);
+}
+
 // AKSI 5: SIMPAN PENGATURAN / PASSWORD BARISTA KE CLOUD
 if ($action === 'save_settings') {
     $settingsData = isset($payload['settings']) ? $payload['settings'] : $payload;

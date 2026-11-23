@@ -323,6 +323,9 @@ const App = {
       ReportsModule.renderAll();
     } else if (tabId === 'owner' && window.OwnerModule) {
       OwnerModule.renderAll();
+      if (window.CloudSync && CloudSync.fetchTransactionsFromCloud) {
+        CloudSync.fetchTransactionsFromCloud(6000);
+      }
     } else if (tabId === 'settings') {
       this.loadSettingsForm();
       this.renderSettingsMenuList();

@@ -203,6 +203,7 @@ const CloudSync = {
           App.playChime();
           App.showToast('Semua rekapan berhasil tersinkron ke database myphp.id!', 'success');
         }
+        this.fetchTransactionsFromCloud(6000);
       } else {
         throw new Error(res.message || 'Gagal sinkronisasi data');
       }
@@ -260,20 +261,32 @@ const CloudSync = {
 
   init() {
     this.fetchSettingsFromCloud(8000, true);
+    if (window.AuthModule && AuthModule.isOwner()) {
+      this.fetchTransactionsFromCloud(8000);
+    }
     if (!this._syncInterval) {
       this._syncInterval = setInterval(() => {
         const isLoginModalActive = document.getElementById('accountLoginModal')?.classList.contains('active');
         if (isLoginModalActive || document.visibilityState === 'visible') {
           this.fetchSettingsFromCloud(5000);
+          if (window.AuthModule && AuthModule.isOwner()) {
+            this.fetchTransactionsFromCloud(5000);
+          }
         }
       }, 5000);
     }
     window.addEventListener('focus', () => {
       this.fetchSettingsFromCloud(5000);
+      if (window.AuthModule && AuthModule.isOwner()) {
+        this.fetchTransactionsFromCloud(5000);
+      }
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         this.fetchSettingsFromCloud(5000, true);
+        if (window.AuthModule && AuthModule.isOwner()) {
+          this.fetchTransactionsFromCloud(5000);
+        }
       }
     });
     window.addEventListener('touchstart', (e) => {
@@ -282,6 +295,9 @@ const CloudSync = {
       if (!this._lastTouchSync || now - this._lastTouchSync > 10000) {
         this._lastTouchSync = now;
         this.fetchSettingsFromCloud(5000);
+        if (window.AuthModule && AuthModule.isOwner()) {
+          this.fetchTransactionsFromCloud(5000);
+        }
       }
     }, { passive: true });
   },
@@ -547,6 +563,106 @@ const CloudSync = {
     });
 
     return this._fetchPromise;
+  },
+
+  _isFetchingTrx: false,
+  async fetchTransactionsFromCloud(timeoutMs = 8000) {
+    if (this._isFetchingTrx) return null;
+    this._isFetchingTrx = true;
+
+    const cfg = this.getConfig();
+    const tryFetchTrx = async (endpoint) => {
+      const targetUrl = this.resolveUrl(endpoint);
+      const url = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=get_transactions&t=' + Date.now();
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const resp = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: {
+            'Accept': 'application/json',
+            'X-Api-Key': cfg.apiKey
+          },
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        return await resp.json();
+      } catch (err) {
+        clearTimeout(timer);
+        throw err;
+      }
+    };
+
+    let res = null;
+    try {
+      res = await tryFetchTrx(cfg.url);
+    } catch (e) {
+      if (window.location && window.location.protocol.startsWith('http') && cfg.url !== 'api_sync.php') {
+        try {
+          res = await tryFetchTrx('api_sync.php');
+        } catch (errLocal) {}
+      }
+    }
+
+    this._isFetchingTrx = false;
+
+    if (res && res.success && res.data) {
+      const remoteTrx = res.data.transactions || [];
+      const remoteClosings = res.data.closings || [];
+
+      let hasTrxChanges = false;
+      if (Array.isArray(remoteTrx) && remoteTrx.length > 0) {
+        const localTrx = StorageManager.getTransactions();
+        const localIdMap = new Set(localTrx.map(t => t.id));
+        const merged = [...localTrx];
+
+        remoteTrx.forEach(rt => {
+          if (rt && rt.id && !localIdMap.has(rt.id)) {
+            merged.push(rt);
+            localIdMap.add(rt.id);
+            hasTrxChanges = true;
+          }
+        });
+
+        if (hasTrxChanges) {
+          merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+          StorageManager.saveAllTransactions(merged);
+          console.log(`☁️ ${remoteTrx.length} transaksi cloud berhasil disinkronkan ke lokal.`);
+        }
+      }
+
+      if (Array.isArray(remoteClosings) && remoteClosings.length > 0) {
+        const localClosings = StorageManager.getClosings ? StorageManager.getClosings() : [];
+        const localCloseIdMap = new Set(localClosings.map(c => c.id));
+        let closeChanged = false;
+        remoteClosings.forEach(rc => {
+          if (rc && rc.id && !localCloseIdMap.has(rc.id)) {
+            localClosings.push(rc);
+            localCloseIdMap.add(rc.id);
+            closeChanged = true;
+          }
+        });
+        if (closeChanged) {
+          localStorage.setItem('dialog_coffee_closings_v1', JSON.stringify(localClosings));
+        }
+      }
+
+      if (hasTrxChanges) {
+        if (window.OwnerModule && OwnerModule.isLoggedIn()) {
+          OwnerModule.renderAll();
+        }
+        if (window.FinanceModule) {
+          FinanceModule.renderAll();
+        }
+        if (window.ReportsModule) {
+          ReportsModule.renderAll();
+        }
+      }
+      return res.data;
+    }
+    return null;
   }
 };
 

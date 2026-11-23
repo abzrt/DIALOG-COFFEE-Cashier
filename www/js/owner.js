@@ -340,6 +340,11 @@ const OwnerModule = {
 
     // Render current active mode
     this.setTimeframeMode(this.currentMode);
+
+    // Tarik transaksi & closing terbaru dari database cloud jika online
+    if (window.CloudSync && CloudSync.fetchTransactionsFromCloud) {
+      CloudSync.fetchTransactionsFromCloud(6000);
+    }
   },
 
   populateYearOptions() {
@@ -436,7 +441,13 @@ const OwnerModule = {
     // Filter per hari
     const dayTrx = all.filter(t => {
       if (!t.date) return false;
-      const dStr = t.date.slice(0, 10);
+      let dStr = '';
+      const d = new Date(t.date);
+      if (!isNaN(d.getTime())) {
+        dStr = this.formatDateInput(d);
+      } else {
+        dStr = String(t.date).slice(0, 10);
+      }
       if (dStr !== targetDateStr) return false;
       if (shiftFilter !== 'all' && t.shift && !t.shift.includes(shiftFilter)) return false;
       return true;

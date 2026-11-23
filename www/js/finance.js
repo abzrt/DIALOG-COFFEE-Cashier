@@ -383,7 +383,15 @@ const FinanceModule = {
     const settings = StorageManager.getSettings();
 
     // Filter transaksi hari ini
-    const todayTrx = all.filter(t => t.date && t.date.startsWith(todayStr));
+    const targetY = now.getFullYear();
+    const targetM = now.getMonth();
+    const targetD = now.getDate();
+    const todayTrx = all.filter(t => {
+      if (!t.date) return false;
+      const d = new Date(t.date);
+      if (isNaN(d.getTime())) return t.date.startsWith(todayStr);
+      return d.getFullYear() === targetY && d.getMonth() === targetM && d.getDate() === targetD;
+    });
 
     // Filter transaksi berdasarkan shift yang dipilih
     let shiftTrx = todayTrx;
@@ -515,6 +523,10 @@ const FinanceModule = {
       if (typeof CloudSync.syncAllData === 'function') {
         CloudSync.syncAllData();
       }
+    }
+
+    if (window.OwnerModule && OwnerModule.isLoggedIn()) {
+      OwnerModule.renderAll();
     }
 
     const shiftName = this.selectedClosingShift === 'all' ? 'Total Hari Ini' : this.selectedClosingShift;
