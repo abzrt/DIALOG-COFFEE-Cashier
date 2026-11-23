@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dialog-coffee-cache-v16';
+const CACHE_NAME = 'dialog-coffee-cache-v17';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -12,6 +12,7 @@ const ASSETS_TO_CACHE = [
   './js/reports.js',
   './js/auth.js',
   './js/cloud-sync.js',
+  './js/updater.js',
   './js/export-pdf.js',
   './js/export-word.js',
   './libs/jspdf.umd.min.js',

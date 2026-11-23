@@ -595,6 +595,26 @@
             </div>
           </div>
 
+          <!-- Pembaruan Versi Aplikasi (Auto-Updater) -->
+          <div class="settings-card">
+            <h3><span>🚀</span> <span>Pembaruan Versi Aplikasi (Auto-Update)</span></h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Aplikasi memeriksa ketersediaan rilis APK terbaru secara otomatis saat dibuka. Anda juga dapat memeriksa pembaruan secara manual.
+            </p>
+
+            <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
+              <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <span>Versi Terpasang: <strong>v1.4 (Build #5)</strong> &bull; Google Play Certified</span>
+              </div>
+
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
+                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="AppUpdater.checkUpdate(false)" title="Periksa apakah ada versi APK baru di server">
+                  <span>🔄</span> <span>Periksa Pembaruan Sekarang</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div class="settings-card">
             <h3><span>🛡️</span> <span data-i18n="backupTitle">Manajemen Cadangan Data &amp; Pemulihan</span></h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;" data-i18n="backupDesc">
@@ -1734,6 +1754,48 @@
     </div>
   </div>
 
+  <!-- ===================================================================
+       MODAL PEMBARUAN VERSI APLIKASI (AUTO-UPDATER)
+       =================================================================== -->
+  <div id="appUpdateModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 460px;">
+      <div class="modal-header">
+        <h3><span>🚀</span> <span id="updateModalTitle">Pembaruan Tersedia!</span></h3>
+        <button type="button" class="btn-close-modal" onclick="AppUpdater.closeModal()">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 18px 20px;">
+        <div id="updateModalSubtitle" style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 14px;">
+          Versi baru telah dirilis untuk DIALOG COFFEE Cashier.
+        </div>
+
+        <div style="background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px;">
+          <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px;">Catatan Rilis (Changelog):</div>
+          <div id="updateChangelogText" style="font-size: 0.82rem; line-height: 1.5; color: var(--text-primary); white-space: pre-line;">
+            Peningkatan performa, sinkronisasi cloud real-time, dan kestabilan kasir.
+          </div>
+        </div>
+
+        <div id="updateDownloadProgress" style="display: none; margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); margin-bottom: 4px;">
+            <span>Mengunduh paket APK instalasi...</span>
+            <span>APK Release</span>
+          </div>
+          <div style="height: 6px; background: var(--border-color); border-radius: 3px; overflow: hidden;">
+            <div style="width: 100%; height: 100%; background: var(--text-primary); animation: progressIndeterminate 1.5s infinite linear;"></div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="gap: 8px;">
+        <button type="button" class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="AppUpdater.closeModal()">
+          Nanti Saja
+        </button>
+        <button type="button" class="btn-primary-action btn-income" id="btnStartUpdate" style="flex: 1; justify-content: center;">
+          <span>📥</span> <span id="btnStartUpdateText">Perbarui Sekarang</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPT LIBRARIES -->
 
   <script src="libs/chart.umd.js"></script>
@@ -1742,18 +1804,19 @@
   <script src="libs/jszip.min.js"></script>
 
   <!-- APPLICATION SCRIPTS -->
-  <script src="js/storage.js?v=20261025_15"></script>
-  <script src="js/i18n.js?v=20261025_15"></script>
-  <script src="js/whatsapp.js?v=20261025_15"></script>
-  <script src="js/export-pdf.js?v=20261025_15"></script>
-  <script src="js/export-word.js?v=20261025_15"></script>
-  <script src="js/pos.js?v=20261025_15"></script>
-  <script src="js/finance.js?v=20261025_15"></script>
-  <script src="js/reports.js?v=20261025_15"></script>
-  <script src="js/cloud-sync.js?v=20261025_15"></script>
-  <script src="js/owner.js?v=20261025_15"></script>
-  <script src="js/auth.js?v=20261025_15"></script>
-  <script src="js/app.js?v=20261025_15"></script>
+  <script src="js/storage.js?v=20261025_16"></script>
+  <script src="js/i18n.js?v=20261025_16"></script>
+  <script src="js/whatsapp.js?v=20261025_16"></script>
+  <script src="js/export-pdf.js?v=20261025_16"></script>
+  <script src="js/export-word.js?v=20261025_16"></script>
+  <script src="js/pos.js?v=20261025_16"></script>
+  <script src="js/finance.js?v=20261025_16"></script>
+  <script src="js/reports.js?v=20261025_16"></script>
+  <script src="js/cloud-sync.js?v=20261025_16"></script>
+  <script src="js/owner.js?v=20261025_16"></script>
+  <script src="js/auth.js?v=20261025_16"></script>
+  <script src="js/updater.js?v=20261025_16"></script>
+  <script src="js/app.js?v=20261025_16"></script>
 
 
 </body>

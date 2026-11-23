@@ -65,6 +65,30 @@ if ($action === 'get_settings' && file_exists($SETTINGS_CACHE_FILE)) {
     }
 }
 
+// RESPONS KILAT CHECK_UPDATE (0ms TANPA MEMBEBANI MYSQL)
+if ($action === 'check_update') {
+    $versionFile = __DIR__ . '/version.json';
+    if (!file_exists($versionFile)) {
+        $versionFile = dirname(__DIR__) . '/version.json';
+    }
+    if (file_exists($versionFile)) {
+        $vData = @json_decode(file_get_contents($versionFile), true);
+        if ($vData && is_array($vData)) {
+            sendResponse(true, 'Informasi rilis aplikasi berhasil diambil', $vData);
+        }
+    }
+    // Fallback data jika version.json belum terunggah
+    sendResponse(true, 'Informasi rilis aplikasi default', [
+        'versionCode' => 5,
+        'versionName' => '1.4',
+        'apkUrl' => 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/dialog-coffee-cashier-release.apk',
+        'fallbackApkUrl' => 'https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-release.apk',
+        'downloadPageUrl' => 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/download.html',
+        'releaseDate' => '2026-11-23',
+        'changelog' => 'Versi rilis resmi v1.4 (Build #5) - Fitur sinkronisasi menu real-time dan Auto-Updater.'
+    ]);
+}
+
 // =============================================================================
 // 3. KONEKSI KE DATABASE MYSQL
 // =============================================================================

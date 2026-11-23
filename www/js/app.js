@@ -32,6 +32,7 @@ const App = {
     if (window.OwnerModule) OwnerModule.init();
     if (window.AuthModule) AuthModule.init();
     if (window.CloudSync && CloudSync.init) CloudSync.init();
+    if (window.AppUpdater && AppUpdater.init) AppUpdater.init();
 
     // Service Worker
     if ('serviceWorker' in navigator) {
