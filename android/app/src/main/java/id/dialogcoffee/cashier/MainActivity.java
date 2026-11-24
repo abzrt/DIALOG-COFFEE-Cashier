@@ -35,6 +35,32 @@ public class MainActivity extends BridgeActivity {
                         }
                     });
                 }
+
+                @android.webkit.JavascriptInterface
+                public void downloadApk(final String downloadUrl, final String fileName) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                android.net.Uri uri = android.net.Uri.parse(downloadUrl);
+                                android.app.DownloadManager.Request request = new android.app.DownloadManager.Request(uri);
+                                request.setTitle("DIALOG COFFEE Cashier Update");
+                                request.setDescription("Mengunduh " + fileName + " di latar belakang...");
+                                request.setNotificationVisibility(android.app.DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                                request.setDestinationInExternalPublicDir(android.os.Environment.DIRECTORY_DOWNLOADS, fileName);
+                                request.setMimeType("application/vnd.android.package-archive");
+
+                                android.app.DownloadManager manager = (android.app.DownloadManager) getSystemService(android.content.Context.DOWNLOAD_SERVICE);
+                                if (manager != null) {
+                                    manager.enqueue(request);
+                                    android.widget.Toast.makeText(MainActivity.this, "Mengunduh pembaruan di latar belakang... Cek bar notifikasi.", android.widget.Toast.LENGTH_LONG).show();
+                                }
+                            } catch (Exception e) {
+                                android.widget.Toast.makeText(MainActivity.this, "Gagal mengunduh: " + e.getMessage(), android.widget.Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                }
             }, "AndroidBridge");
         }
     }

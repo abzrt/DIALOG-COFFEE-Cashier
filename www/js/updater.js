@@ -5,8 +5,8 @@
  */
 const AppUpdater = {
   CURRENT_VERSION: {
-    versionCode: 8,
-    versionName: '1.7'
+    versionCode: 9,
+    versionName: '1.8'
   },
   DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,
@@ -273,46 +273,116 @@ const AppUpdater = {
     if (modal) modal.classList.remove('active');
   },
 
-  startDownload() {
+  async startDownload() {
     const info = this.availableUpdate;
     if (!info) return;
 
     const cfg = this.getConfig();
     const apkUrl = info.apkUrl || cfg.githubDirectApkUrl || cfg.githubLatestApkUrl;
+    const fileName = `dialog-coffee-cashier-v${info.versionName}.apk`;
     const progressEl = document.getElementById('updateDownloadProgress');
+    const statusTextEl = document.getElementById('updateProgressStatusText');
+    const percentTextEl = document.getElementById('updateProgressPercentText');
+    const progressBarFill = document.getElementById('updateProgressBarFill');
     const startBtn = document.getElementById('btnStartUpdate');
     const startBtnText = document.getElementById('btnStartUpdateText');
 
     if (progressEl) progressEl.style.display = 'block';
     if (startBtn) startBtn.disabled = true;
-    if (startBtnText) startBtnText.textContent = 'Mengunduh APK dari GitHub...';
+    if (startBtnText) startBtnText.textContent = 'Mengunduh di background...';
+    if (statusTextEl) statusTextEl.textContent = 'Menghubungkan ke server rilis...';
+    if (percentTextEl) percentTextEl.textContent = '0%';
+    if (progressBarFill) progressBarFill.style.width = '0%';
 
-    // Buka tautan APK GitHub untuk memicu Download Manager bawaan Android
+    // 1. Jika berjalan di aplikasi Android (Native Bridge), gunakan Download Manager sistem di background
+    if (window.AndroidBridge && typeof window.AndroidBridge.downloadApk === 'function') {
+      try {
+        window.AndroidBridge.downloadApk(apkUrl, fileName);
+        if (statusTextEl) statusTextEl.textContent = 'Mengunduh di bar notifikasi sistem...';
+        if (percentTextEl) percentTextEl.textContent = '100%';
+        if (progressBarFill) progressBarFill.style.width = '100%';
+        if (window.App && App.showToast) {
+          App.showToast('Unduhan berjalan di latar belakang! Periksa notifikasi Android.', 'success');
+        }
+        setTimeout(() => {
+          if (startBtn) {
+            startBtn.disabled = false;
+            if (startBtnText) startBtnText.textContent = 'Selesai (Periksa Bar Notifikasi)';
+            startBtn.onclick = () => this.closeModal();
+          }
+        }, 1500);
+        return;
+      } catch (e) {
+        console.warn('AndroidBridge downloadApk failed, falling back to fetch in-app:', e);
+      }
+    }
+
+    // 2. In-App Background Download via Streams / Fetch (Tanpa membuka browser!)
     try {
+      if (statusTextEl) statusTextEl.textContent = 'Mengunduh berkas APK di background...';
+      const response = await fetch(apkUrl);
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const contentLength = response.headers.get('content-length');
+      const totalBytes = contentLength ? parseInt(contentLength, 10) : 0;
+
+      let blob;
+      if (response.body && response.body.getReader && totalBytes > 0) {
+        const reader = response.body.getReader();
+        let receivedBytes = 0;
+        const chunks = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          chunks.push(value);
+          receivedBytes += value.length;
+          const percent = Math.min(100, Math.round((receivedBytes / totalBytes) * 100));
+          const mbReceived = (receivedBytes / (1024 * 1024)).toFixed(1);
+          const mbTotal = (totalBytes / (1024 * 1024)).toFixed(1);
+
+          if (progressBarFill) progressBarFill.style.width = `${percent}%`;
+          if (percentTextEl) percentTextEl.textContent = `${percent}%`;
+          if (statusTextEl) statusTextEl.textContent = `Mengunduh: ${mbReceived} MB / ${mbTotal} MB`;
+        }
+
+        blob = new Blob(chunks, { type: 'application/vnd.android.package-archive' });
+      } else {
+        blob = await response.blob();
+      }
+
+      if (progressBarFill) progressBarFill.style.width = '100%';
+      if (percentTextEl) percentTextEl.textContent = '100%';
+      if (statusTextEl) statusTextEl.textContent = 'Unduhan selesai! Siap diinstal.';
+
+      // Buat file Blob lokal dan klik otomatis tanpa membuka tab/browser eksternal
+      const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = apkUrl;
-      a.target = '_system';
-      a.download = `dialog-coffee-cashier-v${info.versionName}.apk`;
+      a.href = blobUrl;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-    } catch (e) {
-      window.open(apkUrl, '_system');
-    }
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 10000);
 
-    if (window.App && App.showToast) {
-      App.showToast('Memulai pengunduhan APK rilis dari GitHub...', 'info');
-    }
+      if (window.App && App.showToast) {
+        App.showToast(`Berkas ${fileName} berhasil diunduh! Klik untuk menginstal.`, 'success');
+      }
 
-    setTimeout(() => {
       if (startBtn) {
         startBtn.disabled = false;
-        if (startBtnText) startBtnText.textContent = 'Buka Halaman Rilis GitHub';
-        startBtn.onclick = () => {
-          window.open(info.downloadPageUrl || cfg.githubReleasesPage, '_blank');
-        };
+        if (startBtnText) startBtnText.textContent = 'Tutup';
+        startBtn.onclick = () => this.closeModal();
       }
-    }, 4000);
+    } catch (err) {
+      console.error('In-app background download failed:', err);
+      if (statusTextEl) statusTextEl.textContent = 'Gagal mengunduh di background.';
+      if (startBtn) {
+        startBtn.disabled = false;
+        if (startBtnText) startBtnText.textContent = 'Buka Halaman Rilis';
+        startBtn.onclick = () => window.open(info.downloadPageUrl || cfg.githubReleasesPage, '_blank');
+      }
+    }
   }
 };
 

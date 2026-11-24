@@ -1,10 +1,10 @@
 {
-  "versionCode": 8,
-  "versionName": "1.7",
+  "versionCode": 9,
+  "versionName": "1.8",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v1.7.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v1.8.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-24",
-  "changelog": "Versi rilis resmi v1.7 (Build #8) - Pembaruan otomatis via GitHub."
+  "changelog": "Versi rilis resmi v1.8 (Build #9) - Pembaruan otomatis via GitHub."
 }
