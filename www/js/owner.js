@@ -12,6 +12,7 @@ const OwnerModule = {
   selectedYear: 2026,
   selectedShift: 'all',
   chartInstance: null,
+  peakChartInstance: null,
 
   init() {
     const today = new Date();
@@ -548,6 +549,7 @@ const OwnerModule = {
           </td>
         </tr>
       `;
+      this.renderDailyPeakHoursChart(dayTrx);
       return;
     }
 
@@ -603,6 +605,107 @@ const OwnerModule = {
         </tr>
       `;
     }).join('');
+
+    // Render Peak Hours Heatmap / Bar Chart
+    this.renderDailyPeakHoursChart(dayTrx);
+  },
+
+  renderDailyPeakHoursChart(dayTrx) {
+    const canvas = document.getElementById('ownerDailyPeakChartCanvas');
+    const badge = document.getElementById('ownerDailyPeakBadge');
+    if (!canvas || !window.Chart) return;
+
+    if (this.peakChartInstance) {
+      this.peakChartInstance.destroy();
+      this.peakChartInstance = null;
+    }
+
+    // Operating hours: 08:00 - 23:00
+    const hours = [];
+    const counts = [];
+    const hourMap = {};
+    for (let h = 8; h <= 23; h++) {
+      const hStr = String(h).padStart(2, '0') + ':00';
+      hours.push(hStr);
+      hourMap[h] = 0;
+    }
+
+    let maxHour = -1;
+    let maxCount = 0;
+
+    dayTrx.forEach(t => {
+      if (t.type === 'income' && t.date) {
+        const d = new Date(t.date);
+        if (!isNaN(d.getTime())) {
+          const h = d.getHours();
+          if (hourMap[h] !== undefined) {
+            hourMap[h] += 1;
+          }
+        }
+      }
+    });
+
+    for (let h = 8; h <= 23; h++) {
+      const c = hourMap[h] || 0;
+      counts.push(c);
+      if (c > maxCount) {
+        maxCount = c;
+        maxHour = h;
+      }
+    }
+
+    if (badge) {
+      if (maxCount > 0 && maxHour !== -1) {
+        badge.textContent = `🔥 Jam Sibuk: ${String(maxHour).padStart(2, '0')}:00 - ${String(maxHour + 1).padStart(2, '0')}:00 (${maxCount} Order)`;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.textContent = '☕ Jam Sibuk: Belum ada pesanan';
+      }
+    }
+
+    const isDark = document.body.classList.contains('dark-theme');
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#a1a1aa' : '#71717a';
+
+    this.peakChartInstance = new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: hours,
+        datasets: [{
+          label: 'Jumlah Order',
+          data: counts,
+          backgroundColor: counts.map((c, idx) => {
+            const h = idx + 8;
+            return h === maxHour && maxCount > 0 ? '#16a34a' : (isDark ? 'rgba(201, 147, 58, 0.6)' : 'rgba(24, 24, 27, 0.65)');
+          }),
+          borderRadius: 6,
+          borderSkipped: false
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.parsed.y} Pesanan Kopi / Minuman`
+            }
+          }
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { color: textColor, font: { size: 10 } }
+          },
+          y: {
+            beginAtZero: true,
+            ticks: { precision: 0, color: textColor, font: { size: 10 } },
+            grid: { color: gridColor }
+          }
+        }
+      }
+    });
   },
 
   // =========================================================================

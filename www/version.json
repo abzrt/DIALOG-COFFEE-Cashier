@@ -1,10 +1,10 @@
 {
-  "versionCode": 14,
-  "versionName": "2.3",
+  "versionCode": 15,
+  "versionName": "2.4",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.3.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.4.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-24",
-  "changelog": "Optimasi kode: Pembersihan dead code DOM, penghapusan CSS banner lama, dan sinkronisasi role chip"
+  "changelog": "Fitur Baru: Haptic feedback, Speed Bar favorit, Dine-In/Take-Away toggle, Diskon promo preset, Resep BOM & stok bahan otomatis, Analisis Jam Sibuk (Peak Hours), dan tombol cepat Rekap Shift WA"
 }

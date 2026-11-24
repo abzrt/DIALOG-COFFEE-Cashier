@@ -13,14 +13,93 @@ const POSModule = {
   activeSavedOrderId: null,
   currentOrderName: '',
   editingCustomId: null,
+  orderType: 'dine_in',
+  appliedDiscount: { type: 'none', value: 0, amount: 0 },
 
   init() {
     this.renderCategories();
+    this.renderSpeedBar();
     this.renderMenu();
     this.renderCart();
     this.bindEvents();
     this.initCartObserver();
     this.updateSavedOrdersBadge();
+  },
+
+  setOrderType(type) {
+    this.orderType = type || 'dine_in';
+    const btnDine = document.getElementById('btnOrderTypeDineIn');
+    const btnTake = document.getElementById('btnOrderTypeTakeAway');
+    if (btnDine) btnDine.classList.toggle('active', this.orderType === 'dine_in');
+    if (btnTake) btnTake.classList.toggle('active', this.orderType === 'take_away');
+    App.vibrate(14);
+  },
+
+  applyDiscount(val, type = 'percent') {
+    this.appliedDiscount = { type, value: val, amount: 0 };
+    const chips = document.querySelectorAll('.discount-chip');
+    chips.forEach(chip => {
+      chip.classList.remove('active');
+    });
+    if (window.event && window.event.currentTarget) {
+      window.event.currentTarget.classList.add('active');
+    }
+    App.vibrate(12);
+    this.renderCart();
+  },
+
+  getTopSellerIds() {
+    try {
+      const trxs = StorageManager.getTransactions();
+      const itemCounts = {};
+      trxs.forEach(t => {
+        if (t.items && Array.isArray(t.items)) {
+          t.items.forEach(it => {
+            const key = it.name;
+            itemCounts[key] = (itemCounts[key] || 0) + (it.qty || 1);
+          });
+        }
+      });
+      const sortedNames = Object.keys(itemCounts).sort((a, b) => itemCounts[b] - itemCounts[a]);
+      if (sortedNames.length > 0) {
+        const menu = StorageManager.getMenu();
+        const foundIds = sortedNames.slice(0, 3).map(name => {
+          const m = menu.find(i => i.name.toLowerCase() === name.toLowerCase());
+          return m ? m.id : null;
+        }).filter(Boolean);
+        if (foundIds.length > 0) return foundIds;
+      }
+    } catch (e) {}
+    return ['sig-1', 'nc-1', 'nc-2'];
+  },
+
+  renderSpeedBar() {
+    const container = document.getElementById('posSpeedBar');
+    if (!container) return;
+    const menu = StorageManager.getMenu();
+    const topIds = this.getTopSellerIds();
+    let speedItems = topIds.map(id => menu.find(m => m.id === id)).filter(Boolean);
+    const defaults = ['sig-1', 'nc-1', 'nc-2', 'sig-4', 'flv-6'];
+    defaults.forEach(id => {
+      if (speedItems.length < 5 && !speedItems.find(s => s.id === id)) {
+        const item = menu.find(m => m.id === id);
+        if (item) speedItems.push(item);
+      }
+    });
+    speedItems = speedItems.slice(0, 5);
+
+    container.innerHTML = `
+      <div class="speed-bar-label">⚡ Favorit:</div>
+      <div class="speed-chips-scroll">
+        ${speedItems.map(item => `
+          <button type="button" class="speed-chip" onclick="POSModule.addToCart('${item.id}')" title="Klik untuk langsung tambah ${item.name} ke pesanan">
+            <span>${item.icon || '☕'}</span>
+            <span class="speed-name">${item.name}</span>
+            <span class="speed-price">${App.formatRupiah(item.price)}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
   },
 
   bindEvents() {
@@ -123,17 +202,33 @@ const POSModule = {
       return;
     }
 
+    const topIds = this.getTopSellerIds();
+    const recipes = StorageManager.getRecipes();
+    const inv = StorageManager.getInventory();
+
     container.innerHTML = filtered.map(item => {
       const isCustom = item.category === 'custom' || (item.id && String(item.id).startsWith('custom-')) || item.badge === 'Custom';
       const bgImg = isCustom ? 'assets/dialog_logo.jpg' : (item.image || 'assets/menu/dialog_coffee.jpg');
       const bgClass = isCustom ? 'menu-card-bg menu-card-bg-logo' : 'menu-card-bg';
+
+      const isTop = topIds.includes(item.id);
+      let isLowIngredient = false;
+      const rec = recipes[item.id];
+      if (rec && Array.isArray(rec)) {
+        isLowIngredient = rec.some(r => {
+          const ing = inv.find(i => i.id === r.id);
+          return ing && (Number(ing.stock) <= Number(ing.minStock));
+        });
+      }
 
       return `
       <div class="menu-card" onclick="POSModule.addToCart('${item.id}')">
         <div class="${bgClass}" style="background-image: url('${bgImg}');"></div>
         <div class="card-top">
           <div class="item-icon-box">${item.icon || '☕'}</div>
-          <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; align-items: center; gap: 4px; flex-wrap: wrap; justify-content: flex-end;">
+            ${isTop ? '<span class="badge-tag badge-bestseller">🌟 Top</span>' : ''}
+            ${isLowIngredient ? '<span class="badge-tag badge-lowstock">⚠️ Menipis</span>' : ''}
             ${item.badge ? `<span class="badge-tag">${item.badge}</span>` : ''}
             ${isCustom ? `<button type="button" class="btn-table-action" onclick="event.stopPropagation(); POSModule.openEditCustomMenuModal('${item.id}')" title="Edit Custom Menu" style="padding: 2px 6px; font-size: 0.72rem; min-width: unset; height: auto; border-radius: 6px;">✏️</button>` : ''}
           </div>
@@ -167,6 +262,7 @@ const POSModule = {
       });
     }
 
+    App.vibrate(14);
     App.playBeep(660, 0.05);
     this.renderCart();
   },
@@ -179,6 +275,7 @@ const POSModule = {
     if (item.qty <= 0) {
       this.cart = this.cart.filter(c => c.id !== itemId);
     }
+    App.vibrate(12);
     App.playBeep(520, 0.03);
     this.renderCart();
   },
@@ -187,6 +284,10 @@ const POSModule = {
     this.cart = [];
     this.activeSavedOrderId = null;
     this.currentOrderName = '';
+    this.appliedDiscount = { type: 'none', value: 0, amount: 0 };
+    const chips = document.querySelectorAll('.discount-chip');
+    chips.forEach((c, idx) => c.classList.toggle('active', idx === 0));
+
     const nameInput = document.getElementById('cartOrderName');
     if (nameInput) {
       nameInput.value = '';
@@ -210,9 +311,21 @@ const POSModule = {
     const subtotal = this.cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
     const settings = StorageManager.getSettings();
     const taxRate = settings.taxEnabled ? (settings.taxRate || 0) : 0;
-    const taxAmount = Math.round((subtotal * taxRate) / 100);
-    const total = subtotal + taxAmount;
-    return { subtotal, taxRate, taxAmount, total };
+
+    let discountAmount = 0;
+    if (this.appliedDiscount && this.appliedDiscount.value > 0) {
+      if (this.appliedDiscount.type === 'percent') {
+        discountAmount = Math.round((subtotal * this.appliedDiscount.value) / 100);
+      } else if (this.appliedDiscount.type === 'nominal') {
+        discountAmount = Math.min(subtotal, this.appliedDiscount.value);
+      }
+    }
+    this.appliedDiscount.amount = discountAmount;
+
+    const subtotalAfterDiscount = Math.max(0, subtotal - discountAmount);
+    const taxAmount = Math.round((subtotalAfterDiscount * taxRate) / 100);
+    const total = subtotalAfterDiscount + taxAmount;
+    return { subtotal, discountAmount, subtotalAfterDiscount, taxRate, taxAmount, total };
   },
 
   renderCart() {
@@ -240,6 +353,10 @@ const POSModule = {
       if (subtotalEl) subtotalEl.textContent = 'Rp 0';
       if (taxAmountEl) taxAmountEl.textContent = 'Rp 0';
       if (totalEl) totalEl.textContent = 'Rp 0';
+      const discountRow = document.getElementById('cartDiscountRow');
+      if (discountRow) discountRow.style.display = 'none';
+      const discountLabelEl = document.getElementById('cartDiscountLabel');
+      if (discountLabelEl) discountLabelEl.textContent = '0%';
       if (checkoutBtn) checkoutBtn.disabled = true;
       if (holdCartQuickBtn) holdCartQuickBtn.disabled = true;
       if (mobileCartBar) mobileCartBar.classList.remove('visible');
@@ -262,11 +379,30 @@ const POSModule = {
       </div>
     `).join('');
 
-    const { subtotal, taxRate, taxAmount, total } = this.calculateTotals();
+    const { subtotal, discountAmount, taxRate, taxAmount, total } = this.calculateTotals();
     if (subtotalEl) subtotalEl.textContent = App.formatRupiah(subtotal);
     if (taxRateLabelEl) taxRateLabelEl.textContent = `Pajak PB1 (${taxRate}%):`;
     if (taxAmountEl) taxAmountEl.textContent = App.formatRupiah(taxAmount);
     if (totalEl) totalEl.textContent = App.formatRupiah(total);
+
+    const discountRow = document.getElementById('cartDiscountRow');
+    const discountAmtEl = document.getElementById('cartDiscountAmount');
+    const discountLabelEl = document.getElementById('cartDiscountLabel');
+    if (discountRow) {
+      if (discountAmount > 0) {
+        discountRow.style.display = 'flex';
+        if (discountAmtEl) discountAmtEl.textContent = `-${App.formatRupiah(discountAmount)}`;
+        if (discountLabelEl) {
+          discountLabelEl.textContent = this.appliedDiscount.type === 'percent'
+            ? `${this.appliedDiscount.value}%`
+            : App.formatRupiah(discountAmount);
+        }
+      } else {
+        discountRow.style.display = 'none';
+        if (discountLabelEl) discountLabelEl.textContent = '0%';
+      }
+    }
+
     if (checkoutBtn) checkoutBtn.disabled = false;
     if (holdCartQuickBtn) holdCartQuickBtn.disabled = false;
 
@@ -340,7 +476,7 @@ const POSModule = {
   },
 
   processCheckout(sendWhatsApp = false) {
-    const { subtotal, taxAmount, total } = this.calculateTotals();
+    const { subtotal, discountAmount, subtotalAfterDiscount, taxAmount, total } = this.calculateTotals();
     const cashInput = document.getElementById('payCashInput');
     const methodSelect = document.getElementById('payMethodSelect');
     const notesInput = document.getElementById('payNotesInput');
@@ -372,6 +508,7 @@ const POSModule = {
     }));
 
     let labelInfo = [];
+    labelInfo.push(this.orderType === 'take_away' ? 'Take Away' : 'Dine In');
     if (seatNumber) labelInfo.push(`Seat: ${seatNumber}`);
     if (customerName) labelInfo.push(`Pelanggan: ${customerName}`);
     const metaPrefix = labelInfo.length > 0 ? `[${labelInfo.join(' | ')}] ` : '';
@@ -388,6 +525,7 @@ const POSModule = {
       category: 'Penjualan Kasir',
       amount: total,
       subtotal: subtotal,
+      discount: discountAmount || 0,
       tax: taxAmount,
       cashTendered: method === 'Tunai' ? cashTendered : total,
       change: method === 'Tunai' ? (cashTendered - total) : 0,
@@ -397,6 +535,7 @@ const POSModule = {
       cashier: settings.activeCashier,
       seatNumber: seatNumber,
       customerName: customerName,
+      orderType: this.orderType || 'dine_in',
       description: description,
       refNo: invoiceId,
       items: itemsSummary
@@ -404,6 +543,14 @@ const POSModule = {
 
     StorageManager.addTransaction(newTransaction);
     this.lastCheckoutTransaction = newTransaction;
+
+    // Kurangi stok bahan baku otomatis sesuai resep (Bill of Materials - BOM)
+    const lowStockAlerts = StorageManager.deductIngredientsForOrder(this.cart);
+    if (lowStockAlerts && lowStockAlerts.length > 0) {
+      setTimeout(() => {
+        App.showToast(`⚠️ Stok bahan baku (${lowStockAlerts.map(a => a.name).join(', ')}) menipis!`, 'warning', 4500);
+      }, 1200);
+    }
 
     // Hapus dari daftar order tersimpan jika checkout berasal dari open bill
     if (this.activeSavedOrderId) {
@@ -418,6 +565,9 @@ const POSModule = {
 
     // Tampilkan Struk
     this.showReceiptModal(newTransaction);
+
+    // Refresh Speed Bar jika menu terlaris berubah
+    this.renderSpeedBar();
 
     // Kirim notifikasi WA ke owner jika diminta
     if (sendWhatsApp && window.WhatsAppNotifier) {
@@ -480,6 +630,7 @@ const POSModule = {
 
         <div class="receipt-row"><span>No. Nota:</span><span style="font-weight: 800;">${trx.id}</span></div>
         <div class="receipt-row"><span>Waktu   :</span><span>${App.formatDateTime(trx.date)}</span></div>
+        <div class="receipt-row"><span>Tipe    :</span><span style="font-weight: 800;">${trx.orderType === 'take_away' ? 'TAKE AWAY 🛍️' : 'DINE IN 🍽️'}</span></div>
         ${trx.seatNumber ? `<div class="receipt-row"><span>Seat/Meja:</span><span style="font-weight: 800;">${trx.seatNumber}</span></div>` : ''}
         ${trx.customerName ? `<div class="receipt-row"><span>Pelanggan:</span><span style="font-weight: 800;">${trx.customerName}</span></div>` : ''}
         <div class="receipt-row"><span>Shift   :</span><span>${trx.shift || settings.activeShift || 'Shift 1'}</span></div>
@@ -493,6 +644,7 @@ const POSModule = {
         <div class="receipt-divider"></div>
 
         ${trx.subtotal ? `<div class="receipt-row"><span>Subtotal:</span><span>${App.formatRupiah(trx.subtotal)}</span></div>` : ''}
+        ${trx.discount ? `<div class="receipt-row" style="color: #16a34a; font-weight: 700;"><span>Diskon Promo:</span><span>-${App.formatRupiah(trx.discount)}</span></div>` : ''}
         ${trx.tax ? `<div class="receipt-row"><span>Pajak (PB1 10%):</span><span>${App.formatRupiah(trx.tax)}</span></div>` : ''}
 
         <div class="receipt-row" style="font-size: 13px; font-weight: 900; margin-top: 4px;">

@@ -124,6 +124,10 @@
               <div class="category-chips" id="posCategories">
                 <!-- Injected via pos.js (Non-Coffee, Signature Drinks, Coffee & Flavor) -->
               </div>
+              <!-- Speed Bar Menu Favorit Terlaris -->
+              <div class="pos-speed-bar" id="posSpeedBar">
+                <!-- Injected via pos.js -->
+              </div>
             </div>
 
             <div class="menu-grid" id="posMenuGrid">
@@ -143,6 +147,16 @@
               </div>
             </div>
 
+            <!-- Fitur Dine In / Take Away Toggle -->
+            <div class="cart-order-type-row">
+              <button type="button" class="btn-order-type-pill active" id="btnOrderTypeDineIn" onclick="POSModule.setOrderType('dine_in')">
+                🍽️ Dine In
+              </button>
+              <button type="button" class="btn-order-type-pill" id="btnOrderTypeTakeAway" onclick="POSModule.setOrderType('take_away')">
+                🛍️ Take Away
+              </button>
+            </div>
+
             <!-- Fitur Input Nama Orderan / Draft -->
             <div class="cart-order-name-box">
               <div class="con-header">
@@ -157,9 +171,27 @@
             </div>
 
             <div class="cart-summary">
+              <!-- Preset Diskon & Promo -->
+              <div class="cart-discount-section">
+                <div class="discount-header-row">
+                  <span>🏷️ Promo / Diskon:</span>
+                  <span id="cartDiscountLabel" style="font-weight: 700; color: var(--income-green);">0%</span>
+                </div>
+                <div class="discount-chips" id="posDiscountChips">
+                  <button type="button" class="discount-chip active" onclick="POSModule.applyDiscount(0, 'percent')">0%</button>
+                  <button type="button" class="discount-chip" onclick="POSModule.applyDiscount(5, 'percent')">5%</button>
+                  <button type="button" class="discount-chip" onclick="POSModule.applyDiscount(10, 'percent')">10%</button>
+                  <button type="button" class="discount-chip" onclick="POSModule.applyDiscount(5000, 'nominal')">Rp 5rb</button>
+                </div>
+              </div>
+
               <div class="summary-row">
                 <span data-i18n="subtotal">Subtotal:</span>
                 <span id="cartSubtotal" style="font-family: var(--font-mono);">Rp 0</span>
+              </div>
+              <div class="summary-row" id="cartDiscountRow" style="display: none; color: var(--income-green); font-weight: 700;">
+                <span>Diskon Promo:</span>
+                <span id="cartDiscountAmount" style="font-family: var(--font-mono);">-Rp 0</span>
               </div>
               <div class="summary-row">
                 <span id="cartTaxRateLabel" data-i18n="taxPB1">Pajak PB1 (10%):</span>
@@ -604,7 +636,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v2.3 (Build #14)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+                <span>Versi Terpasang: <strong>v2.4 (Build #15)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
@@ -841,6 +873,24 @@
                   Shift 1 &amp; 2
                 </div>
                 <div class="kpi-subtitle">Kontribusi laba per shift</div>
+              </div>
+            </div>
+
+            <!-- Peak Hours Heatmap / Bar Chart -->
+            <div class="owner-chart-card" style="background: var(--bg-surface); padding: 16px 20px; border-radius: var(--radius-md); border: 1.5px solid var(--border-color); margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+                <div>
+                  <h4 style="font-size: 1.05rem; font-weight: 800; display: flex; align-items: center; gap: 6px; color: var(--text-primary); margin: 0;">
+                    <span>⏰</span> Analisis Jam Sibuk Penjualan (Peak Hours)
+                  </h4>
+                  <span style="font-size: 0.78rem; color: var(--text-muted);">Grafik volume pesanan kopi per jam untuk optimasi shift &amp; stok barista</span>
+                </div>
+                <span id="ownerDailyPeakBadge" class="badge-tag" style="background: var(--income-green); color: #ffffff; font-weight: 700; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem;">
+                  🔥 Jam Sibuk: Memuat...
+                </span>
+              </div>
+              <div style="position: relative; height: 180px; width: 100%;">
+                <canvas id="ownerDailyPeakChartCanvas"></canvas>
               </div>
             </div>
 
@@ -1409,6 +1459,16 @@
         <div style="background: var(--bg-surface); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-secondary);">
           <div>📌 <strong>Daftar Barista Resmi:</strong> Ardi, Anca, Jhonson, Si Pur</div>
         </div>
+
+        <!-- Quick Access Shift Actions -->
+        <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button type="button" class="btn-primary-action btn-wa" style="justify-content: center; font-size: 0.8rem; padding: 10px 8px;" onclick="App.closeShiftModal(); FinanceModule.openClosingModal(document.getElementById('shiftSelectInput').value);" title="Kirim rekapan shift ini ke WA Owner">
+            <span>📲</span> Rekap WA Owner
+          </button>
+          <button type="button" class="btn-primary-action" style="background: var(--bg-surface); color: var(--text-primary); border: 1.5px solid var(--border-color); justify-content: center; font-size: 0.8rem; padding: 10px 8px;" onclick="App.closeShiftModal(); App.openInventoryModal();" title="Periksa sisa stok bahan baku">
+            <span>📦</span> Stok Bahan (BOM)
+          </button>
+        </div>
       </div>
       <div class="modal-footer" style="flex-wrap: wrap; gap: 8px;">
         <button class="btn-primary-action" style="background: transparent; color: var(--text-muted);" onclick="App.closeShiftModal()" data-i18n="cancel">Batal</button>
@@ -1518,6 +1578,31 @@
         </button>
         <button class="btn-primary-action btn-expense" style="flex: 1; justify-content: center;" onclick="App.confirmExitApp()">
           <span>🚪</span> <span data-i18n="exitConfirmBtn">Keluar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================================================================
+       MODAL 7: STOK BAHAN BAKU & RESEP MENU (BILL OF MATERIALS - BOM)
+       =================================================================== -->
+  <div id="inventoryModal" class="modal-backdrop">
+    <div class="modal-card" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3><span>📦</span> <span>Stok Bahan Baku &amp; Resep (BOM)</span></h3>
+        <button class="btn-close-modal" onclick="App.closeInventoryModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 14px;">
+          Stok bahan baku otomatis terpotong setiap kali menu kopi atau non-coffee terjual di kasir. Klik tombol <strong>[➕ Isi]</strong> untuk menambah stok saat belanja/restock.
+        </p>
+        <div id="inventoryListContainer" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Injected via app.js -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-primary-action btn-closing" style="width: 100%; justify-content: center; padding: 12px;" onclick="App.closeInventoryModal()">
+          <span>✓</span> Tutup &amp; Selesai
         </button>
       </div>
     </div>

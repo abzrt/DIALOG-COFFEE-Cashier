@@ -4016,6 +4016,164 @@ body.dark-theme .app-splash-spinner {
   }
 }
 
+/* SPEED BAR FAVORIT & QUICK ACCENTS */
+.pos-speed-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.pos-speed-bar::-webkit-scrollbar {
+  display: none;
+}
+.speed-bar-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.speed-chips-scroll {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+}
+.speed-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.speed-chip:hover {
+  border-color: var(--primary, #c9933a);
+  transform: translateY(-1px);
+}
+.speed-chip:active {
+  transform: scale(0.96);
+}
+.speed-name {
+  font-weight: 700;
+}
+.speed-price {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* BEST SELLER & LOW STOCK BADGES */
+.badge-bestseller {
+  background: linear-gradient(135deg, #f59e0b, #d97706) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+.badge-lowstock {
+  background: var(--expense-red, #ef4444) !important;
+  color: #ffffff !important;
+  font-weight: 800 !important;
+  animation: pulseLowStock 2s infinite ease-in-out;
+}
+@keyframes pulseLowStock {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+/* DINE IN / TAKE AWAY TOGGLE PILLS */
+.cart-order-type-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.btn-order-type-pill {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+.btn-order-type-pill.active {
+  background: var(--text-primary);
+  color: var(--bg-main);
+  border-color: var(--text-primary);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+/* CART DISCOUNT PRESET SECTION */
+.cart-discount-section {
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--border-color);
+  margin-bottom: 8px;
+}
+.discount-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.discount-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+.discount-chip {
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  color: var(--text-primary);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.discount-chip.active {
+  background: var(--income-green, #16a34a);
+  color: #ffffff;
+  border-color: var(--income-green, #16a34a);
+}
+
+/* INVENTORY ITEM CARDS */
+.inventory-item-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-color);
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s ease;
+}
+.inventory-item-card.low-stock {
+  border-color: var(--expense-red, #ef4444);
+  background: rgba(239, 68, 68, 0.04);
+}
+
 /* End of Stylesheet */
 
 

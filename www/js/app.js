@@ -197,6 +197,15 @@ const App = {
     this.showToast(`Shift aktif diperbarui: ${shift} (${b1} & ${b2})`, 'success');
   },
 
+  // Haptic Tactile Feedback
+  vibrate(ms = 12) {
+    try {
+      if (navigator && typeof navigator.vibrate === 'function') {
+        navigator.vibrate(ms);
+      }
+    } catch (e) {}
+  },
+
   // Audio Synthesizer
   initAudio() {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -204,6 +213,7 @@ const App = {
   },
 
   playBeep(freq = 440, duration = 0.05, type = 'sine') {
+    this.vibrate(10);
     if (!this.soundEnabled || !this.audioCtx) return;
     try {
       if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
@@ -964,6 +974,68 @@ const App = {
         this.renderExitScreen();
       }, 350);
     }, 300);
+  },
+
+  // INVENTORY / BOM MODAL
+  openInventoryModal() {
+    const modal = document.getElementById('inventoryModal');
+    if (!modal) return;
+    this.renderInventoryModalList();
+    modal.classList.add('active');
+    this.vibrate(12);
+  },
+
+  closeInventoryModal() {
+    const modal = document.getElementById('inventoryModal');
+    if (modal) modal.classList.remove('active');
+  },
+
+  renderInventoryModalList() {
+    const container = document.getElementById('inventoryListContainer');
+    if (!container) return;
+    const inv = StorageManager.getInventory();
+
+    container.innerHTML = inv.map(item => {
+      const isLow = Number(item.stock) <= Number(item.minStock);
+      return `
+        <div class="inventory-item-card ${isLow ? 'low-stock' : ''}">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="font-size: 1.6rem;">${item.icon || '📦'}</div>
+            <div>
+              <div style="font-weight: 800; font-size: 0.95rem; color: var(--text-primary);">${item.name}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted);">
+                Batas Minimum: ${item.minStock.toLocaleString('id-ID')} ${item.unit}
+              </div>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="text-align: right;">
+              <div style="font-family: var(--font-mono); font-weight: 900; font-size: 1.1rem; color: ${isLow ? 'var(--expense-red)' : 'var(--income-green)'};">
+                ${Number(item.stock).toLocaleString('id-ID')} <span style="font-size: 0.8rem; font-weight: 600;">${item.unit}</span>
+              </div>
+              ${isLow ? '<span class="badge-tag" style="background: var(--expense-red); color: #fff; font-size: 0.65rem;">Stok Menipis!</span>' : '<span style="font-size: 0.7rem; color: var(--text-muted);">Tersedia Aman</span>'}
+            </div>
+            <button type="button" class="btn-table-action" style="padding: 6px 12px; font-weight: 700;" onclick="App.promptRestock('${item.id}', '${item.name}', '${item.unit}')">
+              ➕ Isi
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  promptRestock(id, name, unit) {
+    const amountStr = prompt(`Tambah stok untuk ${name} (${unit}):\nMasukkan jumlah yang ditambahkan:`);
+    if (!amountStr) return;
+    const amt = parseFloat(amountStr);
+    if (isNaN(amt) || amt <= 0) {
+      alert('Jumlah harus berupa angka positif.');
+      return;
+    }
+    StorageManager.restockIngredient(id, amt);
+    this.renderInventoryModalList();
+    this.playBeep(700, 0.08);
+    this.showToast(`Stok ${name} ditambah +${amt.toLocaleString('id-ID')} ${unit}`, 'success');
   },
 
   renderExitScreen() {
