@@ -1,12 +1,14 @@
 /**
- * DIALOG COFFEE Cashier - In-App Auto Updater Module (Metode 1)
- * Checks for new releases and prompts user to download and update APK.
+ * DIALOG COFFEE Cashier - In-App Auto Updater Module via GitHub
+ * Checks GitHub Releases and version definitions for new builds,
+ * prompts user with changelog modal, and downloads APK updates directly from GitHub.
  */
 const AppUpdater = {
   CURRENT_VERSION: {
     versionCode: 5,
     versionName: '1.4'
   },
+  DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,
   isChecking: false,
 
@@ -14,17 +16,25 @@ const AppUpdater = {
     const s = (window.StorageManager && StorageManager.getSettings) ? StorageManager.getSettings() : {};
     const defaultApiUrl = 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php';
     const apiUrl = (s.cloudSyncUrl && s.cloudSyncUrl !== 'api_sync.php') ? s.cloudSyncUrl : defaultApiUrl;
+    const repo = (s.githubRepo || this.DEFAULT_GITHUB_REPO).trim();
+    const token = (s.githubToken || '').trim();
+
     return {
+      githubRepo: repo,
+      githubToken: token,
+      githubApiEndpoint: `https://api.github.com/repos/${repo}/releases/latest`,
+      githubRawEndpoint: `https://raw.githubusercontent.com/${repo}/main/version.json`,
+      githubReleasesPage: `https://github.com/${repo}/releases/latest`,
+      githubLatestApkUrl: `https://github.com/${repo}/releases/latest/download/dialog-coffee-cashier-release.apk`,
       apiUrl: apiUrl,
       checkUpdateEndpoint: apiUrl + (apiUrl.includes('?') ? '&' : '?') + 'action=check_update'
     };
   },
 
   init() {
-    // Tampilkan versi saat ini di kartu pengaturan jika elemen ada
     this.renderCurrentVersionInfo();
 
-    // Jalankan pengecekan pembaruan otomatis 4 detik setelah aplikasi siap
+    // Jalankan pengecekan pembaruan otomatis via GitHub 4 detik setelah aplikasi siap
     setTimeout(() => {
       this.checkUpdate(true);
     }, 4000);
@@ -33,8 +43,22 @@ const AppUpdater = {
   renderCurrentVersionInfo() {
     const statusEl = document.getElementById('updaterStatusText');
     if (statusEl) {
-      statusEl.innerHTML = `<span>Versi Terpasang: <strong>v${this.CURRENT_VERSION.versionName} (Build #${this.CURRENT_VERSION.versionCode})</strong> &bull; Google Play Certified</span>`;
+      statusEl.innerHTML = `<span>Versi Terpasang: <strong>v${this.CURRENT_VERSION.versionName} (Build #${this.CURRENT_VERSION.versionCode})</strong> &bull; Sumber Rilis: GitHub Releases</span>`;
     }
+  },
+
+  // Helper untuk membandingkan semver string (contoh: "1.5" > "1.4")
+  compareSemver(v1, v2) {
+    const p1 = String(v1).replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+    const p2 = String(v2).replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+    const maxLen = Math.max(p1.length, p2.length);
+    for (let i = 0; i < maxLen; i++) {
+      const num1 = p1[i] || 0;
+      const num2 = p2[i] || 0;
+      if (num1 > num2) return 1;
+      if (num1 < num2) return -1;
+    }
+    return 0;
   },
 
   async checkUpdate(silent = false) {
@@ -43,37 +67,106 @@ const AppUpdater = {
 
     const statusEl = document.getElementById('updaterStatusText');
     if (statusEl && !silent) {
-      statusEl.innerHTML = '<span style="color: var(--text-muted);">🔄 Memeriksa rilis APK terbaru di server...</span>';
+      statusEl.innerHTML = '<span style="color: var(--text-muted);">🔄 Memeriksa rilis APK terbaru di GitHub...</span>';
     }
 
     const cfg = this.getConfig();
-    const endpoints = [
-      cfg.checkUpdateEndpoint + '&t=' + Date.now(),
-      'version.json?t=' + Date.now(),
-      'https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/version.json?t=' + Date.now()
-    ];
-
     let updateInfo = null;
 
-    for (const url of endpoints) {
-      try {
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 6000);
-        const resp = await fetch(url, {
-          cache: 'no-store',
-          signal: controller.signal
-        });
-        clearTimeout(timer);
-        if (resp.ok) {
-          const res = await resp.json();
-          const data = (res && res.data) ? res.data : res;
-          if (data && data.versionCode) {
-            updateInfo = data;
-            break;
+    // 1. Cek langsung via GitHub Releases API
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 7000);
+      const headers = { 'Accept': 'application/vnd.github.v3+json' };
+      if (cfg.githubToken) {
+        headers['Authorization'] = `Bearer ${cfg.githubToken}`;
+      }
+
+      const ghResp = await fetch(cfg.githubApiEndpoint + '?t=' + Date.now(), {
+        cache: 'no-store',
+        headers: headers,
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+
+      if (ghResp.ok) {
+        const ghRelease = await ghResp.json();
+        if (ghRelease && ghRelease.tag_name) {
+          const tagName = String(ghRelease.tag_name).trim();
+          const cleanVersionName = tagName.replace(/^v/i, '');
+          
+          // Cari asset file .apk di dalam rilis GitHub
+          let apkDownloadUrl = cfg.githubLatestApkUrl;
+          if (Array.isArray(ghRelease.assets) && ghRelease.assets.length > 0) {
+            const apkAsset = ghRelease.assets.find(a => a.name && a.name.toLowerCase().endsWith('.apk'));
+            if (apkAsset && apkAsset.browser_download_url) {
+              apkDownloadUrl = apkAsset.browser_download_url;
+            }
           }
+
+          // Ekstrak nomor build jika tercantum dalam deskripsi / release notes
+          let detectedBuildCode = 0;
+          const buildMatch = String(ghRelease.body || '').match(/build\s*#?(\d+)/i) || String(ghRelease.name || '').match(/build\s*#?(\d+)/i);
+          if (buildMatch) {
+            detectedBuildCode = parseInt(buildMatch[1], 10);
+          } else {
+            // Estimasikan dari semver
+            const comp = this.compareSemver(cleanVersionName, this.CURRENT_VERSION.versionName);
+            detectedBuildCode = (comp > 0) ? (this.CURRENT_VERSION.versionCode + 1) : this.CURRENT_VERSION.versionCode;
+          }
+
+          updateInfo = {
+            versionCode: detectedBuildCode,
+            versionName: cleanVersionName,
+            apkUrl: apkDownloadUrl,
+            downloadPageUrl: ghRelease.html_url || cfg.githubReleasesPage,
+            releaseDate: ghRelease.published_at ? ghRelease.published_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+            changelog: ghRelease.body || ghRelease.name || `Pembaruan resmi ${tagName} via GitHub.`
+          };
         }
-      } catch (e) {
-        // Coba endpoint cadangan
+      }
+    } catch (e) {
+      // Lanjut ke endpoint cadangan
+    }
+
+    // 2. Jika GitHub Releases API belum ada atau kena limit, cek version.json di GitHub Raw / Server
+    if (!updateInfo) {
+      const fallbackUrls = [
+        cfg.githubRawEndpoint + '?t=' + Date.now(),
+        cfg.checkUpdateEndpoint + '&t=' + Date.now(),
+        'version.json?t=' + Date.now()
+      ];
+
+      for (const url of fallbackUrls) {
+        try {
+          const controller = new AbortController();
+          const timer = setTimeout(() => controller.abort(), 6000);
+          const headers = {};
+          if (cfg.githubToken && url.includes('github')) {
+            headers['Authorization'] = `Bearer ${cfg.githubToken}`;
+          }
+          const resp = await fetch(url, {
+            cache: 'no-store',
+            headers: headers,
+            signal: controller.signal
+          });
+          clearTimeout(timer);
+          if (resp.ok) {
+            const res = await resp.json();
+            const data = (res && res.data) ? res.data : res;
+            if (data && data.versionCode) {
+              updateInfo = data;
+              // Pastikan apkUrl mengarah ke rilis GitHub
+              if (!updateInfo.apkUrl || !updateInfo.apkUrl.includes('github.com')) {
+                updateInfo.apkUrl = cfg.githubLatestApkUrl;
+              }
+              if (!updateInfo.downloadPageUrl) {
+                updateInfo.downloadPageUrl = cfg.githubReleasesPage;
+              }
+              break;
+            }
+          }
+        } catch (err) {}
       }
     }
 
@@ -82,10 +175,10 @@ const AppUpdater = {
     if (!updateInfo) {
       if (!silent) {
         if (statusEl) {
-          statusEl.innerHTML = '<span style="color: var(--expense-red);">✕ Gagal terhubung ke server pembaruan. Pastikan internet aktif.</span>';
+          statusEl.innerHTML = '<span style="color: var(--expense-red);">✕ Gagal terhubung ke GitHub Releases. Pastikan koneksi internet aktif.</span>';
         }
         if (window.App && App.showToast) {
-          App.showToast('Gagal memeriksa pembaruan (offline / server tidak merespons)', 'error');
+          App.showToast('Gagal memeriksa rilis GitHub (offline / server GitHub tidak merespons)', 'error');
         }
       }
       return null;
@@ -93,21 +186,25 @@ const AppUpdater = {
 
     const currentCode = this.CURRENT_VERSION.versionCode;
     const remoteCode = parseInt(updateInfo.versionCode, 10) || 0;
+    const semverDiff = this.compareSemver(updateInfo.versionName, this.CURRENT_VERSION.versionName);
 
-    if (remoteCode > currentCode) {
+    // Deteksi apakah rilis lebih baru berdasarkan versionCode atau semver
+    const isNewer = remoteCode > currentCode || semverDiff > 0;
+
+    if (isNewer) {
       this.availableUpdate = updateInfo;
       if (statusEl) {
-        statusEl.innerHTML = `<span style="color: var(--income-green); font-weight: 700;">🚀 Pembaruan v${updateInfo.versionName} (Build #${remoteCode}) tersedia!</span>`;
+        statusEl.innerHTML = `<span style="color: var(--income-green); font-weight: 700;">🚀 Pembaruan GitHub v${updateInfo.versionName} (Build #${remoteCode}) tersedia!</span>`;
       }
       this.showModal(updateInfo);
       return updateInfo;
     } else {
       this.availableUpdate = null;
       if (statusEl) {
-        statusEl.innerHTML = `<span style="color: var(--income-green);">✓ Aplikasi adalah versi terbaru: <strong>v${this.CURRENT_VERSION.versionName} (Build #${currentCode})</strong></span>`;
+        statusEl.innerHTML = `<span style="color: var(--income-green);">✓ Aplikasi adalah versi terbaru: <strong>v${this.CURRENT_VERSION.versionName} (Build #${currentCode})</strong> via GitHub</span>`;
       }
       if (!silent && window.App && App.showToast) {
-        App.showToast(`Aplikasi sudah versi terbaru (v${this.CURRENT_VERSION.versionName})!`, 'success');
+        App.showToast(`Aplikasi sudah versi terbaru di GitHub (v${this.CURRENT_VERSION.versionName})!`, 'success');
       }
       return null;
     }
@@ -124,19 +221,19 @@ const AppUpdater = {
     const startBtn = document.getElementById('btnStartUpdate');
     const startBtnText = document.getElementById('btnStartUpdateText');
 
-    if (titleEl) titleEl.textContent = `Pembaruan v${info.versionName} Tersedia!`;
+    if (titleEl) titleEl.textContent = `Pembaruan GitHub v${info.versionName} Tersedia!`;
     if (subEl) {
-      subEl.innerHTML = `Versi terpasang: <strong>v${this.CURRENT_VERSION.versionName} (#${this.CURRENT_VERSION.versionCode})</strong> &bull; Versi baru: <strong style="color: var(--income-green);">v${info.versionName} (#${info.versionCode})</strong>`;
+      subEl.innerHTML = `Versi terpasang: <strong>v${this.CURRENT_VERSION.versionName} (#${this.CURRENT_VERSION.versionCode})</strong> &bull; Rilis Baru: <strong style="color: var(--income-green);">v${info.versionName} (#${info.versionCode})</strong> &bull; GitHub Releases`;
     }
     if (changelogEl) {
-      changelogEl.textContent = info.changelog || 'Peningkatan performa, sinkronisasi cloud real-time, dan kestabilan kasir.';
+      changelogEl.textContent = info.changelog || 'Peningkatan performa, sinkronisasi cloud real-time, dan pembaruan rilis GitHub.';
     }
     if (progressEl) progressEl.style.display = 'none';
     if (startBtn) {
       startBtn.disabled = false;
       startBtn.onclick = () => this.startDownload();
     }
-    if (startBtnText) startBtnText.textContent = 'Perbarui Sekarang';
+    if (startBtnText) startBtnText.textContent = 'Unduh & Perbarui dari GitHub';
 
     modal.classList.add('active');
   },
@@ -150,16 +247,17 @@ const AppUpdater = {
     const info = this.availableUpdate;
     if (!info) return;
 
-    const apkUrl = info.apkUrl || 'dialog-coffee-cashier-release.apk';
+    const cfg = this.getConfig();
+    const apkUrl = info.apkUrl || cfg.githubLatestApkUrl;
     const progressEl = document.getElementById('updateDownloadProgress');
     const startBtn = document.getElementById('btnStartUpdate');
     const startBtnText = document.getElementById('btnStartUpdateText');
 
     if (progressEl) progressEl.style.display = 'block';
     if (startBtn) startBtn.disabled = true;
-    if (startBtnText) startBtnText.textContent = 'Mengunduh APK...';
+    if (startBtnText) startBtnText.textContent = 'Mengunduh APK dari GitHub...';
 
-    // Buka file APK melalui tautan unduhan langsung untuk memicu Android Package Installer
+    // Buka tautan APK GitHub untuk memicu Download Manager bawaan Android
     try {
       const a = document.createElement('a');
       a.href = apkUrl;
@@ -173,18 +271,18 @@ const AppUpdater = {
     }
 
     if (window.App && App.showToast) {
-      App.showToast('Memulai pengunduhan APK pembaruan...', 'info');
+      App.showToast('Memulai pengunduhan APK rilis dari GitHub...', 'info');
     }
 
     setTimeout(() => {
       if (startBtn) {
         startBtn.disabled = false;
-        if (startBtnText) startBtnText.textContent = 'Unduh Ulang / Buka Link';
+        if (startBtnText) startBtnText.textContent = 'Buka Halaman Rilis GitHub';
         startBtn.onclick = () => {
-          window.open(info.downloadPageUrl || apkUrl, '_blank');
+          window.open(info.downloadPageUrl || cfg.githubReleasesPage, '_blank');
         };
       }
-    }, 3500);
+    }, 4000);
   }
 };
 

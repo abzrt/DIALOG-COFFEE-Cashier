@@ -595,22 +595,25 @@
             </div>
           </div>
 
-          <!-- Pembaruan Versi Aplikasi (Auto-Updater) -->
+          <!-- Pembaruan Versi Aplikasi (Auto-Updater via GitHub) -->
           <div class="settings-card">
-            <h3><span>🚀</span> <span>Pembaruan Versi Aplikasi (Auto-Update)</span></h3>
+            <h3><span>🚀</span> <span>Pembaruan Versi Aplikasi (Auto-Update via GitHub)</span></h3>
             <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-              Aplikasi memeriksa ketersediaan rilis APK terbaru secara otomatis saat dibuka. Anda juga dapat memeriksa pembaruan secara manual.
+              Aplikasi memeriksa ketersediaan rilis APK terbaru dari <strong>GitHub Releases</strong> secara otomatis saat dibuka. Anda juga dapat memeriksa pembaruan secara manual.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v1.4 (Build #5)</strong> &bull; Google Play Certified</span>
+                <span>Versi Terpasang: <strong>v1.4 (Build #5)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
-                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="AppUpdater.checkUpdate(false)" title="Periksa apakah ada versi APK baru di server">
-                  <span>🔄</span> <span>Periksa Pembaruan Sekarang</span>
+                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="AppUpdater.checkUpdate(false)" title="Periksa apakah ada versi APK baru di GitHub Releases">
+                  <span>🔄</span> <span>Periksa Pembaruan di GitHub</span>
                 </button>
+                <a href="https://github.com/abzrt/DIALOG-COFFEE-Cashier/releases/latest" target="_blank" class="btn-primary-action btn-closing" style="text-decoration: none; font-size: 0.82rem; padding: 8px 12px; display: inline-flex; align-items: center;" title="Buka Halaman Rilis GitHub">
+                  <span>🌐</span> <span>Halaman GitHub</span>
+                </a>
               </div>
             </div>
           </div>
@@ -1804,19 +1807,19 @@
   <script src="libs/jszip.min.js"></script>
 
   <!-- APPLICATION SCRIPTS -->
-  <script src="js/storage.js?v=20261025_17"></script>
-  <script src="js/i18n.js?v=20261025_17"></script>
-  <script src="js/whatsapp.js?v=20261025_17"></script>
-  <script src="js/export-pdf.js?v=20261025_17"></script>
-  <script src="js/export-word.js?v=20261025_17"></script>
-  <script src="js/pos.js?v=20261025_17"></script>
-  <script src="js/finance.js?v=20261025_17"></script>
-  <script src="js/reports.js?v=20261025_17"></script>
-  <script src="js/cloud-sync.js?v=20261025_17"></script>
-  <script src="js/owner.js?v=20261025_17"></script>
-  <script src="js/auth.js?v=20261025_17"></script>
-  <script src="js/updater.js?v=20261025_17"></script>
-  <script src="js/app.js?v=20261025_17"></script>
+  <script src="js/storage.js?v=20261025_19"></script>
+  <script src="js/i18n.js?v=20261025_19"></script>
+  <script src="js/whatsapp.js?v=20261025_19"></script>
+  <script src="js/export-pdf.js?v=20261025_19"></script>
+  <script src="js/export-word.js?v=20261025_19"></script>
+  <script src="js/pos.js?v=20261025_19"></script>
+  <script src="js/finance.js?v=20261025_19"></script>
+  <script src="js/reports.js?v=20261025_19"></script>
+  <script src="js/cloud-sync.js?v=20261025_19"></script>
+  <script src="js/owner.js?v=20261025_19"></script>
+  <script src="js/auth.js?v=20261025_19"></script>
+  <script src="js/updater.js?v=20261025_19"></script>
+  <script src="js/app.js?v=20261025_19"></script>
 
 
 </body>
