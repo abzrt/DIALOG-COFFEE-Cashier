@@ -46,6 +46,18 @@
   </script>
 
   <div class="app-shell">
+    <!-- TOP APP STICKY UPDATE BANNER -->
+    <div id="appUpdateStickyBanner" class="app-update-banner" style="display: none;">
+      <div class="update-banner-content">
+        <span class="update-banner-icon">🚀</span>
+        <span id="updateBannerText" class="update-banner-text">Pembaruan APK versi baru tersedia di GitHub!</span>
+      </div>
+      <div class="update-banner-actions">
+        <button type="button" class="btn-update-banner-action" onclick="AppUpdater.showModal(AppUpdater.availableUpdate)">Lihat Rincian</button>
+        <button type="button" class="btn-update-banner-close" onclick="document.getElementById('appUpdateStickyBanner').style.display='none'">✕</button>
+      </div>
+    </div>
+
     <!-- TOP APP BAR -->
     <header class="top-appbar">
       <div class="brand-section">

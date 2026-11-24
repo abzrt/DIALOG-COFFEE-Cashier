@@ -64,8 +64,9 @@ currentVersion.versionCode = newCode;
 currentVersion.versionName = newName;
 currentVersion.releaseDate = todayStr;
 currentVersion.changelog = newChangelog;
-currentVersion.apkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/releases/latest/download/dialog-coffee-cashier-release.apk`;
-currentVersion.downloadPageUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/releases/latest`;
+currentVersion.apkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/raw/main/dialog-coffee-cashier-release.apk`;
+currentVersion.fallbackApkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/releases/latest/download/dialog-coffee-cashier-release.apk`;
+currentVersion.downloadPageUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}`;
 
 fs.writeFileSync(versionJsonPath, JSON.stringify(currentVersion, null, 2) + '\n', 'utf8');
 console.log('✓ version.json diperbarui');
@@ -117,7 +118,24 @@ console.log('\n🔄 Sinkronisasi berkas web ke proyek Android...');
 runCmd('node scripts/sync-android.js');
 runCmd('node node_modules/@capacitor/cli/bin/capacitor copy android');
 
-// 8. Commit Git, Buat Tag, dan Push ke GitHub
+// 8. Kompilasi APK rilis baru secara otomatis
+console.log('\n🔨 Mengompilasi APK rilis baru...');
+const isWin = process.platform === 'win32';
+const gradlewCmd = isWin ? 'gradlew.bat' : './gradlew';
+console.log(`  > ${gradlewCmd} assembleRelease (in android/)`);
+execSync(`${gradlewCmd} assembleRelease`, { cwd: path.join(rootDir, 'android'), stdio: 'inherit' });
+
+// Salin file APK rilis ke root agar langsung ter-commit dan ter-push ke GitHub
+const builtApkPath = path.join(rootDir, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
+const targetReleaseApk = path.join(rootDir, 'dialog-coffee-cashier-release.apk');
+const targetApk = path.join(rootDir, 'dialog-coffee-cashier.apk');
+if (fs.existsSync(builtApkPath)) {
+  fs.copyFileSync(builtApkPath, targetReleaseApk);
+  fs.copyFileSync(builtApkPath, targetApk);
+  console.log('✓ APK rilis berhasil dikompilasi dan disalin ke root untuk di-push ke GitHub');
+}
+
+// 9. Commit Git (Termasuk file APK), Buat Tag, dan Push ke GitHub
 console.log('\n📦 Mengirim rilis baru ke GitHub...');
 const commitMsg = `chore: release version v${newName} (Build #${newCode})`;
 const tagMsg = `Release v${newName} (Build #${newCode})`;

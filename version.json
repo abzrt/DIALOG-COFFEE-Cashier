@@ -2,9 +2,9 @@
   "versionCode": 5,
   "versionName": "1.4",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/releases/latest/download/dialog-coffee-cashier-release.apk",
-  "fallbackApkUrl": "https://abzrtsushee.co-id.id/DIALOG%20COFFEE/dialog-coffee-cashier-release.apk",
-  "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/releases/latest",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
+  "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/releases/latest/download/dialog-coffee-cashier-release.apk",
+  "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-24",
-  "changelog": "Versi rilis resmi v1.4 (Build #5) - Fitur sinkronisasi menu real-time dan Auto-Updater via GitHub Releases."
+  "changelog": "Versi rilis resmi v1.4 (Build #5) - Fitur Auto-Update otomatis via GitHub repository."
 }

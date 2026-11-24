@@ -24,6 +24,7 @@ const AppUpdater = {
       githubToken: token,
       githubApiEndpoint: `https://api.github.com/repos/${repo}/releases/latest`,
       githubRawEndpoint: `https://raw.githubusercontent.com/${repo}/main/version.json`,
+      githubDirectApkUrl: `https://github.com/${repo}/raw/main/dialog-coffee-cashier-release.apk`,
       githubReleasesPage: `https://github.com/${repo}/releases/latest`,
       githubLatestApkUrl: `https://github.com/${repo}/releases/latest/download/dialog-coffee-cashier-release.apk`,
       apiUrl: apiUrl,
@@ -38,6 +39,33 @@ const AppUpdater = {
     setTimeout(() => {
       this.checkUpdate(true);
     }, 4000);
+
+    // Pengecekan berkala otomatis setiap 30 menit
+    setInterval(() => {
+      this.checkUpdate(true);
+    }, 30 * 60 * 1000);
+
+    // Cek ulang saat aplikasi dibuka kembali / resume dari background
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        this.checkUpdate(true);
+      }
+    });
+  },
+
+  showBanner(info) {
+    const banner = document.getElementById('appUpdateStickyBanner');
+    const textEl = document.getElementById('updateBannerText');
+    if (!banner) return;
+    if (textEl && info) {
+      textEl.textContent = `Pembaruan APK versi v${info.versionName} (#${info.versionCode}) tersedia di GitHub!`;
+    }
+    banner.style.display = 'flex';
+  },
+
+  hideBanner() {
+    const banner = document.getElementById('appUpdateStickyBanner');
+    if (banner) banner.style.display = 'none';
   },
 
   renderCurrentVersionInfo() {
@@ -156,9 +184,9 @@ const AppUpdater = {
             const data = (res && res.data) ? res.data : res;
             if (data && data.versionCode) {
               updateInfo = data;
-              // Pastikan apkUrl mengarah ke rilis GitHub
-              if (!updateInfo.apkUrl || !updateInfo.apkUrl.includes('github.com')) {
-                updateInfo.apkUrl = cfg.githubLatestApkUrl;
+              // Pastikan apkUrl mengarah ke direct raw atau release GitHub
+              if (!updateInfo.apkUrl) {
+                updateInfo.apkUrl = cfg.githubDirectApkUrl || cfg.githubLatestApkUrl;
               }
               if (!updateInfo.downloadPageUrl) {
                 updateInfo.downloadPageUrl = cfg.githubReleasesPage;
@@ -196,10 +224,12 @@ const AppUpdater = {
       if (statusEl) {
         statusEl.innerHTML = `<span style="color: var(--income-green); font-weight: 700;">🚀 Pembaruan GitHub v${updateInfo.versionName} (Build #${remoteCode}) tersedia!</span>`;
       }
+      this.showBanner(updateInfo);
       this.showModal(updateInfo);
       return updateInfo;
     } else {
       this.availableUpdate = null;
+      this.hideBanner();
       if (statusEl) {
         statusEl.innerHTML = `<span style="color: var(--income-green);">✓ Aplikasi adalah versi terbaru: <strong>v${this.CURRENT_VERSION.versionName} (Build #${currentCode})</strong> via GitHub</span>`;
       }
@@ -248,7 +278,7 @@ const AppUpdater = {
     if (!info) return;
 
     const cfg = this.getConfig();
-    const apkUrl = info.apkUrl || cfg.githubLatestApkUrl;
+    const apkUrl = info.apkUrl || cfg.githubDirectApkUrl || cfg.githubLatestApkUrl;
     const progressEl = document.getElementById('updateDownloadProgress');
     const startBtn = document.getElementById('btnStartUpdate');
     const startBtnText = document.getElementById('btnStartUpdateText');
