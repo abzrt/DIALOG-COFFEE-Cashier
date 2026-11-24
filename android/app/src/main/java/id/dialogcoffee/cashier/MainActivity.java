@@ -97,14 +97,15 @@ public class MainActivity extends BridgeActivity {
                     if (id != -1 && id == currentDownloadId) {
                         stopProgressPolling();
                         if (currentApkFileName != null) {
-                            File targetFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), currentApkFileName);
-                            
+                            File targetFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
+                                    currentApkFileName);
+
                             // Kirim sinyal ke WebView bahwa unduhan selesai
                             if (getBridge() != null && getBridge().getWebView() != null) {
                                 getBridge().getWebView().evaluateJavascript(
-                                    "if (window.AppUpdater && AppUpdater.onDownloadCompleted) AppUpdater.onDownloadCompleted('" + currentApkFileName + "');",
-                                    null
-                                );
+                                        "if (window.AppUpdater && AppUpdater.onDownloadCompleted) AppUpdater.onDownloadCompleted('"
+                                                + currentApkFileName + "');",
+                                        null);
                             }
 
                             // Langsung buka Package Installer secara otomatis (Auto-Install)
@@ -147,7 +148,8 @@ public class MainActivity extends BridgeActivity {
             if (manager != null) {
                 currentDownloadId = manager.enqueue(request);
                 startProgressPolling(manager, currentDownloadId);
-                Toast.makeText(MainActivity.this, "Mengunduh pembaruan di latar belakang...", Toast.LENGTH_SHORT).show();
+                Toast.makeText(MainActivity.this, "Mengunduh pembaruan di latar belakang...", Toast.LENGTH_SHORT)
+                        .show();
             }
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, "Gagal mengunduh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -159,7 +161,8 @@ public class MainActivity extends BridgeActivity {
         progressRunnable = new Runnable() {
             @Override
             public void run() {
-                if (currentDownloadId == -1 || manager == null) return;
+                if (currentDownloadId == -1 || manager == null)
+                    return;
                 DownloadManager.Query q = new DownloadManager.Query();
                 q.setFilterById(downloadId);
                 try (Cursor cursor = manager.query(q)) {
@@ -183,9 +186,10 @@ public class MainActivity extends BridgeActivity {
 
                         if (getBridge() != null && getBridge().getWebView() != null) {
                             getBridge().getWebView().evaluateJavascript(
-                                String.format("if (window.AppUpdater && AppUpdater.onDownloadProgress) AppUpdater.onDownloadProgress(%d, %d, %d);", fBytes, fTotal, fPercent),
-                                null
-                            );
+                                    String.format(
+                                            "if (window.AppUpdater && AppUpdater.onDownloadProgress) AppUpdater.onDownloadProgress(%d, %d, %d);",
+                                            fBytes, fTotal, fPercent),
+                                    null);
                         }
 
                         if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
@@ -193,7 +197,8 @@ public class MainActivity extends BridgeActivity {
                             return;
                         }
                     }
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
                 progressHandler.postDelayed(this, 500);
             }
         };
@@ -213,7 +218,8 @@ public class MainActivity extends BridgeActivity {
             public void run() {
                 try {
                     if (file == null || !file.exists()) {
-                        Toast.makeText(MainActivity.this, "Berkas installer APK tidak ditemukan.", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(MainActivity.this, "Berkas installer APK tidak ditemukan.", Toast.LENGTH_SHORT)
+                                .show();
                         return;
                     }
 
@@ -225,16 +231,17 @@ public class MainActivity extends BridgeActivity {
                             permIntent.setData(Uri.parse("package:" + getPackageName()));
                             permIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                             startActivity(permIntent);
-                            Toast.makeText(MainActivity.this, "Harap izinkan penginstalan dari sumber ini untuk melanjutkan pembaruan.", Toast.LENGTH_LONG).show();
+                            Toast.makeText(MainActivity.this,
+                                    "Harap izinkan penginstalan dari sumber ini untuk melanjutkan pembaruan.",
+                                    Toast.LENGTH_LONG).show();
                             return;
                         }
                     }
 
                     Uri apkUri = FileProvider.getUriForFile(
-                        MainActivity.this,
-                        getPackageName() + ".fileprovider",
-                        file
-                    );
+                            MainActivity.this,
+                            getPackageName() + ".fileprovider",
+                            file);
 
                     Intent installIntent = new Intent(Intent.ACTION_VIEW);
                     installIntent.setDataAndType(apkUri, "application/vnd.android.package-archive");
@@ -242,7 +249,8 @@ public class MainActivity extends BridgeActivity {
                     installIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                     startActivity(installIntent);
                 } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Gagal membuka installer: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    Toast.makeText(MainActivity.this, "Gagal membuka installer: " + e.getMessage(), Toast.LENGTH_LONG)
+                            .show();
                 }
             }
         });
@@ -266,17 +274,18 @@ public class MainActivity extends BridgeActivity {
         if (downloadReceiver != null) {
             try {
                 unregisterReceiver(downloadReceiver);
-            } catch (Exception e) {}
+            } catch (Exception e) {
+            }
         }
         super.onDestroy();
     }
 
     public void setStatusBarTheme(boolean isDark) {
         Window window = getWindow();
-        if (window == null) return;
+        if (window == null)
+            return;
         window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        WindowInsetsControllerCompat controller = 
-            WindowCompat.getInsetsController(window, window.getDecorView());
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, window.getDecorView());
 
         if (isDark) {
             // UI Hitam: Status bar hitam pekat, ikon statusbar & navigasi PUTIH
@@ -301,9 +310,8 @@ public class MainActivity extends BridgeActivity {
     public void onBackPressed() {
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().evaluateJavascript(
-                "if (window.App && typeof window.App.handleHardwareBackButton === 'function') { window.App.handleHardwareBackButton(); } else { window.history.back(); }",
-                null
-            );
+                    "if (window.App && typeof window.App.handleHardwareBackButton === 'function') { window.App.handleHardwareBackButton(); } else { window.history.back(); }",
+                    null);
             return;
         }
         super.onBackPressed();

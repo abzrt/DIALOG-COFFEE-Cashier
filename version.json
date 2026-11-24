@@ -1,10 +1,10 @@
 {
-  "versionCode": 11,
-  "versionName": "2.0",
+  "versionCode": 12,
+  "versionName": "2.1",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.0.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.1.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-24",
-  "changelog": "Pembaruan Auto-Install: Hapus notifikasi banner statusbar, unduhan selesai langsung otomatis buka installer APK"
+  "changelog": "Migrasi ke Google Firebase Realtime Database: Sinkronisasi instan real-time WebSocket, Anti Dual-Login otomatis dengan onDisconnect presence handler"
 }

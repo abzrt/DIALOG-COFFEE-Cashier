@@ -572,24 +572,24 @@
             </div>
           </div>
 
-          <!-- Cloud Database Sync (myphp.id / MySQL) -->
+          <!-- Cloud Database Sync (Google Firebase Realtime Database) -->
           <div class="settings-card">
-            <h3><span>🌐</span> <span data-i18n="cloudDbTitle">Database Rekapan Cloud (myphp.id / MySQL)</span></h3>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;" data-i18n="cloudDbDesc">
-              Koneksi database cloud berjalan otomatis di latar belakang untuk mengamankan rekapan closing dan transaksi kasir ke server <strong>myphp.id</strong>.
+            <h3><span>🔥</span> <span data-i18n="cloudDbTitle">Database Real-Time Cloud (Google Firebase)</span></h3>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Koneksi database real-time berjalan otomatis di latar belakang via WebSocket untuk mengamankan rekapan closing, transaksi kasir, sinkronisasi menu &amp; PIN, serta sistem <strong>Anti Dual-Login</strong> ke <strong>Google Firebase Realtime Database (Singapura)</strong>.
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="cloudSyncStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span class="cloud-sync-last-time">Status: Siap diuji</span>
+                <span class="cloud-sync-last-time">Status: Terhubung ke Firebase</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
-                <button type="button" class="btn-primary-action btn-closing" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.testConnection()" title="Uji koneksi ke database cloud myphp.id">
-                  <span>🔌</span> <span data-i18n="testDbBtn">Uji Koneksi Database</span>
+                <button type="button" class="btn-primary-action btn-closing" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.testConnection()" title="Uji koneksi ke Google Firebase Realtime Database">
+                  <span>🔌</span> <span>Uji Koneksi Firebase</span>
                 </button>
-                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.syncAllData()" title="Sinkronkan seluruh data rekapan ke database myphp.id">
-                  <span>☁️</span> <span data-i18n="syncAllDbBtn">Sinkronkan Seluruh Data</span>
+                <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="CloudSync.syncAllData()" title="Sinkronkan seluruh data rekapan &amp; transaksi ke Firebase">
+                  <span>🔥</span> <span>Sinkronkan ke Firebase</span>
                 </button>
               </div>
             </div>
@@ -604,7 +604,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v2.0 (Build #11)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+                <span>Versi Terpasang: <strong>v2.1 (Build #12)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
@@ -1818,7 +1818,8 @@
   </div>
 
   <!-- SCRIPT LIBRARIES -->
-
+  <script src="libs/firebase-app.js"></script>
+  <script src="libs/firebase-database.js"></script>
   <script src="libs/chart.umd.js"></script>
   <script src="libs/jspdf.umd.min.js"></script>
   <script src="libs/jspdf.plugin.autotable.min.js"></script>

@@ -74,8 +74,8 @@ const DEFAULT_SETTINGS = {
   ownerPin: '1996',
   baristaPin: '6969',
 
-  // Cloud Database (myphp.id MySQL Sync)
-  cloudSyncUrl: 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php',
+  // Cloud Database (Google Firebase Realtime Database)
+  cloudSyncUrl: 'https://tech-solution-6441a-default-rtdb.asia-southeast1.firebasedatabase.app',
   cloudApiKey: 'dialog2026',
   cloudAutoSync: true,
   lastCloudSync: null,
