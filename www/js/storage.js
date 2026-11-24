@@ -152,6 +152,12 @@ const StorageManager = {
     if (!trx.cashier) {
       trx.cashier = settings.activeCashier;
     }
+    if (!trx.deviceId && window.AuthModule && typeof AuthModule.getDeviceId === 'function') {
+      trx.deviceId = AuthModule.getDeviceId();
+    }
+    if (!trx.userRole && window.AuthModule && typeof AuthModule.getCurrentRole === 'function') {
+      trx.userRole = AuthModule.getCurrentRole() || 'barista';
+    }
 
     list.unshift(trx);
     this.saveAllTransactions(list);

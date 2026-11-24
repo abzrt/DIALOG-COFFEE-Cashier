@@ -55,7 +55,23 @@ const CloudSync = {
         this.db.ref('.info/connected').on('value', snap => {
           this.isFirebaseConnected = (snap.val() === true);
           this.updateStatusBadge();
+          if (this.isFirebaseConnected) {
+            this.syncPendingTransactions();
+          }
         });
+
+        // Auto-fetch saat aplikasi dibuka kembali / resume dari background
+        if (!this._hasVisibilityListener) {
+          this._hasVisibilityListener = true;
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.isFirebaseConnected) {
+              this.fetchTransactionsFromCloud();
+              if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
+                OwnerModule.renderAll();
+              }
+            }
+          });
+        }
 
         // 2. Real-Time Listener: Anti Dual-Login
         this.listenActiveSession();
@@ -480,9 +496,34 @@ const CloudSync = {
       try {
         await this.db.ref('transactions/' + trx.id).set(trx);
         console.log('⚡ Transaksi tersimpan instan ke Firebase:', trx.id);
+        const s = StorageManager.getSettings();
+        s.lastCloudSync = new Date().toISOString();
+        StorageManager.saveSettings(s);
       } catch (e) {
         console.warn('Gagal push transaksi ke Firebase:', e);
       }
+    }
+  },
+
+  async syncPendingTransactions() {
+    this.initFirebase();
+    if (!this.db || !this.isFirebaseConnected) return;
+    try {
+      const snap = await this.db.ref('transactions').once('value');
+      const cloudData = snap.val() || {};
+      const local = StorageManager.getTransactions();
+      const promises = [];
+      local.forEach(t => {
+        if (t && t.id && !cloudData[t.id]) {
+          promises.push(this.db.ref('transactions/' + t.id).set(t));
+        }
+      });
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        console.log(`⚡ ${promises.length} transaksi lokal berhasil disinkronkan ke cloud.`);
+      }
+    } catch (e) {
+      console.warn('syncPendingTransactions error:', e);
     }
   },
 
@@ -506,15 +547,67 @@ const CloudSync = {
       const trx = snap.val();
       if (trx && trx.id && window.StorageManager) {
         const local = StorageManager.getTransactions();
-        if (!local.some(t => t.id === trx.id)) {
+        const exists = local.some(t => t.id === trx.id);
+        if (!exists) {
           local.unshift(trx);
           StorageManager.saveAllTransactions(local);
+
+          const myDeviceId = window.AuthModule && typeof AuthModule.getDeviceId === 'function' ? AuthModule.getDeviceId() : '';
+          const isFromOtherDevice = trx.deviceId && trx.deviceId !== myDeviceId;
+
+          // 1. Sinkronkan semua tampilan (Dashboard Owner, Buku Kas, Laporan, Speed Bar POS)
           if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
             OwnerModule.renderAll();
           }
-          if (window.ReportsModule && typeof ReportsModule.renderSummaryCards === 'function') {
-            ReportsModule.renderSummaryCards();
+          if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
+            FinanceModule.renderAll();
           }
+          if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
+            ReportsModule.renderAll();
+          }
+          if (window.POSModule && typeof POSModule.renderSpeedBar === 'function') {
+            POSModule.renderSpeedBar();
+          }
+
+          // 2. Beri notifikasi audio visual instan pada HP Owner jika transaksi masuk dari Barista
+          if (isFromOtherDevice && window.AuthModule && AuthModule.isOwner()) {
+            if (window.App && typeof App.playChime === 'function') {
+              App.playChime();
+            }
+            if (window.App && typeof App.showToast === 'function') {
+              const isInc = trx.type === 'income';
+              const icon = isInc ? '☕' : '📉';
+              const title = isInc ? 'Transaksi Masuk (Barista)' : 'Pengeluaran Dicatat (Barista)';
+              const desc = trx.items && trx.items.length 
+                ? trx.items.map(i => `${i.name} x${i.qty}`).join(', ') 
+                : (trx.description || trx.category);
+              App.showToast(`${icon} ${title}: ${App.formatRupiah(trx.amount)} • ${desc}`, isInc ? 'success' : 'info', 5000);
+            }
+          }
+        }
+      }
+    });
+
+    this.db.ref('transactions').on('child_changed', snap => {
+      const trx = snap.val();
+      if (trx && trx.id && window.StorageManager) {
+        let local = StorageManager.getTransactions();
+        const idx = local.findIndex(t => t.id === trx.id);
+        if (idx >= 0) {
+          local[idx] = trx;
+        } else {
+          local.unshift(trx);
+        }
+        StorageManager.saveAllTransactions(local);
+
+        if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
+          OwnerModule.renderAll();
+        }
+        if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
+          FinanceModule.renderAll();
+        }
+        if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
+          ReportsModule.renderAll();
         }
       }
     });
@@ -529,6 +622,12 @@ const CloudSync = {
           StorageManager.saveAllTransactions(local);
           if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
             OwnerModule.renderAll();
+          }
+          if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
+            FinanceModule.renderAll();
+          }
+          if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
+            ReportsModule.renderAll();
           }
         }
       }
@@ -554,6 +653,12 @@ const CloudSync = {
             StorageManager.saveAllTransactions(merged);
             if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
               OwnerModule.renderAll();
+            }
+            if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
+              FinanceModule.renderAll();
+            }
+            if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
+              ReportsModule.renderAll();
             }
           }
         }

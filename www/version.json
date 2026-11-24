@@ -1,10 +1,10 @@
 {
-  "versionCode": 16,
-  "versionName": "2.5",
+  "versionCode": 17,
+  "versionName": "2.6",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.5.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.6.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-24",
-  "changelog": "Pemisahan Anti Dual-Login: Sesi Owner dan Barista kini independen di cloud sehingga HP Owner dan HP Barista bisa aktif bersamaan tanpa saling blokir"
+  "changelog": "Sinkronisasi Real-Time Penuh: Setiap transaksi penerimaan & pengeluaran barista otomatis masuk ke database cloud & langsung terupdate di layar HP Owner saat itu juga disertai notifikasi live"
 }
