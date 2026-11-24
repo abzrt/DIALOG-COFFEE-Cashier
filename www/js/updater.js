@@ -5,8 +5,8 @@
  */
 const AppUpdater = {
   CURRENT_VERSION: {
-    versionCode: 10,
-    versionName: '1.9'
+    versionCode: 11,
+    versionName: '2.0'
   },
   DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,
@@ -54,18 +54,52 @@ const AppUpdater = {
   },
 
   showBanner(info) {
-    const banner = document.getElementById('appUpdateStickyBanner');
-    const textEl = document.getElementById('updateBannerText');
-    if (!banner) return;
-    if (textEl && info) {
-      textEl.textContent = `Pembaruan APK versi v${info.versionName} (#${info.versionCode}) tersedia di GitHub!`;
-    }
-    banner.style.display = 'flex';
+    // Dinonaktifkan sesuai permintaan pengguna agar tidak menampilkan notifikasi banner di atas statusbar
   },
 
   hideBanner() {
-    const banner = document.getElementById('appUpdateStickyBanner');
-    if (banner) banner.style.display = 'none';
+    // No-op
+  },
+
+  onDownloadProgress(received, total, percent) {
+    const progressBarFill = document.getElementById('updateProgressBarFill');
+    const percentTextEl = document.getElementById('updateProgressPercentText');
+    const statusTextEl = document.getElementById('updateProgressStatusText');
+    if (progressBarFill) progressBarFill.style.width = `${percent}%`;
+    if (percentTextEl) percentTextEl.textContent = `${percent}%`;
+    if (statusTextEl) {
+      if (total > 0) {
+        const mbReceived = (received / (1024 * 1024)).toFixed(1);
+        const mbTotal = (total / (1024 * 1024)).toFixed(1);
+        statusTextEl.textContent = `Mengunduh APK: ${mbReceived} MB / ${mbTotal} MB (${percent}%)`;
+      } else {
+        statusTextEl.textContent = `Mengunduh APK: ${percent}%`;
+      }
+    }
+  },
+
+  onDownloadCompleted(fileName) {
+    const statusTextEl = document.getElementById('updateProgressStatusText');
+    const percentTextEl = document.getElementById('updateProgressPercentText');
+    const progressBarFill = document.getElementById('updateProgressBarFill');
+    const startBtn = document.getElementById('btnStartUpdate');
+    const startBtnText = document.getElementById('btnStartUpdateText');
+
+    if (progressBarFill) progressBarFill.style.width = '100%';
+    if (percentTextEl) percentTextEl.textContent = '100%';
+    if (statusTextEl) {
+      statusTextEl.innerHTML = '<strong style="color: var(--income-green, #16a34a);">✓ Unduhan selesai! Membuka installer pembaruan...</strong>';
+    }
+
+    if (startBtn) {
+      startBtn.disabled = false;
+      if (startBtnText) startBtnText.textContent = 'Pasang / Install Sekarang';
+      startBtn.onclick = () => {
+        if (window.AndroidBridge && typeof window.AndroidBridge.installDownloadedApk === 'function') {
+          window.AndroidBridge.installDownloadedApk(fileName);
+        }
+      };
+    }
   },
 
   renderCurrentVersionInfo() {
@@ -294,23 +328,16 @@ const AppUpdater = {
     if (percentTextEl) percentTextEl.textContent = '0%';
     if (progressBarFill) progressBarFill.style.width = '0%';
 
-    // 1. Jika berjalan di aplikasi Android (Native Bridge), gunakan Download Manager sistem di background
+    // 1. Jika berjalan di aplikasi Android (Native Bridge), gunakan Download Manager sistem dengan Auto-Installer
     if (window.AndroidBridge && typeof window.AndroidBridge.downloadApk === 'function') {
       try {
         window.AndroidBridge.downloadApk(apkUrl, fileName);
-        if (statusTextEl) statusTextEl.textContent = 'Mengunduh di bar notifikasi sistem...';
-        if (percentTextEl) percentTextEl.textContent = '100%';
-        if (progressBarFill) progressBarFill.style.width = '100%';
+        if (statusTextEl) statusTextEl.textContent = 'Mengunduh berkas APK di background...';
+        if (percentTextEl) percentTextEl.textContent = '0%';
+        if (progressBarFill) progressBarFill.style.width = '0%';
         if (window.App && App.showToast) {
-          App.showToast('Unduhan berjalan di latar belakang! Periksa notifikasi Android.', 'success');
+          App.showToast('Mengunduh pembaruan APK... Installer akan terbuka otomatis.', 'info');
         }
-        setTimeout(() => {
-          if (startBtn) {
-            startBtn.disabled = false;
-            if (startBtnText) startBtnText.textContent = 'Selesai (Periksa Bar Notifikasi)';
-            startBtn.onclick = () => this.closeModal();
-          }
-        }, 1500);
         return;
       } catch (e) {
         console.warn('AndroidBridge downloadApk failed, falling back to fetch in-app:', e);

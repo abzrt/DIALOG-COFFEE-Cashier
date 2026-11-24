@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dialog-coffee-cache-v24';
+const CACHE_NAME = 'dialog-coffee-cache-v25';
 
 const ASSETS_TO_CACHE = [
   './',
