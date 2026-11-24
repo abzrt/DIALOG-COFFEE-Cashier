@@ -7,7 +7,8 @@
     "start": "npx -y serve . -l 3000",
     "sync": "node scripts/sync-android.js && npx cap sync android",
     "android": "npx cap open android",
-    "build:apk": "node scripts/sync-android.js && npx cap sync android && cd android && gradlew.bat assembleDebug"
+    "build:apk": "node scripts/sync-android.js && npx cap sync android && cd android && gradlew.bat assembleDebug",
+    "release": "node scripts/release.js"
   },
   "keywords": [],
   "author": "",
