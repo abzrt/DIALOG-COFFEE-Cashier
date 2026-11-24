@@ -64,8 +64,8 @@ currentVersion.versionCode = newCode;
 currentVersion.versionName = newName;
 currentVersion.releaseDate = todayStr;
 currentVersion.changelog = newChangelog;
-currentVersion.apkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/raw/main/dialog-coffee-cashier-release.apk`;
-currentVersion.fallbackApkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/releases/latest/download/dialog-coffee-cashier-release.apk`;
+currentVersion.apkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/raw/main/dialog-coffee-cashier-v${newName}.apk`;
+currentVersion.fallbackApkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/raw/main/dialog-coffee-cashier-release.apk`;
 currentVersion.downloadPageUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}`;
 
 fs.writeFileSync(versionJsonPath, JSON.stringify(currentVersion, null, 2) + '\n', 'utf8');
@@ -125,14 +125,29 @@ const gradlewCmd = isWin ? 'gradlew.bat' : './gradlew';
 console.log(`  > ${gradlewCmd} assembleRelease (in android/)`);
 execSync(`${gradlewCmd} assembleRelease`, { cwd: path.join(rootDir, 'android'), stdio: 'inherit' });
 
-// Salin file APK rilis ke root agar langsung ter-commit dan ter-push ke GitHub
+// Salin file APK rilis ke root dengan nomor versi rilis agar langsung ter-commit dan ter-push ke GitHub
 const builtApkPath = path.join(rootDir, 'android', 'app', 'build', 'outputs', 'apk', 'release', 'app-release.apk');
+const targetVersionedApk = path.join(rootDir, `dialog-coffee-cashier-v${newName}.apk`);
 const targetReleaseApk = path.join(rootDir, 'dialog-coffee-cashier-release.apk');
 const targetApk = path.join(rootDir, 'dialog-coffee-cashier.apk');
+
+// Bersihkan APK versi lama di root jika ada agar repositori tetap rapi
+const rootFiles = fs.readdirSync(rootDir);
+rootFiles.forEach(file => {
+  if (/^dialog-coffee-cashier-v\d+.*\.apk$/i.test(file) && file !== `dialog-coffee-cashier-v${newName}.apk`) {
+    try {
+      fs.unlinkSync(path.join(rootDir, file));
+      console.log(`  - Menghapus APK versi lama: ${file}`);
+    } catch (e) {}
+  }
+});
+
 if (fs.existsSync(builtApkPath)) {
+  fs.copyFileSync(builtApkPath, targetVersionedApk);
   fs.copyFileSync(builtApkPath, targetReleaseApk);
   fs.copyFileSync(builtApkPath, targetApk);
-  console.log('✓ APK rilis berhasil dikompilasi dan disalin ke root untuk di-push ke GitHub');
+  console.log(`✓ APK rilis versi baru berhasil dikompilasi: dialog-coffee-cashier-v${newName}.apk`);
+  console.log('✓ APK rilis umum diperbarui: dialog-coffee-cashier-release.apk');
 }
 
 // 9. Commit Git (Termasuk file APK), Buat Tag, dan Push ke GitHub

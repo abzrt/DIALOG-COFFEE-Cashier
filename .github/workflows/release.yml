@@ -56,6 +56,7 @@ jobs:
 
       - name: Prepare Release APK Asset
         run: |
+          cp android/app/build/outputs/apk/release/app-release.apk dialog-coffee-cashier-v${{ steps.version_info.outputs.version_name }}.apk
           cp android/app/build/outputs/apk/release/app-release.apk dialog-coffee-cashier-release.apk
 
       - name: Publish GitHub Release with APK
@@ -63,7 +64,9 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           tag_name: ${{ github.ref_name }}
-          files: dialog-coffee-cashier-release.apk
+          files: |
+            dialog-coffee-cashier-v${{ steps.version_info.outputs.version_name }}.apk
+            dialog-coffee-cashier-release.apk
           name: DIALOG COFFEE Cashier ${{ github.ref_name }} (Build #${{ steps.version_info.outputs.version_code }})
           body: |
             Release resmi ${{ github.ref_name }} untuk aplikasi kasir DIALOG COFFEE Android.

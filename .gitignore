@@ -7,9 +7,8 @@ android/.gradle/
 *.log
 test_output.docx
 *.apk
-# Izinkan berkas APK rilis utama di-push langsung ke GitHub untuk Auto-Update
-!dialog-coffee-cashier-release.apk
-!dialog-coffee-cashier.apk
+# Izinkan berkas APK rilis utama dan ber-nomor versi di-push langsung ke GitHub
+!dialog-coffee-cashier*.apk
 preview_*.png
 local.properties
 android/local.properties
