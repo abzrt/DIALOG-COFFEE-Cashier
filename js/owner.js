@@ -139,19 +139,49 @@ const OwnerModule = {
     }
   },
 
-  submitLogin() {
+  async submitLogin() {
     const pinInput = document.getElementById('ownerPinInput');
     const enteredPin = (pinInput ? pinInput.value : '').trim();
-    const settings = StorageManager.getSettings();
-    const realPin = (settings.ownerPin || '1996').trim();
+    let settings = StorageManager.getSettings();
+    let realPin = (settings.ownerPin || '1996').trim();
 
     if (!enteredPin) {
       this.showLoginError('Masukkan PIN keamanan Owner terlebih dahulu.');
       return;
     }
 
+    // Selalu sinkronkan PIN terbaru dari cloud
+    if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
+      const errEl = document.getElementById('ownerPinError');
+      if (errEl && enteredPin !== realPin) {
+        errEl.textContent = '🔄 Checking...';
+        errEl.style.display = 'block';
+        errEl.style.color = 'var(--primary, #c9933a)';
+      }
+      await CloudSync.fetchSettingsFromCloud(6000, true);
+      settings = StorageManager.getSettings();
+      realPin = String(settings.ownerPin ?? '1996').trim() || '1996';
+    }
+
     if (enteredPin === realPin) {
+      // Verifikasi anti dual-login di Cloud
+      if (window.CloudSync && CloudSync.checkAndRegisterLoginSession && window.AuthModule) {
+        const devId = AuthModule.getDeviceId();
+        const sessionCheck = await CloudSync.checkAndRegisterLoginSession('owner', 'Owner', devId);
+        if (sessionCheck && sessionCheck.success === false) {
+          this.showLoginError(sessionCheck.message || 'Tidak bisa dual login! Akun sedang aktif digunakan.');
+          if (window.App) App.playBeep(260, 0.25, 'sawtooth');
+          return;
+        }
+        if (sessionCheck && sessionCheck.data && sessionCheck.data.token) {
+          try { localStorage.setItem(AuthModule.SESSION_TOKEN_KEY, sessionCheck.data.token); } catch (e) {}
+        }
+      }
+
       this.setLoggedIn(true);
+      if (window.AuthModule) {
+        AuthModule.setRole('owner');
+      }
       this.closeLoginModal();
       if (window.App) {
         App.playChime();
@@ -177,14 +207,13 @@ const OwnerModule = {
     }
   },
 
-  logout() {
+  async logout() {
     this.setLoggedIn(false);
     if (window.AuthModule) {
-      AuthModule.setRole('barista');
-    }
-    if (window.App) {
+      await AuthModule.logout();
+    } else if (window.App) {
       App.playBeep(440, 0.08);
-      App.showToast('Sesi Owner ditutup. Beralih ke mode Barista.', 'info');
+      App.showToast('Sesi Owner ditutup.', 'info');
       App.switchTab('pos');
     }
   },

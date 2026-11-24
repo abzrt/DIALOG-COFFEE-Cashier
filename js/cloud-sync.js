@@ -270,6 +270,10 @@ const CloudSync = {
           this.fetchSettingsFromCloud(5000);
           this.fetchTransactionsFromCloud(5000);
         }
+        // Heartbeat sesi login aktif ke cloud
+        if (window.AuthModule && AuthModule.isLoggedIn()) {
+          this.pingSession(AuthModule.getSessionToken());
+        }
       }, 5000);
     }
     window.addEventListener('focus', () => {
@@ -716,6 +720,92 @@ const CloudSync = {
     } catch (e) {
       console.warn('Gagal menghapus transaksi dari cloud:', e);
     }
+  },
+
+  async checkAndRegisterLoginSession(role, userName, deviceId, force = false) {
+    const cfg = this.getConfig();
+    const targetUrl = this.resolveUrl(cfg.url);
+    const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=login_session&t=' + Date.now();
+    const token = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+
+    try {
+      const resp = await fetch(syncUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Api-Key': cfg.apiKey
+        },
+        body: JSON.stringify({
+          api_key: cfg.apiKey,
+          role: role,
+          user: userName,
+          token: token,
+          deviceId: deviceId,
+          force: force
+        })
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return await resp.json();
+    } catch (e) {
+      console.warn('Gagal memverifikasi sesi login cloud (offline fallback):', e);
+      return { success: true, offline: true, data: { token: token } };
+    }
+  },
+
+  async logoutSession(token) {
+    const cfg = this.getConfig();
+    const targetUrl = this.resolveUrl(cfg.url);
+    const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=logout_session&t=' + Date.now();
+
+    try {
+      await fetch(syncUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Api-Key': cfg.apiKey
+        },
+        body: JSON.stringify({
+          api_key: cfg.apiKey,
+          token: token
+        })
+      });
+    } catch (e) {
+      console.warn('Gagal logout sesi di cloud:', e);
+    }
+  },
+
+  async pingSession(token) {
+    if (!token) return;
+    const cfg = this.getConfig();
+    const targetUrl = this.resolveUrl(cfg.url);
+    const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=session_ping&t=' + Date.now();
+
+    try {
+      await fetch(syncUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Api-Key': cfg.apiKey
+        },
+        body: JSON.stringify({
+          api_key: cfg.apiKey,
+          token: token
+        })
+      });
+    } catch (e) {}
+  },
+
+  async getActiveSession() {
+    const cfg = this.getConfig();
+    const targetUrl = this.resolveUrl(cfg.url);
+    const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=get_active_session&t=' + Date.now();
+    try {
+      const resp = await fetch(syncUrl, {
+        headers: { 'Accept': 'application/json', 'X-Api-Key': cfg.apiKey }
+      });
+      if (resp.ok) return await resp.json();
+    } catch (e) {}
+    return null;
   }
 };
 

@@ -257,6 +257,99 @@ if (!empty($API_KEY) && !empty($requestApiKey) && $requestApiKey !== $API_KEY) {
     sendResponse(false, 'API Key keamanan tidak valid!', null, 401);
 }
 
+// =============================================================================
+// AKSI KHUSUS: MANAJEMEN SESI TUNGGAL / ANTI DUAL LOGIN (OWNER & BARISTA)
+// =============================================================================
+
+// AKSI: LOGIN SESSION CHECK & REGISTER (ANTI DUAL LOGIN)
+if ($action === 'login_session') {
+    $role = isset($payload['role']) ? $payload['role'] : 'barista';
+    $user = isset($payload['user']) ? $payload['user'] : 'Barista';
+    $token = isset($payload['token']) ? $payload['token'] : ('sess_' . bin2hex(random_bytes(8)));
+    $deviceId = isset($payload['deviceId']) ? $payload['deviceId'] : '';
+    $force = !empty($payload['force']);
+
+    // Ambil sesi aktif di database
+    $q = $conn->query("SELECT nilai FROM tb_pengaturan WHERE kunci = 'active_session'");
+    $active = null;
+    if ($q && $row = $q->fetch_assoc()) {
+        $active = @json_decode($row['nilai'], true);
+    }
+
+    $now = time();
+    $timeoutSeconds = 7200; // 2 jam timeout otomatis jika perangkat mati / offline
+
+    if (!$force && $active && !empty($active['token'])) {
+        $lastPing = isset($active['lastPing']) ? intval($active['lastPing']) : 0;
+        $isSameDevice = (!empty($deviceId) && isset($active['deviceId']) && $active['deviceId'] === $deviceId);
+        $isSameToken = (!empty($token) && $active['token'] === $token);
+
+        // Jika bukan perangkat yang sama dan sesi masih aktif (< 2 jam)
+        if (!$isSameDevice && !$isSameToken && ($now - $lastPing) < $timeoutSeconds) {
+            $activeRole = isset($active['roleLabel']) ? $active['roleLabel'] : (isset($active['role']) ? ucfirst($active['role']) : 'Pengguna');
+            $activeUser = isset($active['user']) ? $active['user'] : $activeRole;
+            sendResponse(false, "Tidak bisa dual login! Akun saat ini sedang aktif digunakan oleh {$activeRole} ({$activeUser}) di perangkat lain. Harap logout dari sesi tersebut terlebih dahulu.", [
+                'active_session' => $active
+            ], 200);
+        }
+    }
+
+    // Daftarkan sesi aktif baru
+    $newSession = [
+        'role' => $role,
+        'roleLabel' => ($role === 'owner') ? 'Owner' : 'Barista',
+        'user' => $user,
+        'token' => $token,
+        'deviceId' => $deviceId,
+        'loginTime' => date('c'),
+        'lastPing' => $now
+    ];
+
+    $valJson = $conn->real_escape_string(json_encode($newSession, JSON_UNESCAPED_UNICODE));
+    $conn->query("INSERT INTO tb_pengaturan (kunci, nilai) VALUES ('active_session', '$valJson') ON DUPLICATE KEY UPDATE nilai = '$valJson'");
+
+    sendResponse(true, "Login sesi berhasil untuk {$newSession['roleLabel']}", $newSession);
+}
+
+// AKSI: SESSION HEARTBEAT PING
+if ($action === 'session_ping') {
+    $token = isset($payload['token']) ? $payload['token'] : (isset($_GET['token']) ? $_GET['token'] : '');
+    if (!empty($token)) {
+        $q = $conn->query("SELECT nilai FROM tb_pengaturan WHERE kunci = 'active_session'");
+        if ($q && $row = $q->fetch_assoc()) {
+            $active = @json_decode($row['nilai'], true);
+            if ($active && isset($active['token']) && $active['token'] === $token) {
+                $active['lastPing'] = time();
+                $valJson = $conn->real_escape_string(json_encode($active, JSON_UNESCAPED_UNICODE));
+                $conn->query("UPDATE tb_pengaturan SET nilai = '$valJson' WHERE kunci = 'active_session'");
+            }
+        }
+    }
+    sendResponse(true, 'Ping OK');
+}
+
+// AKSI: LOGOUT SESSION (BEBASKAN SESI CLOUD)
+if ($action === 'logout_session') {
+    $emptySession = json_encode([], JSON_UNESCAPED_UNICODE);
+    $conn->query("UPDATE tb_pengaturan SET nilai = '$emptySession' WHERE kunci = 'active_session'");
+    sendResponse(true, 'Sesi berhasil logout dari cloud');
+}
+
+// AKSI: GET STATUS SESI AKTIF
+if ($action === 'get_active_session') {
+    $q = $conn->query("SELECT nilai FROM tb_pengaturan WHERE kunci = 'active_session'");
+    $active = null;
+    if ($q && $row = $q->fetch_assoc()) {
+        $active = @json_decode($row['nilai'], true);
+    }
+    $now = time();
+    $timeoutSeconds = 7200;
+    if ($active && isset($active['lastPing']) && ($now - intval($active['lastPing'])) > $timeoutSeconds) {
+        $active = null;
+    }
+    sendResponse(true, 'Status sesi aktif', $active);
+}
+
 // AKSI 2: SINKRONISASI REKAPAN CLOSING SHIFT
 if ($action === 'sync_closing') {
     $closing = isset($payload['closing']) ? $payload['closing'] : $payload;

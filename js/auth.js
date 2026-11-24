@@ -7,6 +7,8 @@
 const AuthModule = {
   SESSION_KEY: 'dialog_coffee_user_role_v1',
   REMEMBERED_KEY: 'dialog_coffee_remembered_role_v1',
+  SESSION_TOKEN_KEY: 'dialog_coffee_session_token_v1',
+  DEVICE_ID_KEY: 'dialog_coffee_device_id_v1',
   selectedRole: 'barista', // 'owner' | 'barista'
 
   init() {
@@ -17,9 +19,40 @@ const AuthModule = {
         OwnerModule.setLoggedIn(true);
       }
       this.applyRoleUI(currentRole);
+      // Sinkronkan token sesi jika belum ada
+      if (!this.getSessionToken() && window.CloudSync && CloudSync.checkAndRegisterLoginSession) {
+        const userName = currentRole === 'owner' ? 'Owner' : 'Barista';
+        CloudSync.checkAndRegisterLoginSession(currentRole, userName, this.getDeviceId()).then(res => {
+          if (res && res.data && res.data.token) {
+            try { localStorage.setItem(this.SESSION_TOKEN_KEY, res.data.token); } catch (e) {}
+          }
+        });
+      }
     } else {
       // Not logged in yet: display mandatory login modal on first app launch
       this.openLoginModal(false);
+    }
+  },
+
+  getDeviceId() {
+    let id = '';
+    try {
+      id = localStorage.getItem(this.DEVICE_ID_KEY);
+      if (!id) {
+        id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+        localStorage.setItem(this.DEVICE_ID_KEY, id);
+      }
+    } catch (e) {
+      id = 'dev_' + Date.now();
+    }
+    return id;
+  },
+
+  getSessionToken() {
+    try {
+      return localStorage.getItem(this.SESSION_TOKEN_KEY) || '';
+    } catch (e) {
+      return '';
     }
   },
 
@@ -56,9 +89,40 @@ const AuthModule = {
     try {
       localStorage.removeItem(this.SESSION_KEY);
       sessionStorage.removeItem(this.SESSION_KEY);
+      localStorage.removeItem(this.SESSION_TOKEN_KEY);
     } catch (e) {}
     if (window.OwnerModule) {
       OwnerModule.setLoggedIn(false);
+    }
+  },
+
+  async logout() {
+    const token = this.getSessionToken();
+    if (window.CloudSync && CloudSync.logoutSession) {
+      try {
+        await CloudSync.logoutSession(token);
+      } catch (e) {}
+    }
+    this.clearSession();
+    this.applyRoleUI(null);
+    if (window.App) {
+      App.playBeep(440, 0.1);
+      App.showToast('Sesi berhasil logout. Sistem siap digunakan oleh pengguna berikutnya.', 'info');
+    }
+    this.openLoginModal(false);
+  },
+
+  async forceReleaseSession() {
+    if (!confirm('Apakah Anda yakin ingin melepas paksa sesi aktif sebelumnya di cloud? Gunakan ini jika perangkat sebelumnya mati atau kehabisan baterai.')) {
+      return;
+    }
+    if (window.CloudSync && CloudSync.logoutSession) {
+      await CloudSync.logoutSession();
+    }
+    this.clearSession();
+    this.openLoginModal(false);
+    if (window.App) {
+      App.showToast('Sesi cloud sebelumnya telah dibebaskan. Silakan login sekarang.', 'success');
     }
   },
 
@@ -109,12 +173,42 @@ const AuthModule = {
 
     const cancelBtn = document.getElementById('btnCancelAuthModal');
     const closeBtn = document.getElementById('btnCloseAuthModal');
+    const noticeEl = document.getElementById('authActiveSessionNotice');
+    const noticeTitle = document.getElementById('authActiveSessionTitle');
+    const noticeDesc = document.getElementById('authActiveSessionDesc');
     const current = this.getCurrentRole();
 
     // If already logged in, permit cancelling out of modal
     const allowClose = canCancel && !!current;
     if (cancelBtn) cancelBtn.style.display = allowClose ? 'inline-block' : 'none';
     if (closeBtn) closeBtn.style.display = allowClose ? 'block' : 'none';
+
+    // Tampilkan peringatan sesi jika sudah login lokal atau aktif di perangkat lain
+    if (current) {
+      if (noticeEl) {
+        noticeEl.style.display = 'block';
+        if (noticeTitle) noticeTitle.textContent = 'Sesi Sedang Aktif di Perangkat Ini';
+        if (noticeDesc) {
+          noticeDesc.innerHTML = `Perangkat ini saat ini login sebagai <strong>${current === 'owner' ? 'Owner' : 'Barista'}</strong>. Untuk login akun lain atau membebaskan sesi, silakan klik tombol <strong>Keluar / Logout</strong> di bawah.`;
+        }
+      }
+    } else {
+      if (noticeEl) noticeEl.style.display = 'none';
+      if (window.CloudSync && CloudSync.getActiveSession) {
+        CloudSync.getActiveSession().then(res => {
+          if (res && res.data && res.data.token && res.data.deviceId !== this.getDeviceId()) {
+            const s = res.data;
+            if (noticeEl) {
+              noticeEl.style.display = 'block';
+              if (noticeTitle) noticeTitle.textContent = 'Akun Sedang Digunakan di Perangkat Lain';
+              if (noticeDesc) {
+                noticeDesc.innerHTML = `Sistem membatasi 1 sesi aktif (Anti Dual-Login). Akun kasir saat ini sedang aktif digunakan oleh <strong>${s.roleLabel || s.role} (${s.user || 'Aktif'})</strong> di perangkat lain.<br><small style="color:var(--text-muted);">Sesi tersebut harus logout terlebih dahulu agar Anda dapat masuk.</small>`;
+              }
+            }
+          }
+        });
+      }
+    }
 
     // Set active selection: remember choice from localStorage or current role, default barista
     let targetRole = 'barista';
@@ -159,6 +253,14 @@ const AuthModule = {
       return;
     }
 
+    // Blokir jika perangkat ini belum logout dari sesi aktifnya
+    if (this.isLoggedIn()) {
+      const activeRoleLabel = this.isOwner() ? 'Owner' : 'Barista';
+      this.showError(`Anda saat ini masih login sebagai ${activeRoleLabel}. Harap tekan tombol "Keluar / Logout" terlebih dahulu.`);
+      if (window.App) App.playBeep(260, 0.15, 'sawtooth');
+      return;
+    }
+
     if (this.selectedRole === 'owner') {
       // Selalu sinkronkan PIN terbaru dari cloud sebelum verifikasi agar perubahan PIN langsung berlaku di semua perangkat
       if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
@@ -174,6 +276,19 @@ const AuthModule = {
       }
 
       if (enteredPin === expectedOwnerPin) {
+        // Verifikasi Anti Dual-Login di Cloud
+        if (window.CloudSync && CloudSync.checkAndRegisterLoginSession) {
+          const sessionCheck = await CloudSync.checkAndRegisterLoginSession('owner', 'Owner', this.getDeviceId());
+          if (sessionCheck && sessionCheck.success === false) {
+            this.showError(sessionCheck.message || 'Tidak bisa dual login! Akun sedang aktif di perangkat lain.');
+            if (window.App) App.playBeep(260, 0.25, 'sawtooth');
+            return;
+          }
+          if (sessionCheck && sessionCheck.data && sessionCheck.data.token) {
+            try { localStorage.setItem(this.SESSION_TOKEN_KEY, sessionCheck.data.token); } catch (e) {}
+          }
+        }
+
         this.setRole('owner');
         if (window.OwnerModule) {
           OwnerModule.setLoggedIn(true);
@@ -209,6 +324,22 @@ const AuthModule = {
       }
 
       if (enteredPin === expectedBaristaPin) {
+        // Verifikasi Anti Dual-Login di Cloud
+        if (window.CloudSync && CloudSync.checkAndRegisterLoginSession) {
+          const activeShift = (window.App && App.activeShift) ? App.activeShift : 'Shift 1';
+          const barista1 = (window.App && App.activeBarista1) ? App.activeBarista1 : 'Barista';
+          const userName = `${barista1} (${activeShift})`;
+          const sessionCheck = await CloudSync.checkAndRegisterLoginSession('barista', userName, this.getDeviceId());
+          if (sessionCheck && sessionCheck.success === false) {
+            this.showError(sessionCheck.message || 'Tidak bisa dual login! Akun sedang aktif di perangkat lain.');
+            if (window.App) App.playBeep(260, 0.25, 'sawtooth');
+            return;
+          }
+          if (sessionCheck && sessionCheck.data && sessionCheck.data.token) {
+            try { localStorage.setItem(this.SESSION_TOKEN_KEY, sessionCheck.data.token); } catch (e) {}
+          }
+        }
+
         this.setRole('barista');
         if (window.OwnerModule) OwnerModule.setLoggedIn(false);
         if (window.CloudSync && CloudSync.fetchTransactionsFromCloud) {

@@ -616,7 +616,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v1.8 (Build #9)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+                <span>Versi Terpasang: <strong>v1.9 (Build #10)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
@@ -1387,8 +1387,8 @@
           <div style="font-size: 0.85rem; color: var(--text-secondary);">
             Akun Aktif: <strong id="shiftModalRoleText" style="color: var(--text-primary);">☕ Barista</strong>
           </div>
-          <button type="button" class="btn-primary-action" id="btnShiftSwitchAccount" style="background: var(--bg-card); color: var(--text-primary); border: 1.5px solid var(--border-color); padding: 6px 12px; font-size: 0.8rem;" onclick="App.closeShiftModal(); AuthModule.openLoginModal(true);">
-            <span>⇅</span> <span data-i18n="switchAccountBtn">Ganti Akun</span>
+          <button type="button" class="btn-primary-action btn-danger-action" id="btnShiftLogoutAccount" style="background: var(--expense-red, #dc2626); color: #ffffff; border: none; padding: 6px 14px; font-size: 0.8rem; font-weight: 700; border-radius: var(--radius-sm, 6px); cursor: pointer;" onclick="App.closeShiftModal(); AuthModule.logout();">
+            <span>🚪</span> <span>Keluar / Logout</span>
           </button>
         </div>
         <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
@@ -1550,6 +1550,24 @@
           <div style="text-align: left;">
             <div style="font-size: 1.15rem; font-weight: 900; color: var(--text-primary); letter-spacing: -0.3px;">DIALOG COFFEE</div>
             <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;" data-i18n="appSubTitle">Sistem Kasir &amp; Pembukuan</div>
+          </div>
+        </div>
+
+        <!-- Active Session Notice (Anti Dual-Login) -->
+        <div id="authActiveSessionNotice" style="display: none; background: rgba(220, 38, 38, 0.1); border: 1px solid var(--expense-red, #dc2626); border-radius: var(--radius-sm, 8px); padding: 12px 14px; margin-bottom: 14px; text-align: left;">
+          <div style="display: flex; align-items: center; gap: 8px; color: var(--expense-red, #dc2626); font-weight: 700; font-size: 0.85rem; margin-bottom: 4px;">
+            <span>⚠️</span> <span id="authActiveSessionTitle">Sesi Sedang Aktif</span>
+          </div>
+          <div id="authActiveSessionDesc" style="font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 10px;">
+            Akun saat ini sedang digunakan. Untuk login akun lain, Anda harus logout terlebih dahulu.
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn-primary-action" style="background: var(--expense-red, #dc2626); color: #fff; border: none; padding: 6px 14px; font-size: 0.78rem; border-radius: var(--radius-sm, 6px); font-weight: 700; cursor: pointer;" onclick="AuthModule.logout()">
+              🚪 Keluar / Logout Sesi Ini
+            </button>
+            <button type="button" class="btn-primary-action" id="btnForceReleaseSession" style="background: transparent; color: var(--text-muted); border: 1px solid var(--border-color); padding: 6px 10px; font-size: 0.75rem; border-radius: var(--radius-sm, 6px); cursor: pointer;" onclick="AuthModule.forceReleaseSession()">
+              🔄 Lepas Sesi Cloud Lama
+            </button>
           </div>
         </div>
 

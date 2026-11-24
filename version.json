@@ -1,10 +1,10 @@
 {
-  "versionCode": 9,
-  "versionName": "1.8",
+  "versionCode": 10,
+  "versionName": "1.9",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v1.8.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v1.9.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-24",
-  "changelog": "Versi rilis resmi v1.8 (Build #9) - Pembaruan otomatis via GitHub."
+  "changelog": "Fitur Anti Dual-Login: Batasi 1 sesi login aktif di cloud & lokal, tombol Keluar/Logout di Shift & Owner, sinkronisasi real-time"
 }
