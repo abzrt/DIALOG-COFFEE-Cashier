@@ -3,6 +3,7 @@ const path = require('path');
 
 const srcDir = path.resolve(__dirname, '..');
 const distDir = path.resolve(srcDir, 'www');
+const androidPublicDir = path.resolve(srcDir, 'android', 'app', 'src', 'main', 'assets', 'public');
 
 function copyRecursiveSync(src, dest) {
   const exists = fs.existsSync(src);
@@ -24,20 +25,23 @@ function copyRecursiveSync(src, dest) {
   }
 }
 
-console.log('🔄 Menyiapkan folder www untuk Android build...');
+console.log('🔄 Menyiapkan folder www & Android assets untuk build...');
 if (!fs.existsSync(distDir)) {
   fs.mkdirSync(distDir, { recursive: true });
+}
+if (!fs.existsSync(androidPublicDir)) {
+  fs.mkdirSync(androidPublicDir, { recursive: true });
 }
 
 const itemsToCopy = ['index.html', 'manifest.json', 'sw.js', 'version.json', 'css', 'js', 'assets', 'libs', 'api_sync.php', 'database_rekapan.sql', 'download.html', 'preview.html'];
 
 itemsToCopy.forEach(item => {
   const itemSrc = path.join(srcDir, item);
-  const itemDest = path.join(distDir, item);
   if (fs.existsSync(itemSrc)) {
-    copyRecursiveSync(itemSrc, itemDest);
+    copyRecursiveSync(itemSrc, path.join(distDir, item));
+    copyRecursiveSync(itemSrc, path.join(androidPublicDir, item));
     console.log(`  ✓ Tersalin: ${item}`);
   }
 });
 
-console.log('✅ Sinkronisasi www selesai!');
+console.log('✅ Sinkronisasi www & Android public selesai!');

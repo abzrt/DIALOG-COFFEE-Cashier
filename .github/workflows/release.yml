@@ -36,21 +36,17 @@ jobs:
       - name: Extract Version Info from version.json
         id: version_info
         run: |
-          VERSION_NAME=$(node -p "require('./version.json').versionName || '1.4'")
-          VERSION_CODE=$(node -p "require('./version.json').versionCode || 5")
+          VERSION_NAME=$(node -p "require('./version.json').versionName || '1.5'")
+          VERSION_CODE=$(node -p "require('./version.json').versionCode || 6")
           CHANGELOG=$(node -p "require('./version.json').changelog || 'Peningkatan performa dan kestabilan kasir.'")
           echo "version_name=$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
           echo "tag_name=v$VERSION_NAME" >> $GITHUB_OUTPUT
           echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
 
-      - name: Install Dependencies
-        run: npm install
-
       - name: Sync Web Assets to Android Project
         run: |
           node scripts/sync-android.js
-          node node_modules/@capacitor/cli/bin/capacitor sync android
 
       - name: Build Release APK with Gradle
         run: |
@@ -64,12 +60,13 @@ jobs:
 
       - name: Publish GitHub Release with APK
         uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
         with:
-          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || steps.version_info.outputs.tag_name }}
+          tag_name: ${{ github.ref_name }}
           files: dialog-coffee-cashier-release.apk
-          name: DIALOG COFFEE Cashier v${{ steps.version_info.outputs.version_name }} (Build #${{ steps.version_info.outputs.version_code }})
+          name: DIALOG COFFEE Cashier ${{ github.ref_name }} (Build #${{ steps.version_info.outputs.version_code }})
           body: |
-            Release resmi v${{ steps.version_info.outputs.version_name }} (Build #${{ steps.version_info.outputs.version_code }}) untuk aplikasi kasir DIALOG COFFEE Android.
+            Release resmi ${{ github.ref_name }} untuk aplikasi kasir DIALOG COFFEE Android.
             
             ### Catatan Rilis:
             ${{ steps.version_info.outputs.changelog }}
