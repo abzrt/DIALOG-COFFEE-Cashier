@@ -1,10 +1,10 @@
 {
-  "versionCode": 15,
-  "versionName": "2.4",
+  "versionCode": 16,
+  "versionName": "2.5",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.4.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.5.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-24",
-  "changelog": "Fitur Baru: Haptic feedback, Speed Bar favorit, Dine-In/Take-Away toggle, Diskon promo preset, Resep BOM & stok bahan otomatis, Analisis Jam Sibuk (Peak Hours), dan tombol cepat Rekap Shift WA"
+  "changelog": "Pemisahan Anti Dual-Login: Sesi Owner dan Barista kini independen di cloud sehingga HP Owner dan HP Barista bisa aktif bersamaan tanpa saling blokir"
 }

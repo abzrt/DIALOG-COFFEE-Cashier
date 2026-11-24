@@ -114,13 +114,17 @@ const CloudSync = {
     }
   },
 
+  _activeSessions: {},
+
   async checkAndRegisterLoginSession(role, userName, deviceId, force = false) {
     this.initFirebase();
-    const token = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+    const roleKey = (role || 'barista').toLowerCase() === 'owner' ? 'owner' : 'barista';
+    const roleLabel = roleKey === 'owner' ? 'Owner' : 'Barista';
+    const token = 'sess_' + roleKey + '_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
 
     if (this.db) {
       try {
-        const sessionRef = this.db.ref('active_session');
+        const sessionRef = this.db.ref(`active_sessions/${roleKey}`);
         const snap = await sessionRef.once('value');
         const active = snap.val();
 
@@ -130,19 +134,18 @@ const CloudSync = {
           const isSameToken = (active.token === myToken);
 
           if (!isSameDevice && !isSameToken) {
-            const roleLabel = active.roleLabel || (active.role === 'owner' ? 'Owner' : 'Barista');
             const user = active.user || roleLabel;
             return {
               success: false,
-              message: `Tidak bisa dual login! Akun saat ini sedang aktif digunakan oleh ${roleLabel} (${user}) di perangkat lain. Harap logout terlebih dahulu.`,
+              message: `Tidak bisa dual login ${roleLabel}! Akun ${roleLabel} saat ini sedang aktif digunakan oleh ${user} di perangkat lain. Harap logout terlebih dahulu.`,
               data: { active_session: active }
             };
           }
         }
 
         const newSession = {
-          role: role,
-          roleLabel: role === 'owner' ? 'Owner' : 'Barista',
+          role: roleKey,
+          roleLabel: roleLabel,
           user: userName,
           token: token,
           deviceId: deviceId,
@@ -153,12 +156,15 @@ const CloudSync = {
         await sessionRef.set(newSession);
 
         // onDisconnect handler: jika perangkat mati/koneksi putus/aplikasi tertutup,
-        // Firebase otomatis melepaskan status sesi aktif di cloud!
+        // Firebase otomatis melepaskan status sesi aktif di cloud untuk role ini!
         sessionRef.onDisconnect().remove();
+
+        // Hapus node legacy active_session jika masih tersisa
+        try { this.db.ref('active_session').remove(); } catch (e) {}
 
         return {
           success: true,
-          message: `Login sesi berhasil untuk ${newSession.roleLabel}`,
+          message: `Login sesi berhasil untuk ${roleLabel}`,
           data: newSession
         };
       } catch (e) {
@@ -170,74 +176,104 @@ const CloudSync = {
     return { success: true, offline: true, data: { token: token } };
   },
 
-  async logoutSession(token) {
+  async logoutSession(role, token) {
     this.initFirebase();
+    const roleKey = (role || (window.AuthModule ? AuthModule.getCurrentRole() : null) || 'barista').toLowerCase() === 'owner' ? 'owner' : 'barista';
     if (this.db) {
       try {
-        const sessionRef = this.db.ref('active_session');
+        const sessionRef = this.db.ref(`active_sessions/${roleKey}`);
         sessionRef.onDisconnect().cancel();
         await sessionRef.remove();
-        console.log('⚡ Sesi logout dari Firebase berhasil');
+
+        // Bersihkan legacy node jika ada
+        try { this.db.ref('active_session').remove(); } catch (e) {}
+        console.log(`⚡ Sesi ${roleKey} logout dari Firebase berhasil`);
       } catch (e) {
-        console.warn('Gagal logout sesi di Firebase:', e);
+        console.warn(`Gagal logout sesi ${roleKey} di Firebase:`, e);
       }
     }
   },
 
-  async pingSession(token) {
+  async pingSession(role, token) {
     this.initFirebase();
+    const roleKey = (role || (window.AuthModule ? AuthModule.getCurrentRole() : null) || 'barista').toLowerCase() === 'owner' ? 'owner' : 'barista';
     if (this.db && token) {
       try {
-        await this.db.ref('active_session/lastPing').set(Date.now());
+        await this.db.ref(`active_sessions/${roleKey}/lastPing`).set(Date.now());
       } catch (e) {}
     }
   },
 
-  async getActiveSession() {
+  async getActiveSession(role) {
     this.initFirebase();
     if (this.db) {
       try {
-        const snap = await this.db.ref('active_session').once('value');
-        return { success: true, data: snap.val() };
+        if (role) {
+          const roleKey = role.toLowerCase() === 'owner' ? 'owner' : 'barista';
+          const snap = await this.db.ref(`active_sessions/${roleKey}`).once('value');
+          return { success: true, data: snap.val() };
+        } else {
+          const snap = await this.db.ref('active_sessions').once('value');
+          return { success: true, data: snap.val() };
+        }
       } catch (e) {}
     }
     return null;
   },
 
-  listenActiveSession() {
-    if (!this.db) return;
-    this.db.ref('active_session').on('value', snap => {
-      const active = snap.val();
-      const myDeviceId = window.AuthModule ? AuthModule.getDeviceId() : '';
-      const myToken = window.AuthModule ? AuthModule.getSessionToken() : '';
-      const modal = document.getElementById('accountLoginModal');
-      const noticeEl = document.getElementById('authActiveSessionNotice');
-      const noticeTitle = document.getElementById('authActiveSessionTitle');
-      const noticeDesc = document.getElementById('authActiveSessionDesc');
+  updateModalSessionNotice() {
+    const modal = document.getElementById('accountLoginModal');
+    const noticeEl = document.getElementById('authActiveSessionNotice');
+    const noticeTitle = document.getElementById('authActiveSessionTitle');
+    const noticeDesc = document.getElementById('authActiveSessionDesc');
+    if (!modal || !modal.classList.contains('active')) return;
 
-      // 1. Tampilkan peringatan real-time di modal login jika ada perangkat lain yang aktif
-      if (modal && modal.classList.contains('active')) {
-        if (active && active.token && active.deviceId !== myDeviceId) {
-          if (noticeEl) {
-            noticeEl.style.display = 'block';
-            if (noticeTitle) noticeTitle.textContent = 'Akun Sedang Digunakan di Perangkat Lain';
-            if (noticeDesc) {
-              noticeDesc.innerHTML = `Sistem membatasi 1 sesi aktif (Anti Dual-Login). Akun kasir saat ini sedang aktif digunakan oleh <strong>${active.roleLabel || active.role} (${active.user || 'Aktif'})</strong> di perangkat lain.<br><small style="color:var(--text-muted);">Sesi tersebut harus logout terlebih dahulu agar Anda dapat masuk.</small>`;
-            }
-          }
-        } else if (window.AuthModule && !AuthModule.isLoggedIn()) {
-          if (noticeEl) noticeEl.style.display = 'none';
+    const myDeviceId = window.AuthModule ? AuthModule.getDeviceId() : '';
+    const selectedRole = (window.AuthModule && AuthModule.selectedRole) ? AuthModule.selectedRole : 'barista';
+    const roleSession = this._activeSessions ? this._activeSessions[selectedRole] : null;
+
+    if (roleSession && roleSession.token && roleSession.deviceId !== myDeviceId) {
+      if (noticeEl) {
+        noticeEl.style.display = 'block';
+        const roleLabel = selectedRole === 'owner' ? 'Owner' : 'Barista';
+        if (noticeTitle) noticeTitle.textContent = `Akun ${roleLabel} Sedang Digunakan di Perangkat Lain`;
+        if (noticeDesc) {
+          noticeDesc.innerHTML = `Sistem membatasi 1 sesi aktif per role (${roleLabel}). Akun ${roleLabel} saat ini sedang aktif digunakan oleh <strong>${roleSession.user || roleLabel}</strong> di perangkat lain.<br><small style="color:var(--text-muted);">Sesi ${roleLabel} tersebut harus logout terlebih dahulu agar Anda dapat masuk sebagai ${roleLabel}. Role lain tetap dapat digunakan secara bersamaan.</small>`;
         }
       }
+    } else {
+      if (noticeEl) noticeEl.style.display = 'none';
+    }
+  },
 
-      // 2. Jika perangkat ini sedang login, tetapi di Firebase sesi sudah ditutup oleh device lain (misal Owner force logout)
-      if (window.AuthModule && AuthModule.isLoggedIn()) {
-        if (!active || (active.token !== myToken && active.deviceId !== myDeviceId)) {
+  listenActiveSession() {
+    if (!this.db) return;
+
+    // Bersihkan sesi legacy jika ada
+    try { this.db.ref('active_session').remove(); } catch (e) {}
+
+    this.db.ref('active_sessions').on('value', snap => {
+      const sessions = snap.val() || {};
+      this._activeSessions = sessions;
+      const myDeviceId = window.AuthModule ? AuthModule.getDeviceId() : '';
+      const myToken = window.AuthModule ? AuthModule.getSessionToken() : '';
+      const currentRole = window.AuthModule ? AuthModule.getCurrentRole() : null;
+
+      // 1. Tampilkan peringatan real-time di modal login khusus untuk role yang sedang dipilih
+      this.updateModalSessionNotice();
+
+      // 2. Jika perangkat ini sedang login dengan role tertentu, HANYA cek sesi untuk role ini
+      if (currentRole && window.AuthModule && AuthModule.isLoggedIn()) {
+        const myRoleKey = currentRole.toLowerCase() === 'owner' ? 'owner' : 'barista';
+        const myRoleSession = sessions[myRoleKey];
+
+        // Jika sesi role ini diambil alih atau dihapus dari cloud, baru logout perangkat ini
+        if (!myRoleSession || (myRoleSession.token !== myToken && myRoleSession.deviceId !== myDeviceId)) {
           AuthModule.clearSession();
           AuthModule.applyRoleUI(null);
           AuthModule.openLoginModal(false);
           if (window.App && App.showToast) {
-            App.showToast('ℹ️ Sesi akun Anda telah diakhiri dari perangkat lain.', 'info');
+            App.showToast(`ℹ️ Sesi ${myRoleKey === 'owner' ? 'Owner' : 'Barista'} Anda telah diakhiri dari perangkat lain.`, 'info');
           }
         }
       }

@@ -98,9 +98,10 @@ const AuthModule = {
 
   async logout() {
     const token = this.getSessionToken();
+    const currentRole = this.getCurrentRole() || this.selectedRole || 'barista';
     if (window.CloudSync && CloudSync.logoutSession) {
       try {
-        await CloudSync.logoutSession(token);
+        await CloudSync.logoutSession(currentRole, token);
       } catch (e) {}
     }
     this.clearSession();
@@ -113,16 +114,18 @@ const AuthModule = {
   },
 
   async forceReleaseSession() {
-    if (!confirm('Apakah Anda yakin ingin melepas paksa sesi aktif sebelumnya di cloud? Gunakan ini jika perangkat sebelumnya mati atau kehabisan baterai.')) {
+    const role = this.selectedRole || this.getCurrentRole() || 'barista';
+    const roleLabel = role === 'owner' ? 'Owner' : 'Barista';
+    if (!confirm(`Apakah Anda yakin ingin melepas paksa sesi aktif ${roleLabel} di cloud? Gunakan ini jika perangkat sebelumnya mati atau kehabisan baterai.`)) {
       return;
     }
     if (window.CloudSync && CloudSync.logoutSession) {
-      await CloudSync.logoutSession();
+      await CloudSync.logoutSession(role);
     }
     this.clearSession();
     this.openLoginModal(false);
     if (window.App) {
-      App.showToast('Sesi cloud sebelumnya telah dibebaskan. Silakan login sekarang.', 'success');
+      App.showToast(`Sesi ${roleLabel} di cloud telah dibebaskan. Silakan login sekarang.`, 'success');
     }
   },
 
@@ -162,6 +165,11 @@ const AuthModule = {
       setTimeout(() => pinInput.focus(), 150);
     }
 
+    // Perbarui peringatan sesi aktif sesuai role yang baru dipilih
+    if (window.CloudSync && CloudSync.updateModalSessionNotice) {
+      CloudSync.updateModalSessionNotice();
+    }
+
     if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
       CloudSync.fetchSettingsFromCloud(5000);
     }
@@ -196,20 +204,6 @@ const AuthModule = {
       }
     } else {
       if (noticeEl) noticeEl.style.display = 'none';
-      if (window.CloudSync && CloudSync.getActiveSession) {
-        CloudSync.getActiveSession().then(res => {
-          if (res && res.data && res.data.token && res.data.deviceId !== this.getDeviceId()) {
-            const s = res.data;
-            if (noticeEl) {
-              noticeEl.style.display = 'block';
-              if (noticeTitle) noticeTitle.textContent = 'Akun Sedang Digunakan di Perangkat Lain';
-              if (noticeDesc) {
-                noticeDesc.innerHTML = `Sistem membatasi 1 sesi aktif (Anti Dual-Login). Akun kasir saat ini sedang aktif digunakan oleh <strong>${s.roleLabel || s.role} (${s.user || 'Aktif'})</strong> di perangkat lain.<br><small style="color:var(--text-muted);">Sesi tersebut harus logout terlebih dahulu agar Anda dapat masuk.</small>`;
-              }
-            }
-          }
-        });
-      }
     }
 
     // Set active selection: remember choice from localStorage or current role, default barista
@@ -225,6 +219,11 @@ const AuthModule = {
     if (err) err.style.display = 'none';
 
     modal.classList.add('active');
+
+    // Sinkronkan status modal dengan sesi cloud
+    if (window.CloudSync && CloudSync.updateModalSessionNotice) {
+      CloudSync.updateModalSessionNotice();
+    }
 
     // Sinkronkan password terbaru dari cloud saat modal dibuka
     if (window.CloudSync && CloudSync.fetchSettingsFromCloud) {
