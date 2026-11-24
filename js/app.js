@@ -378,17 +378,9 @@ const App = {
     setVal('cfgBaristaPin', s.baristaPin || '6969');
     setVal('cfgTaxRate', s.taxRate);
     setVal('cfgReceiptFooter', s.receiptFooter);
-    setVal('cfgCloudSyncUrl', s.cloudSyncUrl || 'api_sync.php');
-    setVal('cfgCloudApiKey', s.cloudApiKey || 'dialog2026');
 
     const taxCheck = document.getElementById('cfgTaxEnabled');
     if (taxCheck) taxCheck.checked = !!s.taxEnabled;
-
-    const soundCheck = document.getElementById('cfgSoundEnabled');
-    if (soundCheck) soundCheck.checked = s.soundEnabled !== false;
-
-    const autoSyncCheck = document.getElementById('cfgCloudAutoSync');
-    if (autoSyncCheck) autoSyncCheck.checked = s.cloudAutoSync !== false;
 
     if (window.CloudSync && CloudSync.updateStatusBadge) CloudSync.updateStatusBadge();
   },
@@ -416,9 +408,6 @@ const App = {
           ownerPhone: document.getElementById('cfgOwnerPhone').value.trim() || '085334101996',
           ownerPin: (document.getElementById('cfgOwnerPin') ? document.getElementById('cfgOwnerPin').value.trim() : '') || '1996',
           baristaPin: (document.getElementById('cfgBaristaPin') ? document.getElementById('cfgBaristaPin').value.trim() : '') || '6969',
-          cloudSyncUrl: document.getElementById('cfgCloudSyncUrl') ? document.getElementById('cfgCloudSyncUrl').value.trim() : (StorageManager.getSettings().cloudSyncUrl || 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php'),
-          cloudApiKey: document.getElementById('cfgCloudApiKey') ? document.getElementById('cfgCloudApiKey').value.trim() : (StorageManager.getSettings().cloudApiKey || 'dialog2026'),
-          cloudAutoSync: document.getElementById('cfgCloudAutoSync') ? document.getElementById('cfgCloudAutoSync').checked : (StorageManager.getSettings().cloudAutoSync !== false),
           taxRate: Number(document.getElementById('cfgTaxRate').value) || 0,
           taxEnabled: document.getElementById('cfgTaxEnabled').checked,
           receiptFooter: document.getElementById('cfgReceiptFooter').value

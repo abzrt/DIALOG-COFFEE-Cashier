@@ -4016,61 +4016,7 @@ body.dark-theme .app-splash-spinner {
   }
 }
 
-/* AUTO-UPDATE BANNER NOTIFICATION (GITHUB RELEASES) */
-.app-update-banner {
-  background: var(--text-primary, #09090b);
-  color: var(--bg-main, #ffffff);
-  padding: 10px 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border-bottom: 2px solid var(--border-color);
-  font-size: 0.85rem;
-  font-weight: 600;
-  z-index: 1000;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: bannerSlideDown 0.3s ease-out;
-}
-@keyframes bannerSlideDown {
-  from { transform: translateY(-100%); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-}
-.update-banner-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.update-banner-icon {
-  font-size: 1.1rem;
-}
-.update-banner-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.btn-update-banner-action {
-  background: var(--income-green, #16a34a);
-  color: #ffffff;
-  border: none;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm, 6px);
-  font-size: 0.8rem;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.btn-update-banner-close {
-  background: transparent;
-  color: #ffffff;
-  border: none;
-  font-size: 0.9rem;
-  cursor: pointer;
-  padding: 4px;
-  opacity: 0.7;
-}
-.btn-update-banner-close:hover {
-  opacity: 1;
-}
+/* End of Stylesheet */
+
 
 
