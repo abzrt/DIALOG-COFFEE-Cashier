@@ -211,6 +211,9 @@ const AuthModule = {
       if (enteredPin === expectedBaristaPin) {
         this.setRole('barista');
         if (window.OwnerModule) OwnerModule.setLoggedIn(false);
+        if (window.CloudSync && CloudSync.fetchTransactionsFromCloud) {
+          CloudSync.fetchTransactionsFromCloud(6000);
+        }
         if (pinInput) pinInput.value = '';
         const modal = document.getElementById('accountLoginModal');
         if (modal) modal.classList.remove('active');

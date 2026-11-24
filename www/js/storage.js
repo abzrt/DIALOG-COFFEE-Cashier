@@ -126,6 +126,12 @@ const StorageManager = {
 
     list.unshift(trx);
     this.saveAllTransactions(list);
+
+    // Otomatis sinkronkan transaksi baru ke cloud database baik di login Barista maupun Owner
+    if (window.CloudSync && typeof CloudSync.pushTransactionToCloud === 'function') {
+      CloudSync.pushTransactionToCloud(trx);
+    }
+
     return trx;
   },
 
@@ -134,6 +140,9 @@ const StorageManager = {
     const beforeCount = list.length;
     list = list.filter(t => t.id !== id);
     this.saveAllTransactions(list);
+    if (window.CloudSync && typeof CloudSync.deleteTransactionFromCloud === 'function') {
+      CloudSync.deleteTransactionFromCloud(id);
+    }
     return list.length < beforeCount;
   },
 
@@ -259,6 +268,14 @@ const StorageManager = {
     list.unshift(closingData);
     localStorage.setItem(STORAGE_KEYS.CLOSINGS, JSON.stringify(list));
     return closingData;
+  },
+
+  saveAllClosings(list) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.CLOSINGS, JSON.stringify(list || []));
+    } catch (e) {
+      console.error('Error saving closings:', e);
+    }
   },
 
   // BACKUP & RESTORE

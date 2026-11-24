@@ -352,6 +352,19 @@ if ($action === 'sync_all') {
     ]);
 }
 
+// AKSI 3B: HAPUS TRANSAKSI DARI CLOUD
+if ($action === 'delete_transaction') {
+    $tid = isset($payload['id']) ? $payload['id'] : (isset($_GET['id']) ? $_GET['id'] : '');
+    if (!empty($tid)) {
+        $safeTid = $conn->real_escape_string($tid);
+        @$conn->query("DELETE FROM tb_transaksi_items WHERE trx_id = '$safeTid'");
+        @$conn->query("DELETE FROM tb_transaksi WHERE trx_id = '$safeTid'");
+        sendResponse(true, "Transaksi $tid berhasil dihapus dari database", ['id' => $tid]);
+    } else {
+        sendResponse(false, 'Parameter ID transaksi tidak ditemukan', null, 400);
+    }
+}
+
 // AKSI 4: AMBIL REKAPAN SUMMARY DARI DATABASE
 if ($action === 'get_rekapan') {
     $period = isset($_GET['period']) ? $_GET['period'] : 'monthly';
@@ -552,7 +565,7 @@ function saveTransactionBatch($db, $trxList, $closingId = null) {
         $cust = isset($t['customerName']) ? $t['customerName'] : null;
         $seat = isset($t['seatNumber']) ? $t['seatNumber'] : null;
         $desc = isset($t['description']) ? $t['description'] : null;
-        $ref = isset($t['referenceNo']) ? $t['referenceNo'] : null;
+        $ref = isset($t['refNo']) ? $t['refNo'] : (isset($t['referenceNo']) ? $t['referenceNo'] : null);
         $sub = floatval(isset($t['subtotal']) ? $t['subtotal'] : $nominal);
         $pajak = floatval(isset($t['taxAmount']) ? $t['taxAmount'] : 0);
 
@@ -572,8 +585,8 @@ function saveTransactionBatch($db, $trxList, $closingId = null) {
                 $mName = isset($it['name']) ? $it['name'] : 'Menu Kopi';
                 $mCat = isset($it['category']) ? $it['category'] : 'coffee';
                 $mPrice = floatval(isset($it['price']) ? $it['price'] : 0);
-                $mQty = intval(isset($it['quantity']) ? $it['quantity'] : 1);
-                $mTotal = $mPrice * $mQty;
+                $mQty = intval(isset($it['qty']) ? $it['qty'] : (isset($it['quantity']) ? $it['quantity'] : 1));
+                $mTotal = floatval(isset($it['subtotal']) ? $it['subtotal'] : (isset($it['total']) ? $it['total'] : ($mPrice * $mQty)));
 
                 $stmtItem->bind_param('ssssdid', $tid, $mId, $mName, $mCat, $mPrice, $mQty, $mTotal);
                 $stmtItem->execute();

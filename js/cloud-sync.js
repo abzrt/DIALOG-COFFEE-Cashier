@@ -261,32 +261,25 @@ const CloudSync = {
 
   init() {
     this.fetchSettingsFromCloud(8000, true);
-    if (window.AuthModule && AuthModule.isOwner()) {
-      this.fetchTransactionsFromCloud(8000);
-    }
+    this.fetchTransactionsFromCloud(8000);
+
     if (!this._syncInterval) {
       this._syncInterval = setInterval(() => {
         const isLoginModalActive = document.getElementById('accountLoginModal')?.classList.contains('active');
         if (isLoginModalActive || document.visibilityState === 'visible') {
           this.fetchSettingsFromCloud(5000);
-          if (window.AuthModule && AuthModule.isOwner()) {
-            this.fetchTransactionsFromCloud(5000);
-          }
+          this.fetchTransactionsFromCloud(5000);
         }
       }, 5000);
     }
     window.addEventListener('focus', () => {
       this.fetchSettingsFromCloud(5000);
-      if (window.AuthModule && AuthModule.isOwner()) {
-        this.fetchTransactionsFromCloud(5000);
-      }
+      this.fetchTransactionsFromCloud(5000);
     });
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         this.fetchSettingsFromCloud(5000, true);
-        if (window.AuthModule && AuthModule.isOwner()) {
-          this.fetchTransactionsFromCloud(5000);
-        }
+        this.fetchTransactionsFromCloud(5000);
       }
     });
     window.addEventListener('touchstart', (e) => {
@@ -295,9 +288,7 @@ const CloudSync = {
       if (!this._lastTouchSync || now - this._lastTouchSync > 10000) {
         this._lastTouchSync = now;
         this.fetchSettingsFromCloud(5000);
-        if (window.AuthModule && AuthModule.isOwner()) {
-          this.fetchTransactionsFromCloud(5000);
-        }
+        this.fetchTransactionsFromCloud(5000);
       }
     }, { passive: true });
   },
@@ -645,11 +636,15 @@ const CloudSync = {
           }
         });
         if (closeChanged) {
-          localStorage.setItem('dialog_coffee_closings_v1', JSON.stringify(localClosings));
+          if (StorageManager.saveAllClosings) {
+            StorageManager.saveAllClosings(localClosings);
+          } else {
+            localStorage.setItem('dialog_coffee_closings_v3', JSON.stringify(localClosings));
+          }
         }
       }
 
-      if (hasTrxChanges) {
+      if (hasTrxChanges || closeChanged) {
         if (window.OwnerModule && OwnerModule.isLoggedIn()) {
           OwnerModule.renderAll();
         }
@@ -663,6 +658,64 @@ const CloudSync = {
       return res.data;
     }
     return null;
+  },
+
+  async pushTransactionToCloud(trx) {
+    if (!trx) return;
+    const cfg = this.getConfig();
+    if (!cfg.autoSync) return;
+
+    try {
+      const targetUrl = this.resolveUrl(cfg.url);
+      const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=sync_all';
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+
+      await fetch(syncUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Api-Key': cfg.apiKey
+        },
+        body: JSON.stringify({
+          api_key: cfg.apiKey,
+          transactions: [trx]
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+    } catch (e) {
+      console.warn('Silent cloud transaction push failed (akan dicoba lagi saat closing/syncAll):', e);
+    }
+  },
+
+  async deleteTransactionFromCloud(trxId) {
+    if (!trxId) return;
+    const cfg = this.getConfig();
+    if (!cfg.autoSync) return;
+
+    try {
+      const targetUrl = this.resolveUrl(cfg.url);
+      const syncUrl = targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'action=delete_transaction';
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 6000);
+
+      await fetch(syncUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'X-Api-Key': cfg.apiKey
+        },
+        body: JSON.stringify({
+          api_key: cfg.apiKey,
+          id: trxId
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timer);
+    } catch (e) {
+      console.warn('Gagal menghapus transaksi dari cloud:', e);
+    }
   }
 };
 
