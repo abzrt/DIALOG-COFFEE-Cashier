@@ -880,23 +880,44 @@ const App = {
   },
 
   handleHardwareBackButton() {
-    // 1. Cek apakah ada modal yang terbuka, jika ada tutup modal tersebut (kecuali modal login jika belum login)
+    // 1. Jika modal keluar (exitModal) terbuka, tekan back akan menutup modal keluar tersebut
+    const exitModal = document.getElementById('exitModal');
+    if (exitModal && exitModal.classList.contains('active')) {
+      this.closeExitModal();
+      return;
+    }
+
+    // 2. Jika berada di layar login dan belum login: tombol back akan memicu konfirmasi keluar aplikasi
+    const isLoginModal = document.getElementById('accountLoginModal')?.classList.contains('active');
+    const isNotLoggedIn = window.AuthModule && !AuthModule.isLoggedIn();
+
+    if (isLoginModal && isNotLoggedIn) {
+      const now = Date.now();
+      if (!this.lastBackPressTime || (now - this.lastBackPressTime > 2500)) {
+        this.lastBackPressTime = now;
+        this.playBeep(440, 0.06);
+        this.showToast('Tekan kembali sekali lagi untuk menutup aplikasi', 'info');
+      } else {
+        this.lastBackPressTime = 0;
+        this.confirmExitApp();
+      }
+      return;
+    }
+
+    // 3. Cek apakah ada modal lain yang terbuka, jika ada tutup modal tersebut
     const openModals = document.querySelectorAll('.modal-backdrop.active');
     if (openModals.length > 0) {
-      if (document.getElementById('accountLoginModal')?.classList.contains('active') && window.AuthModule && !AuthModule.isLoggedIn()) {
-        return;
-      }
       openModals.forEach(modal => modal.classList.remove('active'));
       return;
     }
 
-    // 2. Jika sedang di tab selain Kasir (POS), kembali ke Kasir terlebih dahulu
+    // 4. Jika sedang di tab selain Kasir (POS), kembali ke Kasir terlebih dahulu
     if (this.activeTab !== 'pos') {
       this.switchTab('pos');
       return;
     }
 
-    // 3. Jika sudah di halaman utama Kasir dan tidak ada modal, jalankan notifikasi keluar
+    // 5. Jika sudah di halaman utama Kasir dan tidak ada modal, jalankan notifikasi keluar
     const now = Date.now();
     if (!this.lastBackPressTime || (now - this.lastBackPressTime > 2500)) {
       this.lastBackPressTime = now;

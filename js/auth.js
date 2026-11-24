@@ -172,6 +172,7 @@ const AuthModule = {
     if (!modal) return;
 
     const cancelBtn = document.getElementById('btnCancelAuthModal');
+    const exitBtn = document.getElementById('btnExitAppFromLogin');
     const closeBtn = document.getElementById('btnCloseAuthModal');
     const noticeEl = document.getElementById('authActiveSessionNotice');
     const noticeTitle = document.getElementById('authActiveSessionTitle');
@@ -182,6 +183,7 @@ const AuthModule = {
     const allowClose = canCancel && !!current;
     if (cancelBtn) cancelBtn.style.display = allowClose ? 'inline-block' : 'none';
     if (closeBtn) closeBtn.style.display = allowClose ? 'block' : 'none';
+    if (exitBtn) exitBtn.style.display = allowClose ? 'none' : 'inline-block';
 
     // Tampilkan peringatan sesi jika sudah login lokal atau aktif di perangkat lain
     if (current) {

@@ -604,7 +604,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v2.1 (Build #12)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+                <span>Versi Terpasang: <strong>v2.2 (Build #13)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
@@ -1604,6 +1604,9 @@
       <div class="modal-footer" style="gap: 8px;">
         <button type="button" class="btn-primary-action" id="btnCancelAuthModal" style="background: transparent; color: var(--text-muted); display: none;" onclick="AuthModule.closeLoginModal()" data-i18n="cancel">
           Batal
+        </button>
+        <button type="button" class="btn-primary-action" id="btnExitAppFromLogin" style="background: transparent; color: var(--text-muted); font-size: 0.85rem;" onclick="App.openExitModal()">
+          <span>✕</span> <span>Keluar</span>
         </button>
         <button type="button" class="btn-primary-action btn-closing" id="btnSubmitAuth" style="flex: 1; justify-content: center;" onclick="AuthModule.submitLogin()">
           <span>☕</span> Masuk Sebagai Barista
