@@ -34,6 +34,7 @@ const App = {
       if (window.AuthModule) { try { AuthModule.init(); } catch (e) { console.warn('AuthModule init error:', e); } }
       if (window.CloudSync && CloudSync.init) { try { CloudSync.init(); } catch (e) { console.warn('CloudSync init error:', e); } }
       if (window.AppUpdater && AppUpdater.init) { try { AppUpdater.init(); } catch (e) { console.warn('AppUpdater init error:', e); } }
+      if (window.MusicModule && MusicModule.init) { try { MusicModule.init(); } catch (e) { console.warn('MusicModule init error:', e); } }
 
       // Service Worker
       if ('serviceWorker' in navigator) {

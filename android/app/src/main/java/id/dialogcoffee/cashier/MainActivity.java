@@ -42,6 +42,7 @@ public class MainActivity extends BridgeActivity {
         registerDownloadReceiver();
 
         if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
             getBridge().getWebView().addJavascriptInterface(new Object() {
                 @JavascriptInterface
                 public void setStatusBarTheme(final boolean isDark) {

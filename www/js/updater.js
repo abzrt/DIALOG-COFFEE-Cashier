@@ -5,8 +5,8 @@
  */
 const AppUpdater = {
   CURRENT_VERSION: {
-    versionCode: 23,
-    versionName: '3.2'
+    versionCode: 24,
+    versionName: '3.3'
   },
   DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,

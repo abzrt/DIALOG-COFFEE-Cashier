@@ -91,6 +91,11 @@
           <span style="font-size: 0.65rem; color: var(--text-muted);">▼</span>
         </div>
 
+        <!-- Music Player Toggle (YouTube / YouTube Music) -->
+        <button class="icon-btn" id="topMusicBtn" onclick="MusicModule.togglePanel()" title="Pemutar Musik Kafe (YouTube / YouTube Music)">
+          🎵
+        </button>
+
         <!-- Language Switcher (ID / EN) -->
         <button class="icon-btn" id="langToggleBtn" onclick="I18N.toggleLanguage()" title="Ganti Bahasa / Switch Language">
           ID
@@ -638,7 +643,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v3.2 (Build #23)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+                <span>Versi Terpasang: <strong>v3.3 (Build #24)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
@@ -1907,6 +1912,76 @@
     </div>
   </div>
 
+  <!-- ===================================================================
+       FLOATING MINI MUSIC PLAYER (YOUTUBE & YOUTUBE MUSIC)
+       =================================================================== -->
+  <div id="musicPlayerPanel" class="music-player-panel music-panel-collapsed">
+    <div class="music-panel-header">
+      <div class="music-panel-title-wrap">
+        <span>🎵</span>
+        <div>
+          <div class="music-panel-title">DIALOG Music Player</div>
+          <div id="musicPlayerStatus" class="music-panel-status">Siap Memutar</div>
+        </div>
+      </div>
+      <div class="music-panel-header-actions">
+        <button type="button" class="music-icon-btn" onclick="MusicModule.minimizePanel()" title="Perkecil (Musik tetap menyala)">—</button>
+        <button type="button" class="music-icon-btn" onclick="MusicModule.stopPlayback(); MusicModule.minimizePanel();" title="Hentikan & Tutup">✕</button>
+      </div>
+    </div>
+
+    <div class="music-panel-body">
+      <!-- Input Link YouTube / YouTube Music -->
+      <div class="music-url-row">
+        <input type="text" id="musicUrlInput" class="form-control music-url-input" placeholder="Tempel link YouTube / YT Music / Playlist..." autocomplete="off">
+        <button type="button" class="btn-primary-action btn-closing music-btn-sm" onclick="MusicModule.playFromInput()" title="Putar sekarang">▶</button>
+        <button type="button" class="btn-primary-action music-btn-sm music-btn-save" onclick="MusicModule.saveFromInput()" title="Simpan ke Daftar Putar Kafe">⭐</button>
+      </div>
+
+      <div id="musicPlayerError" class="music-error-box" style="display: none;"></div>
+
+      <!-- YouTube Embed Stage -->
+      <div class="music-stage-wrap">
+        <div id="musicEmptyPlaceholder" class="music-empty-placeholder">
+          <div style="font-size: 1.8rem; margin-bottom: 4px;">🎧</div>
+          <div style="font-size: 0.8rem; font-weight: 700;">Putar Lagu YouTube / YouTube Music</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted);">Tempel link di atas atau pilih preset musik kafe di bawah</div>
+        </div>
+        <div id="ytPlayerMount" class="yt-player-mount"></div>
+      </div>
+
+      <!-- Now Playing & Playback Controls -->
+      <div id="musicNowPlayingTitle" class="music-now-playing">Belum ada lagu diputar</div>
+
+      <div class="music-controls-row">
+        <button type="button" class="music-ctrl-btn" onclick="MusicModule.prevTrack()" title="Sebelumnya">⏮</button>
+        <button type="button" class="music-ctrl-btn music-ctrl-main" id="btnMusicPlayPause" onclick="MusicModule.togglePlayPause()">
+          <span>▶</span> Putar
+        </button>
+        <button type="button" class="music-ctrl-btn" onclick="MusicModule.nextTrack()" title="Berikutnya">⏭</button>
+        <button type="button" class="music-ctrl-btn" onclick="MusicModule.stopPlayback()" title="Berhenti">⏹</button>
+      </div>
+
+      <!-- Volume Bar -->
+      <div class="music-volume-row">
+        <span style="font-size: 0.82rem;">🔊</span>
+        <input type="range" id="musicVolumeSlider" min="0" max="100" value="80" oninput="MusicModule.setVolume(this.value)" class="music-volume-slider">
+        <span id="musicVolumeLabel" style="font-size: 0.72rem; font-weight: 700; min-width: 34px; text-align: right; color: var(--text-muted);">80%</span>
+      </div>
+
+      <!-- Saved & Preset Cafe Playlists -->
+      <div class="music-playlist-header">☕ Daftar Putar Kafe</div>
+      <div id="musicPlaylistContainer" class="music-playlist-list"></div>
+    </div>
+  </div>
+
+  <!-- Minimized Floating Music Pill (Tetap tampil saat musik aktif & panel diperkecil) -->
+  <div id="musicMiniPill" class="music-mini-pill" style="display: none;" onclick="MusicModule.openPanel()">
+    <span class="music-pill-dot"></span>
+    <span id="musicMiniPillTitle" class="music-pill-title">Memutar Musik...</span>
+    <button type="button" id="musicMiniPillPlayBtn" class="music-pill-btn" onclick="event.stopPropagation(); MusicModule.togglePlayPause();" title="Putar / Jeda">⏸</button>
+  </div>
+
   <!-- SCRIPT LIBRARIES -->
   <script src="libs/firebase-app.js"></script>
   <script src="libs/firebase-database.js"></script>
@@ -1928,6 +2003,7 @@
   <script src="js/owner.js?v=202611241504"></script>
   <script src="js/auth.js?v=202611241504"></script>
   <script src="js/updater.js?v=202611241504"></script>
+  <script src="js/music.js?v=202611241504"></script>
   <script src="js/app.js?v=202611241504"></script>
 
 

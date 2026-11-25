@@ -1,10 +1,10 @@
 {
-  "versionCode": 23,
-  "versionName": "3.2",
+  "versionCode": 24,
+  "versionName": "3.3",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.2.apk",
+  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.3.apk",
   "fallbackApkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Pembersihan Teks UI: Menghapus seluruh teks lama myphp.id / MySQL yang sudah tidak digunakan dan menggantinya dengan label Cloud Firebase"
+  "changelog": "Fitur Baru DIALOG Music Player: Putar lagu dan playlist dari YouTube / YouTube Music langsung di dalam aplikasi kasir dengan mode Mini Player"
 }

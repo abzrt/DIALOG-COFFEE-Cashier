@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dialog-coffee-cache-v37';
+const CACHE_NAME = 'dialog-coffee-cache-v38';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -13,6 +13,7 @@ const ASSETS_TO_CACHE = [
   './js/auth.js',
   './js/cloud-sync.js',
   './js/updater.js',
+  './js/music.js',
   './js/export-pdf.js',
   './js/export-word.js',
   './libs/firebase-app.js',
