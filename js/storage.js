@@ -159,6 +159,11 @@ const StorageManager = {
       trx.userRole = AuthModule.getCurrentRole() || 'barista';
     }
 
+    if (!settings.shiftOpenedAt) {
+      settings.shiftOpenedAt = trx.date || new Date().toISOString();
+      this.saveSettings(settings);
+    }
+
     list.unshift(trx);
     this.saveAllTransactions(list);
 
@@ -280,10 +285,14 @@ const StorageManager = {
 
   updateShift(shiftName, b1, b2) {
     const s = this.getSettings();
+    const isShiftChanged = s.activeShift !== shiftName;
     s.activeShift = shiftName;
     s.activeBarista1 = b1;
     s.activeBarista2 = b2;
     s.activeCashier = `${shiftName} (${b1} & ${b2})`;
+    if (isShiftChanged || !s.shiftOpenedAt) {
+      s.shiftOpenedAt = new Date().toISOString();
+    }
     this.saveSettings(s);
     return s;
   },

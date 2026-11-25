@@ -1,10 +1,10 @@
 {
-  "versionCode": 17,
-  "versionName": "2.6",
+  "versionCode": 18,
+  "versionName": "2.7",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.6.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.7.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
-  "releaseDate": "2026-11-24",
-  "changelog": "Sinkronisasi Real-Time Penuh: Setiap transaksi penerimaan & pengeluaran barista otomatis masuk ke database cloud & langsung terupdate di layar HP Owner saat itu juga disertai notifikasi live"
+  "releaseDate": "2026-11-25",
+  "changelog": "Perbaikan Rekapan Closing Lintas Tanggal: Perhitungan transaksi kini dihitung penuh dari waktu buka shift (open) hingga closing tanpa terpotong pergantian tanggal tengah malam"
 }

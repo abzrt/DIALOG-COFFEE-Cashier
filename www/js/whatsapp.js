@@ -129,6 +129,12 @@ const WhatsAppNotifier = {
 
     const shiftTitle = (summary.shift || 'SHIFT').toUpperCase();
 
+    let periodLine = '';
+    if (summary.openedAt) {
+      const openStr = this.formatDateTime(summary.openedAt);
+      periodLine = `⏰ *Periode Operasional:* ${openStr} s/d ${dateStr}\n`;
+    }
+
     const message = 
 `📡 *WHATSAPP GATEWAY CLOSING REPORT*
 📤 *Pengirim (Gateway):* ${gatewaySender}
@@ -137,7 +143,7 @@ const WhatsAppNotifier = {
 🔒 *DIALOG COFFEE - REKAPAN CLOSING ${shiftTitle}*
 ━━━━━━━━━━━━━━━━━━━━
 📅 *Waktu Closing:* ${dateStr}
-🏢 *Outlet:* ${settings.cafeName}
+${periodLine}🏢 *Outlet:* ${settings.cafeName}
 👥 *Shift Bertugas:* *${shift}*
 ☕ *Barista On Duty:* *${baristas}*
 ━━━━━━━━━━━━━━━━━━━━
@@ -151,7 +157,7 @@ const WhatsAppNotifier = {
 🔻 *RINCIAN PENGELUARAN ${shiftTitle}:*
 ${expenseListStr}
 ━━━━━━━━━━━━━━━━━━━━
-*Catatan Closing:* Seluruh data transaksi dan kas telah divalidasi oleh tim barista yang bertugas.
+*Catatan Closing:* Seluruh data transaksi dan kas telah divalidasi dari awal open hingga closing oleh tim barista yang bertugas.
 Terima kasih, salam hangat dari tim Barista DIALOG COFFEE!`;
 
     this.dispatchViaGateway(message, ownerDest);

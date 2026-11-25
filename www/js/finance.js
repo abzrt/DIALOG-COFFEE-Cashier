@@ -378,40 +378,96 @@ const FinanceModule = {
 
   calculateAndRenderClosing() {
     const all = StorageManager.getTransactions();
+    const closings = StorageManager.getClosings();
     const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
     const settings = StorageManager.getSettings();
 
-    // Filter transaksi hari ini
-    const targetY = now.getFullYear();
-    const targetM = now.getMonth();
-    const targetD = now.getDate();
-    const todayTrx = all.filter(t => {
-      if (!t.date) return false;
-      const d = new Date(t.date);
-      if (isNaN(d.getTime())) return t.date.startsWith(todayStr);
-      return d.getFullYear() === targetY && d.getMonth() === targetM && d.getDate() === targetD;
+    // 1. Kumpulkan ID transaksi yang sudah pernah tercatat di closing sebelumnya
+    const closedTrxIds = new Set();
+    closings.forEach(c => {
+      if (c && Array.isArray(c.transactions)) {
+        c.transactions.forEach(t => {
+          if (t && t.id) closedTrxIds.add(t.id);
+        });
+      }
     });
 
-    // Filter transaksi berdasarkan shift yang dipilih
-    let shiftTrx = todayTrx;
-    let shiftLabel = 'Semua Shift (Total Hari Ini)';
+    // 2. Tentukan batas waktu buka shift (awal open) hingga closing saat ini
+    const targetShift = this.selectedClosingShift;
+    const prevClosings = closings.filter(c => {
+      const cTime = c && c.timestamp ? new Date(c.timestamp).getTime() : (c && c.date ? new Date(c.date).getTime() : 0);
+      return cTime > 0 && cTime <= now.getTime();
+    });
+
+    let lastClosingTimeMs = 0;
+    if (targetShift !== 'all') {
+      const lastSameShiftClosing = prevClosings.find(c => c.shift === targetShift);
+      if (lastSameShiftClosing) {
+        lastClosingTimeMs = new Date(lastSameShiftClosing.timestamp || lastSameShiftClosing.date).getTime();
+      }
+    }
+    if (!lastClosingTimeMs && prevClosings.length > 0) {
+      lastClosingTimeMs = new Date(prevClosings[0].timestamp || prevClosings[0].date).getTime();
+    }
+
+    // 3. Filter seluruh transaksi dari awal open shift hingga closing (lintas tanggal)
+    const shiftTrx = all.filter(t => {
+      if (!t || !t.date) return false;
+      const tTime = new Date(t.date).getTime();
+      if (isNaN(tTime)) return false;
+
+      // Transaksi harus sebelum atau tepat saat closing dilakukan
+      if (tTime > now.getTime()) return false;
+
+      // Jangan masukkan transaksi yang sudah pernah di-closing sebelumnya
+      if (closedTrxIds.has(t.id)) return false;
+
+      // Jika ada waktu closing sebelumnya, ambil transaksi setelah closing tersebut
+      if (lastClosingTimeMs && tTime <= lastClosingTimeMs) return false;
+
+      // Batas toleransi maksimal jika tidak ada riwayat closing sama sekali (48 jam terakhir)
+      if (!lastClosingTimeMs && (now.getTime() - tTime) > 48 * 3600 * 1000) return false;
+
+      // Filter shift jika bukan 'all'
+      if (targetShift === 'Shift 1') {
+        return (t.shift || 'Shift 1') === 'Shift 1';
+      } else if (targetShift === 'Shift 2') {
+        return t.shift === 'Shift 2';
+      }
+      return true;
+    });
+
+    // Tentukan waktu awal open sebenarnya berdasarkan transaksi tertua pada shift ini atau settings.shiftOpenedAt
+    let openedAt = null;
+    if (shiftTrx.length > 0) {
+      const earliestTrxTime = Math.min(...shiftTrx.map(t => new Date(t.date).getTime()));
+      openedAt = new Date(earliestTrxTime).toISOString();
+      if (settings.shiftOpenedAt) {
+        const sOpen = new Date(settings.shiftOpenedAt).getTime();
+        if (!isNaN(sOpen) && sOpen <= earliestTrxTime && (earliestTrxTime - sOpen) < 24 * 3600 * 1000) {
+          openedAt = settings.shiftOpenedAt;
+        }
+      }
+    } else {
+      openedAt = settings.shiftOpenedAt || now.toISOString();
+    }
+
+    // Label Shift & Barista
+    let shiftLabel = 'Semua Shift (Total Operasional)';
     let baristas = 'Semua Barista';
 
     if (this.selectedClosingShift === 'Shift 1') {
-      shiftTrx = todayTrx.filter(t => (t.shift || 'Shift 1') === 'Shift 1');
       shiftLabel = 'Shift 1 (Pagi - Siang)';
       baristas = (settings.activeShift === 'Shift 1') 
         ? `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'}`
         : 'Ardi & Anca';
     } else if (this.selectedClosingShift === 'Shift 2') {
-      shiftTrx = todayTrx.filter(t => t.shift === 'Shift 2');
       shiftLabel = 'Shift 2 (Sore - Malam)';
       baristas = (settings.activeShift === 'Shift 2') 
         ? `${settings.activeBarista1 || 'Jhonson'} & ${settings.activeBarista2 || 'Si Pur'}`
         : 'Jhonson & Si Pur';
     } else {
-      shiftLabel = 'Semua Shift (Total Hari Ini)';
+      shiftLabel = 'Semua Shift (Total Operasional)';
       baristas = `${settings.activeBarista1 || 'Ardi'} & ${settings.activeBarista2 || 'Anca'} (Aktif)`;
     }
 
@@ -448,7 +504,9 @@ const FinanceModule = {
       id: 'CLS-' + Date.now(),
       date: now.toISOString(),
       timestamp: now.toISOString(),
-      shift: this.selectedClosingShift === 'all' ? 'Semua Shift (Total Hari Ini)' : this.selectedClosingShift,
+      openedAt: openedAt,
+      closedAt: now.toISOString(),
+      shift: this.selectedClosingShift === 'all' ? 'Semua Shift (Total Operasional)' : this.selectedClosingShift,
       shiftLabel: shiftLabel,
       baristas: baristas,
       totalIncome: todayIncome,
@@ -495,7 +553,15 @@ const FinanceModule = {
     if (cashDisplayEl) cashDisplayEl.textContent = App.formatRupiah(cashBalance);
 
     const countDisplayEl = document.getElementById('closingCountDisplay');
-    if (countDisplayEl) countDisplayEl.textContent = `${shiftTrx.length} (${incomeCount} Masuk, ${expenseCount} Keluar)`;
+    if (countDisplayEl) {
+      let periodNote = '';
+      if (openedAt) {
+        const dOpen = new Date(openedAt);
+        const fmt = d => `${d.getDate()}/${d.getMonth() + 1} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+        periodNote = ` • (${fmt(dOpen)} - ${fmt(now)})`;
+      }
+      countDisplayEl.textContent = `${shiftTrx.length} (${incomeCount} Masuk, ${expenseCount} Keluar)${periodNote}`;
+    }
 
     const btnWA = document.getElementById('btnSubmitClosingWA');
     if (btnWA) {
@@ -514,6 +580,11 @@ const FinanceModule = {
 
     WhatsAppNotifier.notifyClosingShift(this._currentClosingSummary);
     StorageManager.saveClosing(this._currentClosingSummary);
+
+    // Tandai waktu mulai siklus shift berikutnya setelah closing disimpan
+    const settings = StorageManager.getSettings();
+    settings.shiftOpenedAt = new Date().toISOString();
+    StorageManager.saveSettings(settings);
 
     // Otomatis sinkronkan seluruh rekapan closing dan transaksi ke database cloud
     if (window.CloudSync) {
