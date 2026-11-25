@@ -10,56 +10,69 @@ const App = {
   soundEnabled: true,
 
   init() {
-    this.initTheme();
-    this.initAudio();
-    this.soundEnabled = StorageManager.getSettings().soundEnabled !== false;
-    this.initClock();
-    this.bindNavigation();
-    this.initBackButton();
-    this.loadShiftHeader();
-    window.addEventListener('resize', () => this.loadShiftHeader());
-    this.loadSettingsForm();
-    this.bindSettingsEvents();
-    this.renderSettingsMenuList();
+    try {
+      this.initTheme();
+      this.initAudio();
+      this.soundEnabled = StorageManager.getSettings().soundEnabled !== false;
+      this.initClock();
+      this.bindNavigation();
+      this.initBackButton();
+      this.loadShiftHeader();
+      window.addEventListener('resize', () => this.loadShiftHeader());
+      this.loadSettingsForm();
+      this.bindSettingsEvents();
+      this.renderSettingsMenuList();
 
-    // Inisialisasi i18n
-    if (window.I18N) I18N.init();
+      // Inisialisasi i18n
+      if (window.I18N) I18N.init();
 
-    // Inisialisasi Modul-Modul
-    if (window.POSModule) POSModule.init();
-    if (window.FinanceModule) FinanceModule.init();
-    if (window.ReportsModule) ReportsModule.init();
-    if (window.OwnerModule) OwnerModule.init();
-    if (window.AuthModule) AuthModule.init();
-    if (window.CloudSync && CloudSync.init) CloudSync.init();
-    if (window.AppUpdater && AppUpdater.init) AppUpdater.init();
+      // Inisialisasi Modul-Modul dengan proteksi try/catch
+      if (window.POSModule) { try { POSModule.init(); } catch (e) { console.warn('POSModule init error:', e); } }
+      if (window.FinanceModule) { try { FinanceModule.init(); } catch (e) { console.warn('FinanceModule init error:', e); } }
+      if (window.ReportsModule) { try { ReportsModule.init(); } catch (e) { console.warn('ReportsModule init error:', e); } }
+      if (window.OwnerModule) { try { OwnerModule.init(); } catch (e) { console.warn('OwnerModule init error:', e); } }
+      if (window.AuthModule) { try { AuthModule.init(); } catch (e) { console.warn('AuthModule init error:', e); } }
+      if (window.CloudSync && CloudSync.init) { try { CloudSync.init(); } catch (e) { console.warn('CloudSync init error:', e); } }
+      if (window.AppUpdater && AppUpdater.init) { try { AppUpdater.init(); } catch (e) { console.warn('AppUpdater init error:', e); } }
 
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').catch(() => {});
+      // Service Worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      }
+
+      // Direct modal trigger if query param ?modal=receipt or hash #receipt is present
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('modal') === 'receipt' || window.location.hash.includes('receipt')) {
+        setTimeout(() => this.testReceiptPrintModal(), 300);
+      }
+
+      console.log('☕ DIALOG COFFEE Cashier (Monochrome Edition) initialized.');
+    } catch (e) {
+      console.error('App.init error:', e);
+    } finally {
+      // Pastikan Splash Screen selalu disembunyikan & dihilangkan dari layer sentuh
+      this.hideSplashScreen();
     }
-
-    // Direct modal trigger if query param ?modal=receipt or hash #receipt is present
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('modal') === 'receipt' || window.location.hash.includes('receipt')) {
-      setTimeout(() => this.testReceiptPrintModal(), 300);
-    }
-
-    console.log('☕ DIALOG COFFEE Cashier (Monochrome Edition) initialized.');
-
-    // Sembunyikan Splash Screen secara halus
-    this.hideSplashScreen();
   },
 
   hideSplashScreen() {
     const splash = document.getElementById('appSplashScreen');
     if (!splash) return;
+    const removeSplash = () => {
+      splash.classList.add('splash-hidden');
+      splash.style.pointerEvents = 'none';
+      splash.style.display = 'none';
+      try { splash.remove(); } catch (e) {}
+    };
+    if (splash.classList.contains('splash-hidden')) {
+      removeSplash();
+      return;
+    }
     setTimeout(() => {
       splash.classList.add('splash-hidden');
-      setTimeout(() => {
-        splash.style.display = 'none';
-      }, 550);
-    }, 1200); // Tampilkan splash screen 1.2 detik untuk animasi logo & memuat data
+      splash.style.pointerEvents = 'none';
+      setTimeout(removeSplash, 300);
+    }, 600);
   },
 
   // THEME MANAGEMENT (MONOCHROME LIGHT / DARK)
@@ -1056,6 +1069,20 @@ const App = {
 
 window.App = App;
 
-document.addEventListener('DOMContentLoaded', () => {
+// Bootstrap inisialisasi: jalankan seketika jika DOM sudah siap (mencegah stuck jika DOMContentLoaded terlewat)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => App.init());
+} else {
   App.init();
+}
+
+// Fallback ganda saat window load untuk memastikan splash screen selalu bersih
+window.addEventListener('load', () => {
+  const splash = document.getElementById('appSplashScreen');
+  if (splash) {
+    splash.classList.add('splash-hidden');
+    splash.style.pointerEvents = 'none';
+    splash.style.display = 'none';
+    try { splash.remove(); } catch (e) {}
+  }
 });

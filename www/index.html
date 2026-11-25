@@ -21,7 +21,7 @@
   <!-- ===================================================================
        SPLASH SCREEN RESMI APLIKASI DIALOG COFFEE
        =================================================================== -->
-  <div id="appSplashScreen" class="app-splash-overlay" onclick="this.classList.add('splash-hidden'); setTimeout(() => this.style.display='none', 500);">
+  <div id="appSplashScreen" class="app-splash-overlay" onclick="this.classList.add('splash-hidden'); this.style.pointerEvents='none'; this.style.display='none'; try{this.remove();}catch(e){}">
     <div class="app-splash-content">
       <div class="app-splash-logo-wrap">
         <img src="assets/dialog_logo.jpg" alt="DIALOG COFFEE" class="app-splash-logo">
@@ -35,14 +35,16 @@
     </div>
   </div>
   <script>
-    // Safeguard Fallback: Pastikan splash screen otomatis fade-out maksimal dalam 1.5 detik
+    // Safeguard Fallback: Pastikan splash screen otomatis fade-out dan dihilangkan total maksimal dalam 1.2 detik
     setTimeout(function() {
       var sp = document.getElementById('appSplashScreen');
-      if (sp && !sp.classList.contains('splash-hidden')) {
+      if (sp) {
         sp.classList.add('splash-hidden');
-        setTimeout(function() { sp.style.display = 'none'; }, 500);
+        sp.style.pointerEvents = 'none';
+        sp.style.display = 'none';
+        try { sp.remove(); } catch (e) {}
       }
-    }, 1500);
+    }, 1200);
   </script>
 
   <div class="app-shell">
@@ -636,7 +638,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v2.9 (Build #20)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+                <span>Versi Terpasang: <strong>v3.0 (Build #21)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">

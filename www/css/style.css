@@ -3994,9 +3994,11 @@ body.dark-theme .app-splash-spinner {
 }
 
 .app-splash-overlay.splash-hidden {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  display: none !important;
+  z-index: -9999 !important;
 }
 
 @keyframes splashFadeIn {

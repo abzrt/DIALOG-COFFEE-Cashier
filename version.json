@@ -1,10 +1,10 @@
 {
-  "versionCode": 20,
-  "versionName": "2.9",
+  "versionCode": 21,
+  "versionName": "3.0",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.9.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v3.0.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Perbaikan Transisi Login: Modal login tertutup sempurna, membersihkan error, dan langsung mengarahkan ke dashboard saat login Owner/Barista berhasil"
+  "changelog": "Perbaikan Splash Screen & UI Responsiveness: Mencegah splash stuck dan memastikan seluruh tombol kasir langsung aktif dan dapat ditekan"
 }
