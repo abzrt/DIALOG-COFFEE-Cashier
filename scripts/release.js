@@ -71,20 +71,6 @@ currentVersion.downloadPageUrl = `https://github.com/${currentVersion.githubRepo
 fs.writeFileSync(versionJsonPath, JSON.stringify(currentVersion, null, 2) + '\n', 'utf8');
 console.log('✓ version.json diperbarui');
 
-// Sinkronkan metadata versi ke Firebase RTDB agar auto-updater 100% selalu bisa membaca versi terbaru
-try {
-  const https = require('https');
-  const payload = JSON.stringify(currentVersion);
-  const req = https.request('https://tech-solution-6441a-default-rtdb.asia-southeast1.firebasedatabase.app/app_version.json', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
-  });
-  req.on('error', () => {});
-  req.write(payload);
-  req.end();
-  console.log('✓ Metadata versi dikirim ke Firebase RTDB (/app_version.json)');
-} catch (e) {}
-
 // 3. Perbarui android/app/build.gradle
 if (fs.existsSync(buildGradlePath)) {
   let gradleContent = fs.readFileSync(buildGradlePath, 'utf8');
@@ -175,6 +161,21 @@ runCmd(`git commit -m "${commitMsg}"`);
 runCmd(`git tag -a ${tagName} -m "${tagMsg}"`);
 runCmd('git push origin main');
 runCmd(`git push origin ${tagName}`);
+
+// 10. Sinkronkan metadata versi ke Firebase RTDB SETELAH file APK berhasil di-push ke GitHub
+try {
+  const https = require('https');
+  const payload = JSON.stringify(currentVersion);
+  const req = https.request('https://tech-solution-6441a-default-rtdb.asia-southeast1.firebasedatabase.app/app_version.json', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+  }, () => {
+    console.log('✓ Metadata versi berhasil diterbitkan ke Firebase RTDB (/app_version.json)');
+  });
+  req.on('error', () => {});
+  req.write(payload);
+  req.end();
+} catch (e) {}
 
 console.log('\n========================================================');
 console.log(`🎉 RILIS OTOMATIS v${newName} (Build #${newCode}) BERHASIL DI-PUSH KE GITHUB!`);

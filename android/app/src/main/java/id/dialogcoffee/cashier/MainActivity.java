@@ -24,6 +24,10 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class MainActivity extends BridgeActivity {
     private long currentDownloadId = -1;
@@ -154,38 +158,159 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void startApkDownload(final String downloadUrl, final String fileName) {
-        try {
-            currentApkFileName = fileName;
-            File downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-            if (downloadsDir != null && !downloadsDir.exists()) {
-                downloadsDir.mkdirs();
-            }
-            File targetFile = new File(downloadsDir, fileName);
-            if (targetFile.exists()) {
-                targetFile.delete();
-            }
+        currentApkFileName = fileName;
+        Toast.makeText(MainActivity.this, "Mengunduh pembaruan di latar belakang...", Toast.LENGTH_SHORT).show();
 
-            Uri uri = Uri.parse(downloadUrl);
-            DownloadManager.Request request = new DownloadManager.Request(uri);
-            request.setTitle("DIALOG COFFEE Update");
-            request.setDescription("Mengunduh " + fileName);
-            request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationInExternalFilesDir(MainActivity.this, Environment.DIRECTORY_DOWNLOADS, fileName);
-            request.setMimeType("application/vnd.android.package-archive");
-            request.setAllowedOverMetered(true);
-            request.setAllowedOverRoaming(true);
-            request.addRequestHeader("User-Agent", "Mozilla/5.0 (Linux; Android) DialogCoffeeCashier");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection conn = null;
+                InputStream in = null;
+                FileOutputStream out = null;
+                try {
+                    File downloadsDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
+                    if (downloadsDir != null && !downloadsDir.exists()) {
+                        downloadsDir.mkdirs();
+                    }
+                    final File targetFile = new File(downloadsDir, fileName);
+                    if (targetFile.exists()) {
+                        targetFile.delete();
+                    }
 
-            final DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-            if (manager != null) {
-                currentDownloadId = manager.enqueue(request);
-                startProgressPolling(manager, currentDownloadId);
-                Toast.makeText(MainActivity.this, "Mengunduh pembaruan di latar belakang...", Toast.LENGTH_SHORT)
-                        .show();
+                    // Ikuti redirect HTTP (301/302/307/308) secara manual agar lintas-domain aman
+                    String currentUrl = downloadUrl;
+                    int redirectCount = 0;
+                    int responseCode = 0;
+                    while (redirectCount < 6) {
+                        URL url = new URL(currentUrl);
+                        conn = (HttpURLConnection) url.openConnection();
+                        conn.setInstanceFollowRedirects(true);
+                        conn.setConnectTimeout(15000);
+                        conn.setReadTimeout(30000);
+                        conn.setRequestProperty("User-Agent", "Mozilla/5.0 (Linux; Android) DialogCoffeeCashier");
+                        conn.connect();
+
+                        responseCode = conn.getResponseCode();
+                        if (responseCode == HttpURLConnection.HTTP_MOVED_TEMP
+                                || responseCode == HttpURLConnection.HTTP_MOVED_PERM
+                                || responseCode == HttpURLConnection.HTTP_SEE_OTHER
+                                || responseCode == 307
+                                || responseCode == 308) {
+                            String location = conn.getHeaderField("Location");
+                            conn.disconnect();
+                            if (location == null || location.isEmpty()) {
+                                break;
+                            }
+                            currentUrl = location;
+                            redirectCount++;
+                        } else {
+                            break;
+                        }
+                    }
+
+                    if (responseCode != HttpURLConnection.HTTP_OK) {
+                        final int errCode = responseCode;
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (getBridge() != null && getBridge().getWebView() != null) {
+                                    getBridge().getWebView().evaluateJavascript(
+                                            "if (window.AppUpdater && AppUpdater.onDownloadFailed) AppUpdater.onDownloadFailed('HTTP "
+                                                    + errCode + "');",
+                                            null);
+                                }
+                            }
+                        });
+                        return;
+                    }
+
+                    final long totalBytes = conn.getContentLengthLong();
+                    in = conn.getInputStream();
+                    out = new FileOutputStream(targetFile);
+
+                    byte[] buffer = new byte[8192];
+                    long downloadedBytes = 0;
+                    int bytesRead;
+                    long lastEmitTime = 0;
+
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                        downloadedBytes += bytesRead;
+
+                        long now = System.currentTimeMillis();
+                        if (now - lastEmitTime >= 200) {
+                            lastEmitTime = now;
+                            final long fDownloaded = downloadedBytes;
+                            final long fTotal = totalBytes > 0 ? totalBytes : 0;
+                            final int fPercent = (fTotal > 0)
+                                    ? (int) Math.min(99, (fDownloaded * 100L) / fTotal)
+                                    : 0;
+                            runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (getBridge() != null && getBridge().getWebView() != null) {
+                                        getBridge().getWebView().evaluateJavascript(
+                                                String.format(
+                                                        "if (window.AppUpdater && AppUpdater.onDownloadProgress) AppUpdater.onDownloadProgress(%d, %d, %d);",
+                                                        fDownloaded, fTotal, fPercent),
+                                                null);
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    out.flush();
+                    out.close();
+                    out = null;
+                    in.close();
+                    in = null;
+
+                    if (targetFile.exists() && targetFile.length() > 100000) {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (getBridge() != null && getBridge().getWebView() != null) {
+                                    getBridge().getWebView().evaluateJavascript(
+                                            "if (window.AppUpdater && AppUpdater.onDownloadCompleted) AppUpdater.onDownloadCompleted('"
+                                                    + fileName + "');",
+                                            null);
+                                }
+                                installApk(targetFile);
+                            }
+                        });
+                    } else {
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (getBridge() != null && getBridge().getWebView() != null) {
+                                    getBridge().getWebView().evaluateJavascript(
+                                            "if (window.AppUpdater && AppUpdater.onDownloadFailed) AppUpdater.onDownloadFailed('Berkas APK tidak lengkap');",
+                                            null);
+                                }
+                            }
+                        });
+                    }
+                } catch (final Exception e) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            String msg = (e.getMessage() != null ? e.getMessage() : "Error jaringan").replace("'", "");
+                            if (getBridge() != null && getBridge().getWebView() != null) {
+                                getBridge().getWebView().evaluateJavascript(
+                                        "if (window.AppUpdater && AppUpdater.onDownloadFailed) AppUpdater.onDownloadFailed('"
+                                                + msg + "');",
+                                        null);
+                            }
+                        }
+                    });
+                } finally {
+                    try { if (out != null) out.close(); } catch (Exception ignored) {}
+                    try { if (in != null) in.close(); } catch (Exception ignored) {}
+                    if (conn != null) conn.disconnect();
+                }
             }
-        } catch (Exception e) {
-            Toast.makeText(MainActivity.this, "Gagal mengunduh: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-        }
+        }).start();
     }
 
     private void startProgressPolling(final DownloadManager manager, final long downloadId) {

@@ -5,8 +5,8 @@
  */
 const AppUpdater = {
   CURRENT_VERSION: {
-    versionCode: 25,
-    versionName: '3.4'
+    versionCode: 26,
+    versionName: '3.5'
   },
   DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,
@@ -171,11 +171,11 @@ const AppUpdater = {
     const cfg = this.getConfig();
     let updateInfo = null;
 
-    // 1. Cek langsung version.json dari GitHub Raw, jsDelivr CDN, dan Firebase (HTTP 200 instan, bebas rate-limit API)
+    // 1. Cek langsung dari Firebase RTDB (0ms real-time tanpa stale cache CDN), lalu GitHub Raw & jsDelivr CDN
     const primaryUrls = [
+      cfg.firebaseVersionEndpoint + '?t=' + Date.now(),
       cfg.githubRawEndpoint + '?t=' + Date.now(),
-      cfg.githubJsDelivrEndpoint + '?t=' + Date.now(),
-      cfg.firebaseVersionEndpoint + '?t=' + Date.now()
+      cfg.githubJsDelivrEndpoint + '?t=' + Date.now()
     ];
 
     for (const url of primaryUrls) {
@@ -196,15 +196,23 @@ const AppUpdater = {
           const res = await resp.json();
           const data = (res && res.data) ? res.data : res;
           if (data && data.versionCode) {
-            updateInfo = data;
-            updateInfo.apkUrl = this.normalizeApkUrl(updateInfo.apkUrl || cfg.githubDirectApkUrl);
-            if (updateInfo.fallbackApkUrl) {
-              updateInfo.fallbackApkUrl = this.normalizeApkUrl(updateInfo.fallbackApkUrl);
+            const candidate = Object.assign({}, data);
+            candidate.apkUrl = this.normalizeApkUrl(candidate.apkUrl || cfg.githubDirectApkUrl);
+            if (candidate.fallbackApkUrl) {
+              candidate.fallbackApkUrl = this.normalizeApkUrl(candidate.fallbackApkUrl);
             }
-            if (!updateInfo.downloadPageUrl) {
-              updateInfo.downloadPageUrl = cfg.githubReleasesPage;
+            if (!candidate.downloadPageUrl) {
+              candidate.downloadPageUrl = cfg.githubReleasesPage;
             }
-            break;
+            const candCode = parseInt(candidate.versionCode, 10) || 0;
+            const bestCode = updateInfo ? (parseInt(updateInfo.versionCode, 10) || 0) : -1;
+            if (!updateInfo || candCode > bestCode) {
+              updateInfo = candidate;
+            }
+            // Berhenti lebih cepat jika sudah menemukan versi yang lebih baru dari versi terpasang
+            if (candCode > this.CURRENT_VERSION.versionCode || this.compareSemver(candidate.versionName, this.CURRENT_VERSION.versionName) > 0) {
+              break;
+            }
           }
         }
       } catch (err) {}
@@ -330,6 +338,7 @@ const AppUpdater = {
     }
     if (startBtnText) startBtnText.textContent = 'Unduh & Perbarui dari GitHub';
 
+    modal.style.display = '';
     modal.classList.add('active');
   },
 
