@@ -179,6 +179,9 @@ const OwnerModule = {
         }
       }
 
+      const err = document.getElementById('ownerPinError');
+      if (err) err.style.display = 'none';
+
       this.setLoggedIn(true);
       if (window.AuthModule) {
         AuthModule.setRole('owner');
@@ -189,7 +192,11 @@ const OwnerModule = {
         App.showToast('Selamat datang, Pemilik DIALOG COFFEE!', 'success');
         App.switchTab('owner');
       }
-      this.renderAll();
+      try {
+        this.renderAll();
+      } catch (e) {
+        console.warn('OwnerModule.renderAll error:', e);
+      }
     } else {
       if (window.App) App.playBeep(260, 0.15, 'sawtooth');
       this.showLoginError('PIN salah!');
@@ -228,6 +235,10 @@ const OwnerModule = {
           e.preventDefault();
           this.submitLogin();
         }
+      });
+      pinInput.addEventListener('input', () => {
+        const err = document.getElementById('ownerPinError');
+        if (err) err.style.display = 'none';
       });
     }
 

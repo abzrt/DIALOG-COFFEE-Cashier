@@ -169,6 +169,10 @@ const CloudSync = {
           lastPing: Date.now()
         };
 
+        if (window.AuthModule && AuthModule.SESSION_TOKEN_KEY) {
+          try { localStorage.setItem(AuthModule.SESSION_TOKEN_KEY, token); } catch (e) {}
+        }
+
         await sessionRef.set(newSession);
 
         // Jangan hapus sesi saat koneksi terputus atau aplikasi ditutup (hindari auto-logout)

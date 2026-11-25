@@ -218,6 +218,7 @@ const AuthModule = {
     const err = document.getElementById('authPinError');
     if (err) err.style.display = 'none';
 
+    modal.style.display = '';
     modal.classList.add('active');
 
     // Sinkronkan status modal dengan sesi cloud
@@ -238,7 +239,10 @@ const AuthModule = {
       return;
     }
     const modal = document.getElementById('accountLoginModal');
-    if (modal) modal.classList.remove('active');
+    if (modal) {
+      modal.classList.remove('active');
+      modal.style.display = 'none';
+    }
   },
 
   async submitLogin() {
@@ -277,6 +281,9 @@ const AuthModule = {
       }
 
       if (enteredPin === expectedOwnerPin) {
+        const errEl = document.getElementById('authPinError');
+        if (errEl) errEl.style.display = 'none';
+
         // Verifikasi Anti Dual-Login di Cloud
         if (window.CloudSync && CloudSync.checkAndRegisterLoginSession) {
           const sessionCheck = await CloudSync.checkAndRegisterLoginSession('owner', 'Owner', this.getDeviceId());
@@ -293,17 +300,25 @@ const AuthModule = {
         this.setRole('owner');
         if (window.OwnerModule) {
           OwnerModule.setLoggedIn(true);
-          OwnerModule.renderAll();
+          try {
+            OwnerModule.renderAll();
+          } catch (e) {
+            console.warn('OwnerModule.renderAll error:', e);
+          }
         }
         if (window.CloudSync && CloudSync.fetchTransactionsFromCloud) {
           CloudSync.fetchTransactionsFromCloud(6000);
         }
         if (pinInput) pinInput.value = '';
         const modal = document.getElementById('accountLoginModal');
-        if (modal) modal.classList.remove('active');
+        if (modal) {
+          modal.classList.remove('active');
+          modal.style.display = 'none';
+        }
         if (window.App) {
           App.playChime();
           App.showToast('Selamat datang, Owner DIALOG COFFEE! Tab Pengaturan aktif.', 'success');
+          App.switchTab('owner');
         }
       } else {
         if (window.App) App.playBeep(260, 0.15, 'sawtooth');
@@ -325,6 +340,9 @@ const AuthModule = {
       }
 
       if (enteredPin === expectedBaristaPin) {
+        const errEl = document.getElementById('authPinError');
+        if (errEl) errEl.style.display = 'none';
+
         // Verifikasi Anti Dual-Login di Cloud
         if (window.CloudSync && CloudSync.checkAndRegisterLoginSession) {
           const activeShift = (window.App && App.activeShift) ? App.activeShift : 'Shift 1';
@@ -348,7 +366,10 @@ const AuthModule = {
         }
         if (pinInput) pinInput.value = '';
         const modal = document.getElementById('accountLoginModal');
-        if (modal) modal.classList.remove('active');
+        if (modal) {
+          modal.classList.remove('active');
+          modal.style.display = 'none';
+        }
         if (window.App) {
           App.playChime();
           App.showToast('Selamat datang, Barista DIALOG COFFEE! Selamat bertugas.', 'success');
@@ -474,6 +495,10 @@ const AuthModule = {
           e.preventDefault();
           this.submitLogin();
         }
+      });
+      pinInput.addEventListener('input', () => {
+        const err = document.getElementById('authPinError');
+        if (err) err.style.display = 'none';
       });
     }
   }
