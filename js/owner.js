@@ -381,11 +381,6 @@ const OwnerModule = {
 
     // Render current active mode
     this.setTimeframeMode(this.currentMode);
-
-    // Tarik transaksi & closing terbaru dari database cloud jika online
-    if (window.CloudSync && CloudSync.fetchTransactionsFromCloud) {
-      CloudSync.fetchTransactionsFromCloud(6000);
-    }
   },
 
   populateYearOptions() {

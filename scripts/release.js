@@ -64,12 +64,26 @@ currentVersion.versionCode = newCode;
 currentVersion.versionName = newName;
 currentVersion.releaseDate = todayStr;
 currentVersion.changelog = newChangelog;
-currentVersion.apkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/raw/main/dialog-coffee-cashier-v${newName}.apk`;
-currentVersion.fallbackApkUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/raw/main/dialog-coffee-cashier-release.apk`;
+currentVersion.apkUrl = `https://raw.githubusercontent.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/main/dialog-coffee-cashier-v${newName}.apk`;
+currentVersion.fallbackApkUrl = `https://raw.githubusercontent.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}/main/dialog-coffee-cashier-release.apk`;
 currentVersion.downloadPageUrl = `https://github.com/${currentVersion.githubRepo || 'abzrt/DIALOG-COFFEE-Cashier'}`;
 
 fs.writeFileSync(versionJsonPath, JSON.stringify(currentVersion, null, 2) + '\n', 'utf8');
 console.log('✓ version.json diperbarui');
+
+// Sinkronkan metadata versi ke Firebase RTDB agar auto-updater 100% selalu bisa membaca versi terbaru
+try {
+  const https = require('https');
+  const payload = JSON.stringify(currentVersion);
+  const req = https.request('https://tech-solution-6441a-default-rtdb.asia-southeast1.firebasedatabase.app/app_version.json', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }
+  });
+  req.on('error', () => {});
+  req.write(payload);
+  req.end();
+  console.log('✓ Metadata versi dikirim ke Firebase RTDB (/app_version.json)');
+} catch (e) {}
 
 // 3. Perbarui android/app/build.gradle
 if (fs.existsSync(buildGradlePath)) {

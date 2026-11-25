@@ -1,10 +1,10 @@
 {
-  "versionCode": 21,
-  "versionName": "3.0",
+  "versionCode": 22,
+  "versionName": "3.1",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v3.0.apk",
-  "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
+  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.1.apk",
+  "fallbackApkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Perbaikan Splash Screen & UI Responsiveness: Mencegah splash stuck dan memastikan seluruh tombol kasir langsung aktif dan dapat ditekan"
+  "changelog": "Perbaikan Freeze Loop & Auto-Update: Memutus infinite loop render Owner-Cloud, debounce listener transaksi, dan memperbaiki auto-updater direct download HTTP 200"
 }

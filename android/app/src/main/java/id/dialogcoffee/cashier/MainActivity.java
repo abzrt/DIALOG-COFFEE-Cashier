@@ -96,20 +96,48 @@ public class MainActivity extends BridgeActivity {
                     long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
                     if (id != -1 && id == currentDownloadId) {
                         stopProgressPolling();
+                        boolean downloadSuccess = false;
+                        int failReason = -1;
+                        try {
+                            DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+                            if (manager != null) {
+                                DownloadManager.Query q = new DownloadManager.Query();
+                                q.setFilterById(id);
+                                try (Cursor cursor = manager.query(q)) {
+                                    if (cursor != null && cursor.moveToFirst()) {
+                                        int statusIdx = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS);
+                                        int reasonIdx = cursor.getColumnIndex(DownloadManager.COLUMN_REASON);
+                                        int status = (statusIdx >= 0) ? cursor.getInt(statusIdx) : 0;
+                                        failReason = (reasonIdx >= 0) ? cursor.getInt(reasonIdx) : -1;
+                                        downloadSuccess = (status == DownloadManager.STATUS_SUCCESSFUL);
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {}
+
                         if (currentApkFileName != null) {
                             File targetFile = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS),
                                     currentApkFileName);
 
-                            // Kirim sinyal ke WebView bahwa unduhan selesai
-                            if (getBridge() != null && getBridge().getWebView() != null) {
-                                getBridge().getWebView().evaluateJavascript(
-                                        "if (window.AppUpdater && AppUpdater.onDownloadCompleted) AppUpdater.onDownloadCompleted('"
-                                                + currentApkFileName + "');",
-                                        null);
-                            }
+                            if (downloadSuccess && targetFile.exists() && targetFile.length() > 100000) {
+                                // Kirim sinyal ke WebView bahwa unduhan selesai
+                                if (getBridge() != null && getBridge().getWebView() != null) {
+                                    getBridge().getWebView().evaluateJavascript(
+                                            "if (window.AppUpdater && AppUpdater.onDownloadCompleted) AppUpdater.onDownloadCompleted('"
+                                                    + currentApkFileName + "');",
+                                            null);
+                                }
 
-                            // Langsung buka Package Installer secara otomatis (Auto-Install)
-                            installApk(targetFile);
+                                // Langsung buka Package Installer secara otomatis (Auto-Install)
+                                installApk(targetFile);
+                            } else {
+                                if (getBridge() != null && getBridge().getWebView() != null) {
+                                    getBridge().getWebView().evaluateJavascript(
+                                            "if (window.AppUpdater && AppUpdater.onDownloadFailed) AppUpdater.onDownloadFailed('Kode error: "
+                                                    + failReason + "');",
+                                            null);
+                                }
+                            }
                         }
                     }
                 }
@@ -143,6 +171,9 @@ public class MainActivity extends BridgeActivity {
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
             request.setDestinationInExternalFilesDir(MainActivity.this, Environment.DIRECTORY_DOWNLOADS, fileName);
             request.setMimeType("application/vnd.android.package-archive");
+            request.setAllowedOverMetered(true);
+            request.setAllowedOverRoaming(true);
+            request.addRequestHeader("User-Agent", "Mozilla/5.0 (Linux; Android) DialogCoffeeCashier");
 
             final DownloadManager manager = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
             if (manager != null) {
@@ -194,6 +225,11 @@ public class MainActivity extends BridgeActivity {
 
                         if (status == DownloadManager.STATUS_SUCCESSFUL || status == DownloadManager.STATUS_FAILED) {
                             stopProgressPolling();
+                            if (status == DownloadManager.STATUS_FAILED && getBridge() != null && getBridge().getWebView() != null) {
+                                getBridge().getWebView().evaluateJavascript(
+                                        "if (window.AppUpdater && AppUpdater.onDownloadFailed) AppUpdater.onDownloadFailed('Unduhan terhenti');",
+                                        null);
+                            }
                             return;
                         }
                     }

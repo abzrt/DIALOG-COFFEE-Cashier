@@ -5,12 +5,22 @@
  */
 const AppUpdater = {
   CURRENT_VERSION: {
-    versionCode: 21,
-    versionName: '3.0'
+    versionCode: 22,
+    versionName: '3.1'
   },
   DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,
   isChecking: false,
+  isDownloading: false,
+
+  normalizeApkUrl(url) {
+    if (!url) return url;
+    // Konversi URL github.com/.../raw/main/... (302 redirect) ke raw.githubusercontent.com (langsung HTTP 200)
+    return String(url).replace(
+      /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/raw\/([^/]+)\/(.+)$/i,
+      'https://raw.githubusercontent.com/$1/$2/$3/$4'
+    );
+  },
 
   getConfig() {
     const s = (window.StorageManager && StorageManager.getSettings) ? StorageManager.getSettings() : {};
@@ -24,9 +34,11 @@ const AppUpdater = {
       githubToken: token,
       githubApiEndpoint: `https://api.github.com/repos/${repo}/releases/latest`,
       githubRawEndpoint: `https://raw.githubusercontent.com/${repo}/main/version.json`,
-      githubDirectApkUrl: `https://github.com/${repo}/raw/main/dialog-coffee-cashier-release.apk`,
+      githubJsDelivrEndpoint: `https://cdn.jsdelivr.net/gh/${repo}@main/version.json`,
+      firebaseVersionEndpoint: 'https://tech-solution-6441a-default-rtdb.asia-southeast1.firebasedatabase.app/app_version.json',
+      githubDirectApkUrl: `https://raw.githubusercontent.com/${repo}/main/dialog-coffee-cashier-release.apk`,
       githubReleasesPage: `https://github.com/${repo}/releases/latest`,
-      githubLatestApkUrl: `https://github.com/${repo}/releases/latest/download/dialog-coffee-cashier-release.apk`,
+      githubLatestApkUrl: `https://raw.githubusercontent.com/${repo}/main/dialog-coffee-cashier-release.apk`,
       apiUrl: apiUrl,
       checkUpdateEndpoint: apiUrl + (apiUrl.includes('?') ? '&' : '?') + 'action=check_update'
     };
@@ -79,6 +91,7 @@ const AppUpdater = {
   },
 
   onDownloadCompleted(fileName) {
+    this.isDownloading = false;
     const statusTextEl = document.getElementById('updateProgressStatusText');
     const percentTextEl = document.getElementById('updateProgressPercentText');
     const progressBarFill = document.getElementById('updateProgressBarFill');
@@ -99,6 +112,33 @@ const AppUpdater = {
           window.AndroidBridge.installDownloadedApk(fileName);
         }
       };
+    }
+  },
+
+  onDownloadFailed(reason) {
+    this.isDownloading = false;
+    const statusTextEl = document.getElementById('updateProgressStatusText');
+    const startBtn = document.getElementById('btnStartUpdate');
+    const startBtnText = document.getElementById('btnStartUpdateText');
+    const info = this.availableUpdate;
+    const cfg = this.getConfig();
+
+    if (statusTextEl) {
+      statusTextEl.innerHTML = `<strong style="color: var(--expense-red, #dc2626);">✕ Unduhan gagal (${reason || 'koneksi terputus'}). Silakan coba lagi.</strong>`;
+    }
+    if (startBtn) {
+      startBtn.disabled = false;
+      if (startBtnText) startBtnText.textContent = 'Coba Unduh Ulang';
+      startBtn.onclick = () => this.startDownload();
+    }
+    if (window.App && App.showToast) {
+      App.showToast('Gagal mengunduh APK pembaruan. Silakan coba lagi atau periksa koneksi.', 'error');
+    }
+    // Siapkan fallback URL alternatif jika unduhan pertama gagal
+    if (info && info.fallbackApkUrl && info.apkUrl !== info.fallbackApkUrl) {
+      info.apkUrl = this.normalizeApkUrl(info.fallbackApkUrl);
+    } else if (info && cfg.githubDirectApkUrl) {
+      info.apkUrl = cfg.githubDirectApkUrl;
     }
   },
 
@@ -124,7 +164,7 @@ const AppUpdater = {
   },
 
   async checkUpdate(silent = false) {
-    if (this.isChecking) return;
+    if (this.isChecking || this.isDownloading) return;
     this.isChecking = true;
 
     const statusEl = document.getElementById('updaterStatusText');
@@ -135,101 +175,96 @@ const AppUpdater = {
     const cfg = this.getConfig();
     let updateInfo = null;
 
-    // 1. Cek langsung via GitHub Releases API
-    try {
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 7000);
-      const headers = { 'Accept': 'application/vnd.github.v3+json' };
-      if (cfg.githubToken) {
-        headers['Authorization'] = `Bearer ${cfg.githubToken}`;
-      }
+    // 1. Cek langsung version.json dari GitHub Raw, jsDelivr CDN, dan Firebase (HTTP 200 instan, bebas rate-limit API)
+    const primaryUrls = [
+      cfg.githubRawEndpoint + '?t=' + Date.now(),
+      cfg.githubJsDelivrEndpoint + '?t=' + Date.now(),
+      cfg.firebaseVersionEndpoint + '?t=' + Date.now()
+    ];
 
-      const ghResp = await fetch(cfg.githubApiEndpoint + '?t=' + Date.now(), {
-        cache: 'no-store',
-        headers: headers,
-        signal: controller.signal
-      });
-      clearTimeout(timer);
-
-      if (ghResp.ok) {
-        const ghRelease = await ghResp.json();
-        if (ghRelease && ghRelease.tag_name) {
-          const tagName = String(ghRelease.tag_name).trim();
-          const cleanVersionName = tagName.replace(/^v/i, '');
-          
-          // Cari asset file .apk di dalam rilis GitHub
-          let apkDownloadUrl = cfg.githubLatestApkUrl;
-          if (Array.isArray(ghRelease.assets) && ghRelease.assets.length > 0) {
-            const apkAsset = ghRelease.assets.find(a => a.name && a.name.toLowerCase().endsWith('.apk'));
-            if (apkAsset && apkAsset.browser_download_url) {
-              apkDownloadUrl = apkAsset.browser_download_url;
-            }
-          }
-
-          // Ekstrak nomor build jika tercantum dalam deskripsi / release notes
-          let detectedBuildCode = 0;
-          const buildMatch = String(ghRelease.body || '').match(/build\s*#?(\d+)/i) || String(ghRelease.name || '').match(/build\s*#?(\d+)/i);
-          if (buildMatch) {
-            detectedBuildCode = parseInt(buildMatch[1], 10);
-          } else {
-            // Estimasikan dari semver
-            const comp = this.compareSemver(cleanVersionName, this.CURRENT_VERSION.versionName);
-            detectedBuildCode = (comp > 0) ? (this.CURRENT_VERSION.versionCode + 1) : this.CURRENT_VERSION.versionCode;
-          }
-
-          updateInfo = {
-            versionCode: detectedBuildCode,
-            versionName: cleanVersionName,
-            apkUrl: apkDownloadUrl,
-            downloadPageUrl: ghRelease.html_url || cfg.githubReleasesPage,
-            releaseDate: ghRelease.published_at ? ghRelease.published_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
-            changelog: ghRelease.body || ghRelease.name || `Pembaruan resmi ${tagName} via GitHub.`
-          };
+    for (const url of primaryUrls) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 6000);
+        const headers = {};
+        if (cfg.githubToken && url.includes('github')) {
+          headers['Authorization'] = `Bearer ${cfg.githubToken}`;
         }
-      }
-    } catch (e) {
-      // Lanjut ke endpoint cadangan
+        const resp = await fetch(url, {
+          cache: 'no-store',
+          headers: headers,
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+        if (resp.ok) {
+          const res = await resp.json();
+          const data = (res && res.data) ? res.data : res;
+          if (data && data.versionCode) {
+            updateInfo = data;
+            updateInfo.apkUrl = this.normalizeApkUrl(updateInfo.apkUrl || cfg.githubDirectApkUrl);
+            if (updateInfo.fallbackApkUrl) {
+              updateInfo.fallbackApkUrl = this.normalizeApkUrl(updateInfo.fallbackApkUrl);
+            }
+            if (!updateInfo.downloadPageUrl) {
+              updateInfo.downloadPageUrl = cfg.githubReleasesPage;
+            }
+            break;
+          }
+        }
+      } catch (err) {}
     }
 
-    // 2. Jika GitHub Releases API belum ada atau kena limit, cek version.json di GitHub Raw / Server
+    // 2. Cadangan: Cek via GitHub Releases API jika sumber utama tidak tersedia
     if (!updateInfo) {
-      const fallbackUrls = [
-        cfg.githubRawEndpoint + '?t=' + Date.now(),
-        cfg.checkUpdateEndpoint + '&t=' + Date.now(),
-        'version.json?t=' + Date.now()
-      ];
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 7000);
+        const headers = { 'Accept': 'application/vnd.github.v3+json' };
+        if (cfg.githubToken) {
+          headers['Authorization'] = `Bearer ${cfg.githubToken}`;
+        }
 
-      for (const url of fallbackUrls) {
-        try {
-          const controller = new AbortController();
-          const timer = setTimeout(() => controller.abort(), 6000);
-          const headers = {};
-          if (cfg.githubToken && url.includes('github')) {
-            headers['Authorization'] = `Bearer ${cfg.githubToken}`;
-          }
-          const resp = await fetch(url, {
-            cache: 'no-store',
-            headers: headers,
-            signal: controller.signal
-          });
-          clearTimeout(timer);
-          if (resp.ok) {
-            const res = await resp.json();
-            const data = (res && res.data) ? res.data : res;
-            if (data && data.versionCode) {
-              updateInfo = data;
-              // Pastikan apkUrl mengarah ke direct raw atau release GitHub
-              if (!updateInfo.apkUrl) {
-                updateInfo.apkUrl = cfg.githubDirectApkUrl || cfg.githubLatestApkUrl;
+        const ghResp = await fetch(cfg.githubApiEndpoint + '?t=' + Date.now(), {
+          cache: 'no-store',
+          headers: headers,
+          signal: controller.signal
+        });
+        clearTimeout(timer);
+
+        if (ghResp.ok) {
+          const ghRelease = await ghResp.json();
+          if (ghRelease && ghRelease.tag_name) {
+            const tagName = String(ghRelease.tag_name).trim();
+            const cleanVersionName = tagName.replace(/^v/i, '');
+            
+            let apkDownloadUrl = cfg.githubDirectApkUrl;
+            if (Array.isArray(ghRelease.assets) && ghRelease.assets.length > 0) {
+              const apkAsset = ghRelease.assets.find(a => a.name && a.name.toLowerCase().endsWith('.apk'));
+              if (apkAsset && apkAsset.browser_download_url) {
+                apkDownloadUrl = apkAsset.browser_download_url;
               }
-              if (!updateInfo.downloadPageUrl) {
-                updateInfo.downloadPageUrl = cfg.githubReleasesPage;
-              }
-              break;
             }
+
+            let detectedBuildCode = 0;
+            const buildMatch = String(ghRelease.body || '').match(/build\s*#?(\d+)/i) || String(ghRelease.name || '').match(/build\s*#?(\d+)/i);
+            if (buildMatch) {
+              detectedBuildCode = parseInt(buildMatch[1], 10);
+            } else {
+              const comp = this.compareSemver(cleanVersionName, this.CURRENT_VERSION.versionName);
+              detectedBuildCode = (comp > 0) ? (this.CURRENT_VERSION.versionCode + 1) : this.CURRENT_VERSION.versionCode;
+            }
+
+            updateInfo = {
+              versionCode: detectedBuildCode,
+              versionName: cleanVersionName,
+              apkUrl: this.normalizeApkUrl(apkDownloadUrl),
+              downloadPageUrl: ghRelease.html_url || cfg.githubReleasesPage,
+              releaseDate: ghRelease.published_at ? ghRelease.published_at.slice(0, 10) : new Date().toISOString().slice(0, 10),
+              changelog: ghRelease.body || ghRelease.name || `Pembaruan resmi ${tagName} via GitHub.`
+            };
           }
-        } catch (err) {}
-      }
+        }
+      } catch (e) {}
     }
 
     this.isChecking = false;
@@ -309,10 +344,11 @@ const AppUpdater = {
 
   async startDownload() {
     const info = this.availableUpdate;
-    if (!info) return;
+    if (!info || this.isDownloading) return;
+    this.isDownloading = true;
 
     const cfg = this.getConfig();
-    const apkUrl = info.apkUrl || cfg.githubDirectApkUrl || cfg.githubLatestApkUrl;
+    const apkUrl = this.normalizeApkUrl(info.apkUrl || cfg.githubDirectApkUrl || cfg.githubLatestApkUrl);
     const fileName = `dialog-coffee-cashier-v${info.versionName}.apk`;
     const progressEl = document.getElementById('updateDownloadProgress');
     const statusTextEl = document.getElementById('updateProgressStatusText');
@@ -396,12 +432,14 @@ const AppUpdater = {
         App.showToast(`Berkas ${fileName} berhasil diunduh! Klik untuk menginstal.`, 'success');
       }
 
+      this.isDownloading = false;
       if (startBtn) {
         startBtn.disabled = false;
         if (startBtnText) startBtnText.textContent = 'Tutup';
         startBtn.onclick = () => this.closeModal();
       }
     } catch (err) {
+      this.isDownloading = false;
       console.error('In-app background download failed:', err);
       if (statusTextEl) statusTextEl.textContent = 'Gagal mengunduh di background.';
       if (startBtn) {

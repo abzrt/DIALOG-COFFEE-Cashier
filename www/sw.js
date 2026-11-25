@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dialog-coffee-cache-v35';
+const CACHE_NAME = 'dialog-coffee-cache-v36';
 
 const ASSETS_TO_CACHE = [
   './',
@@ -42,7 +42,7 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-  if (e.request.method !== 'GET' || e.request.url.includes('api_sync.php')) return;
+  if (e.request.method !== 'GET' || !e.request.url.startsWith(self.location.origin) || e.request.url.includes('api_sync.php') || e.request.url.includes('version.json') || e.request.url.endsWith('.apk')) return;
   e.respondWith(
     fetch(e.request)
       .then((networkRes) => {

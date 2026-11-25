@@ -66,9 +66,6 @@ const CloudSync = {
           document.addEventListener('visibilitychange', () => {
             if (!document.hidden && this.isFirebaseConnected) {
               this.fetchTransactionsFromCloud();
-              if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
-                OwnerModule.renderAll();
-              }
             }
           });
         }
@@ -549,8 +546,36 @@ const CloudSync = {
     }
   },
 
+  _trxRenderTimer: null,
+
+  _scheduleTrxUIRender() {
+    if (this._trxRenderTimer) clearTimeout(this._trxRenderTimer);
+    this._trxRenderTimer = setTimeout(() => {
+      this._trxRenderTimer = null;
+      if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
+        try { OwnerModule.renderAll(); } catch (e) {}
+      }
+      if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
+        try { FinanceModule.renderAll(); } catch (e) {}
+      }
+      if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
+        try { ReportsModule.renderAll(); } catch (e) {}
+      }
+      if (window.POSModule && typeof POSModule.renderSpeedBar === 'function') {
+        try { POSModule.renderSpeedBar(); } catch (e) {}
+      }
+    }, 250);
+  },
+
   listenTransactions() {
     if (!this.db) return;
+
+    let initialSyncDone = false;
+    this.db.ref('transactions').once('value').then(() => {
+      initialSyncDone = true;
+    }).catch(() => {
+      initialSyncDone = true;
+    });
 
     this.db.ref('transactions').on('child_added', snap => {
       const trx = snap.val();
@@ -564,22 +589,11 @@ const CloudSync = {
           const myDeviceId = window.AuthModule && typeof AuthModule.getDeviceId === 'function' ? AuthModule.getDeviceId() : '';
           const isFromOtherDevice = trx.deviceId && trx.deviceId !== myDeviceId;
 
-          // 1. Sinkronkan semua tampilan (Dashboard Owner, Buku Kas, Laporan, Speed Bar POS)
-          if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
-            OwnerModule.renderAll();
-          }
-          if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
-            FinanceModule.renderAll();
-          }
-          if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
-            ReportsModule.renderAll();
-          }
-          if (window.POSModule && typeof POSModule.renderSpeedBar === 'function') {
-            POSModule.renderSpeedBar();
-          }
+          // 1. Sinkronkan semua tampilan secara ter-debounce (mencegah freeze saat burst data awal)
+          this._scheduleTrxUIRender();
 
-          // 2. Beri notifikasi audio visual instan pada HP Owner jika transaksi masuk dari Barista
-          if (isFromOtherDevice && window.AuthModule && AuthModule.isOwner()) {
+          // 2. Beri notifikasi audio visual instan pada HP Owner hanya untuk transaksi live baru dari Barista
+          if (initialSyncDone && isFromOtherDevice && window.AuthModule && AuthModule.isOwner()) {
             if (window.App && typeof App.playChime === 'function') {
               App.playChime();
             }
@@ -608,16 +622,7 @@ const CloudSync = {
           local.unshift(trx);
         }
         StorageManager.saveAllTransactions(local);
-
-        if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
-          OwnerModule.renderAll();
-        }
-        if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
-          FinanceModule.renderAll();
-        }
-        if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
-          ReportsModule.renderAll();
-        }
+        this._scheduleTrxUIRender();
       }
     });
 
@@ -629,24 +634,18 @@ const CloudSync = {
         local = local.filter(t => t.id !== trx.id);
         if (local.length !== before) {
           StorageManager.saveAllTransactions(local);
-          if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
-            OwnerModule.renderAll();
-          }
-          if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
-            FinanceModule.renderAll();
-          }
-          if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
-            ReportsModule.renderAll();
-          }
+          this._scheduleTrxUIRender();
         }
       }
     });
   },
 
   async fetchTransactionsFromCloud() {
+    if (this._isFetchingTrx) return;
+    this._isFetchingTrx = true;
     this.initFirebase();
-    if (this.db) {
-      try {
+    try {
+      if (this.db) {
         const snap = await this.db.ref('transactions').once('value');
         const data = snap.val();
         if (data && typeof data === 'object') {
@@ -660,20 +659,14 @@ const CloudSync = {
             });
             const merged = Array.from(localMap.values()).sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0));
             StorageManager.saveAllTransactions(merged);
-            if (window.OwnerModule && typeof OwnerModule.renderAll === 'function' && OwnerModule.isLoggedIn()) {
-              OwnerModule.renderAll();
-            }
-            if (window.FinanceModule && typeof FinanceModule.renderAll === 'function') {
-              FinanceModule.renderAll();
-            }
-            if (window.ReportsModule && typeof ReportsModule.renderAll === 'function') {
-              ReportsModule.renderAll();
-            }
+            this._scheduleTrxUIRender();
           }
         }
-      } catch (e) {
-        console.warn('fetchTransactionsFromCloud error:', e);
       }
+    } catch (e) {
+      console.warn('fetchTransactionsFromCloud error:', e);
+    } finally {
+      this._isFetchingTrx = false;
     }
   },
 
