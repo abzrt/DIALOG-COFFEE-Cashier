@@ -19,8 +19,8 @@ const AuthModule = {
         OwnerModule.setLoggedIn(true);
       }
       this.applyRoleUI(currentRole);
-      // Sinkronkan token sesi jika belum ada
-      if (!this.getSessionToken() && window.CloudSync && CloudSync.checkAndRegisterLoginSession) {
+      // Pastikan sesi aktif di cloud selalu tersinkronisasi saat aplikasi dibuka kembali tanpa auto-logout
+      if (window.CloudSync && CloudSync.checkAndRegisterLoginSession) {
         const userName = currentRole === 'owner' ? 'Owner' : 'Barista';
         CloudSync.checkAndRegisterLoginSession(currentRole, userName, this.getDeviceId()).then(res => {
           if (res && res.data && res.data.token) {

@@ -171,9 +171,9 @@ const CloudSync = {
 
         await sessionRef.set(newSession);
 
-        // onDisconnect handler: jika perangkat mati/koneksi putus/aplikasi tertutup,
-        // Firebase otomatis melepaskan status sesi aktif di cloud untuk role ini!
-        sessionRef.onDisconnect().remove();
+        // Jangan hapus sesi saat koneksi terputus atau aplikasi ditutup (hindari auto-logout)
+        // Sesi tetap bertahan di cloud dan di perangkat lokal sampai pengguna mengklik tombol Logout manual
+        try { sessionRef.onDisconnect().cancel(); } catch (e) {}
 
         // Hapus node legacy active_session jika masih tersisa
         try { this.db.ref('active_session').remove(); } catch (e) {}
@@ -283,14 +283,19 @@ const CloudSync = {
         const myRoleKey = currentRole.toLowerCase() === 'owner' ? 'owner' : 'barista';
         const myRoleSession = sessions[myRoleKey];
 
-        // Jika sesi role ini diambil alih atau dihapus dari cloud, baru logout perangkat ini
-        if (!myRoleSession || (myRoleSession.token !== myToken && myRoleSession.deviceId !== myDeviceId)) {
+        // Logout otomatis HANYA terjadi jika sesi akun ini benar-benar diambil alih oleh perangkat fisik lain di cloud
+        const isTakenByOtherDevice = myRoleSession && myRoleSession.deviceId && myRoleSession.deviceId !== myDeviceId && myRoleSession.token && myRoleSession.token !== myToken;
+        if (isTakenByOtherDevice) {
           AuthModule.clearSession();
           AuthModule.applyRoleUI(null);
           AuthModule.openLoginModal(false);
           if (window.App && App.showToast) {
-            App.showToast(`ℹ️ Sesi ${myRoleKey === 'owner' ? 'Owner' : 'Barista'} Anda telah diakhiri dari perangkat lain.`, 'info');
+            App.showToast(`ℹ️ Sesi ${myRoleKey === 'owner' ? 'Owner' : 'Barista'} Anda telah dialihkan ke perangkat lain.`, 'info');
           }
+        } else if (!myRoleSession && myToken) {
+          // Jika sesi di cloud belum ada / terhapus sementara tapi di perangkat lokal masih login,
+          // daftarkan kembali sesi perangkat ini ke cloud agar tidak auto-logout saat aplikasi dibuka kembali
+          this.checkAndRegisterLoginSession(currentRole, currentRole === 'owner' ? 'Owner' : 'Barista', myDeviceId);
         }
       }
     });

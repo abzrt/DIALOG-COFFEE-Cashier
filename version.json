@@ -1,10 +1,10 @@
 {
-  "versionCode": 18,
-  "versionName": "2.7",
+  "versionCode": 19,
+  "versionName": "2.8",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.7.apk",
+  "apkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-v2.8.apk",
   "fallbackApkUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier/raw/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Perbaikan Rekapan Closing Lintas Tanggal: Perhitungan transaksi kini dihitung penuh dari waktu buka shift (open) hingga closing tanpa terpotong pergantian tanggal tengah malam"
+  "changelog": "Mencegah Auto-Logout Saat Close Aplikasi: Sesi login Owner dan Barista kini tetap tersimpan permanen dan hanya logout jika menekan tombol Logout secara manual"
 }
