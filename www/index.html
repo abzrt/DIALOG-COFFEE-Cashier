@@ -303,6 +303,11 @@
                 <option value="all" data-i18n="allCategories">Semua Kategori</option>
               </select>
 
+              <div id="financeOwnerDateFilterWrap" class="hidden-by-role" style="display: inline-flex; align-items: center; gap: 6px;">
+                <input type="date" id="financeDateFilter" class="filter-select" title="Filter Transaksi per Tanggal (Khusus Owner)">
+                <button type="button" id="btnResetFinanceDate" class="filter-select" onclick="FinanceModule.clearDateFilter()" style="display: none; cursor: pointer; font-weight: 700; padding: 6px 10px;" title="Tampilkan Semua Tanggal">✕</button>
+              </div>
+
               <input type="text" id="financeSearchInput" class="filter-select" placeholder="Cari transaksi / nota..." data-i18n-placeholder="searchTrxPlaceholder" style="min-width: 170px;">
             </div>
           </div>
@@ -643,7 +648,7 @@
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
               <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v3.5 (Build #26)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+                <span>Versi Terpasang: <strong>v3.6 (Build #27)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
@@ -1931,12 +1936,14 @@
     </div>
 
     <div class="music-panel-body">
-      <!-- Input Link YouTube / YouTube Music -->
+      <!-- Input Pencarian / Link YouTube & YouTube Music -->
       <div class="music-url-row">
-        <input type="text" id="musicUrlInput" class="form-control music-url-input" placeholder="Tempel link YouTube / YT Music / Playlist..." autocomplete="off">
-        <button type="button" class="btn-primary-action btn-closing music-btn-sm" onclick="MusicModule.playFromInput()" title="Putar sekarang">▶</button>
+        <input type="text" id="musicUrlInput" class="form-control music-url-input" placeholder="Cari judul lagu YouTube atau tempel link..." autocomplete="off">
+        <button type="button" class="btn-primary-action btn-closing music-btn-sm" onclick="MusicModule.playFromInput()" title="Cari / Putar">🔍</button>
         <button type="button" class="btn-primary-action music-btn-sm music-btn-save" onclick="MusicModule.saveFromInput()" title="Simpan ke Daftar Putar Kafe">⭐</button>
       </div>
+
+      <div id="musicSearchResults" class="music-search-results" style="display: none;"></div>
 
       <div id="musicPlayerError" class="music-error-box" style="display: none;"></div>
 

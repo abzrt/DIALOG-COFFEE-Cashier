@@ -455,6 +455,19 @@ const AuthModule = {
       }
     });
 
+    // 2b. Filter Tanggal di Buku Kas - Strictly only visible to Owner
+    const financeDateWrap = document.getElementById('financeOwnerDateFilterWrap');
+    if (financeDateWrap) {
+      if (isOwner) {
+        financeDateWrap.classList.remove('hidden-by-role');
+      } else {
+        financeDateWrap.classList.add('hidden-by-role');
+        if (window.FinanceModule && FinanceModule.currentDate) {
+          FinanceModule.clearDateFilter();
+        }
+      }
+    }
+
     // 3. Update User Role Chip in Top Appbar
     const chipText = document.getElementById('topUserRoleText');
     const chipIcon = document.getElementById('topUserRoleIcon');

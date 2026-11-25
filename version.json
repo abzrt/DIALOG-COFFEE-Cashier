@@ -1,10 +1,10 @@
 {
-  "versionCode": 26,
-  "versionName": "3.5",
+  "versionCode": 27,
+  "versionName": "3.6",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.5.apk",
+  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.6.apk",
   "fallbackApkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Perbaikan Total Auto-Update: Prioritas cek real-time Firebase (bebas cache CDN), native HTTP downloader langsung di Android, dan penerbitan metadata versi pasca-push"
+  "changelog": "Fitur Baru: Filter tanggal transaksi khusus Owner di Buku Kas & Pencarian lagu langsung ke YouTube di DIALOG Music Player"
 }

@@ -7,6 +7,7 @@
 const FinanceModule = {
   currentFilterType: 'all',
   currentCategory: 'all',
+  currentDate: '',
   searchQuery: '',
 
   init() {
@@ -27,6 +28,17 @@ const FinanceModule = {
     if (filterCat) {
       filterCat.addEventListener('change', (e) => {
         this.currentCategory = e.target.value;
+        this.renderTable();
+      });
+    }
+
+    const dateFilter = document.getElementById('financeDateFilter');
+    if (dateFilter) {
+      dateFilter.addEventListener('change', (e) => {
+        this.currentDate = (e.target.value || '').trim();
+        const resetBtn = document.getElementById('btnResetFinanceDate');
+        if (resetBtn) resetBtn.style.display = this.currentDate ? 'inline-block' : 'none';
+        this.renderKPIs();
         this.renderTable();
       });
     }
@@ -70,8 +82,31 @@ const FinanceModule = {
     return { totalIncome, totalExpense, netProfit, cashBalance };
   },
 
+  formatLocalDateKey(dateVal) {
+    if (!dateVal) return '';
+    const d = new Date(dateVal);
+    if (isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  },
+
+  clearDateFilter() {
+    this.currentDate = '';
+    const dateFilter = document.getElementById('financeDateFilter');
+    if (dateFilter) dateFilter.value = '';
+    const resetBtn = document.getElementById('btnResetFinanceDate');
+    if (resetBtn) resetBtn.style.display = 'none';
+    this.renderKPIs();
+    this.renderTable();
+  },
+
   renderKPIs() {
-    const all = StorageManager.getTransactions();
+    let all = StorageManager.getTransactions();
+    if (this.currentDate && window.AuthModule && AuthModule.isOwner()) {
+      all = all.filter(t => this.formatLocalDateKey(t.date) === this.currentDate);
+    }
     const { totalIncome, totalExpense, netProfit, cashBalance } = this.calculateMetrics(all);
 
     const incomeEl = document.getElementById('kpiTotalIncome');
@@ -106,7 +141,9 @@ const FinanceModule = {
 
   getFilteredTransactions() {
     const all = StorageManager.getTransactions();
+    const applyDateFilter = !!(this.currentDate && window.AuthModule && AuthModule.isOwner());
     return all.filter(t => {
+      if (applyDateFilter && this.formatLocalDateKey(t.date) !== this.currentDate) return false;
       if (this.currentFilterType !== 'all' && t.type !== this.currentFilterType) return false;
       if (this.currentCategory !== 'all' && t.category !== this.currentCategory) return false;
 

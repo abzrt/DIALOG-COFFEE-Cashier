@@ -56,6 +56,8 @@ const MusicModule = {
   currentVolume: 80,
   pendingLoad: null,
   _cloudListening: false,
+  _searchTimer: null,
+  lastSearchResults: [],
 
   init() {
     try {
@@ -75,7 +77,22 @@ const MusicModule = {
       urlInput.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
           e.preventDefault();
+          if (this._searchTimer) clearTimeout(this._searchTimer);
           this.playFromInput();
+        }
+      });
+      urlInput.addEventListener('input', () => {
+        const val = urlInput.value.trim();
+        if (this._searchTimer) clearTimeout(this._searchTimer);
+        if (!val) {
+          this.clearSearchResults();
+          return;
+        }
+        // Jika bukan link YouTube dan panjang >= 3 karakter, otomatis cari langsung ke YouTube
+        if (!this.parseYouTubeUrl(val) && val.length >= 3) {
+          this._searchTimer = setTimeout(() => {
+            this.searchYouTube(val);
+          }, 600);
         }
       });
     }
@@ -348,14 +365,21 @@ const MusicModule = {
   async playFromInput() {
     const input = document.getElementById('musicUrlInput');
     const raw = input ? input.value.trim() : '';
-    const parsed = this.parseYouTubeUrl(raw);
-
-    if (!parsed) {
-      this.setStatus('Link tidak valid. Tempel link YouTube atau YouTube Music (lagu / playlist).', true);
+    if (!raw) {
+      this.setStatus('Ketik judul lagu untuk mencari di YouTube, atau tempel link YouTube / YT Music.', true);
       if (window.App) App.playBeep(260, 0.12, 'sawtooth');
       return;
     }
 
+    const parsed = this.parseYouTubeUrl(raw);
+
+    // Jika bukan link YouTube, langsung cari lagu tersebut di YouTube!
+    if (!parsed) {
+      this.searchYouTube(raw);
+      return;
+    }
+
+    this.clearSearchResults();
     const fallbackTitle = parsed.listId && !parsed.videoId
       ? `Playlist YouTube (${parsed.listId.slice(0, 10)}...)`
       : `Lagu YouTube (${parsed.videoId})`;
@@ -376,6 +400,165 @@ const MusicModule = {
     if (this.currentItem && this.currentItem.id === item.id) {
       this.currentItem.title = realTitle;
       this.updatePlayButtons();
+    }
+  },
+
+  async searchYouTube(query) {
+    const q = String(query || '').trim();
+    if (!q) return;
+
+    this.setStatus('Mencari di YouTube...', false);
+    const box = document.getElementById('musicSearchResults');
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML = `<div class="music-search-loading">🔄 Mencari "${this.escapeHtml(q)}" di YouTube...</div>`;
+    }
+
+    // 1. Jika berjalan di APK Android (Native Bridge), cari langsung ke YouTube tanpa hambatan CORS
+    if (window.AndroidBridge && typeof window.AndroidBridge.searchYouTube === 'function') {
+      try {
+        window.AndroidBridge.searchYouTube(q);
+        return;
+      } catch (e) {}
+    }
+
+    // 2. Fallback Browser Web (Piped / Invidious public search)
+    const fallbackApis = [
+      `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(q)}&filter=music_songs`,
+      `https://pipedapi.kavin.rocks/search?q=${encodeURIComponent(q)}&filter=videos`
+    ];
+    for (const apiUrl of fallbackApis) {
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 5000);
+        const resp = await fetch(apiUrl, { signal: controller.signal });
+        clearTimeout(timer);
+        if (resp.ok) {
+          const data = await resp.json();
+          const items = (data && Array.isArray(data.items)) ? data.items : [];
+          const mapped = items.slice(0, 8).map(it => {
+            const vidMatch = String(it.url || '').match(/v=([a-zA-Z0-9_-]{11})/);
+            const vid = vidMatch ? vidMatch[1] : '';
+            if (!vid) return null;
+            const mins = it.duration > 0 ? Math.floor(it.duration / 60) : 0;
+            const secs = it.duration > 0 ? String(it.duration % 60).padStart(2, '0') : '00';
+            return {
+              videoId: vid,
+              title: it.title || 'Lagu YouTube',
+              channel: it.uploaderName || '',
+              duration: it.duration > 0 ? `${mins}:${secs}` : '',
+              thumb: it.thumbnail || `https://i.ytimg.com/vi/${vid}/mqdefault.jpg`
+            };
+          }).filter(Boolean);
+          if (mapped.length > 0) {
+            this.renderSearchResults(mapped);
+            return;
+          }
+        }
+      } catch (e) {}
+    }
+
+    this.onSearchError('Tidak dapat memuat hasil pencarian. Periksa koneksi internet atau tempel link YouTube langsung.');
+  },
+
+  onSearchResultsBase64(b64) {
+    try {
+      const binaryStr = atob(b64);
+      const bytes = new Uint8Array(binaryStr.length);
+      for (let i = 0; i < binaryStr.length; i++) {
+        bytes[i] = binaryStr.charCodeAt(i);
+      }
+      const jsonStr = (typeof TextDecoder !== 'undefined')
+        ? new TextDecoder('utf-8').decode(bytes)
+        : decodeURIComponent(escape(binaryStr));
+      const list = JSON.parse(jsonStr);
+      this.renderSearchResults(Array.isArray(list) ? list : []);
+    } catch (e) {
+      this.onSearchError('Gagal membaca hasil pencarian YouTube.');
+    }
+  },
+
+  onSearchError(msg) {
+    this.setStatus('Pencarian gagal', false);
+    const box = document.getElementById('musicSearchResults');
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML = `<div class="music-search-loading" style="color: var(--expense-red);">✕ ${this.escapeHtml(msg)}</div>`;
+    }
+  },
+
+  renderSearchResults(results) {
+    this.lastSearchResults = results || [];
+    const box = document.getElementById('musicSearchResults');
+    if (!box) return;
+
+    if (!this.lastSearchResults.length) {
+      this.setStatus('Tidak ditemukan', false);
+      box.style.display = 'block';
+      box.innerHTML = `<div class="music-search-loading">Tidak ada lagu ditemukan di YouTube. Coba kata kunci lain.</div>`;
+      return;
+    }
+
+    this.setStatus(`${this.lastSearchResults.length} hasil YouTube`, false);
+    box.style.display = 'block';
+    box.innerHTML = `
+      <div class="music-search-header">
+        <span>🔎 Hasil YouTube (${this.lastSearchResults.length})</span>
+        <button type="button" class="music-search-close" onclick="MusicModule.clearSearchResults()">Tutup ✕</button>
+      </div>
+      ${this.lastSearchResults.map((r, idx) => `
+        <div class="music-search-item" onclick="MusicModule.playSearchResult(${idx})">
+          <img src="${this.escapeHtml(r.thumb || ('https://i.ytimg.com/vi/' + r.videoId + '/mqdefault.jpg'))}" alt="" class="music-search-thumb" loading="lazy">
+          <div class="music-search-meta">
+            <div class="music-search-title">${this.escapeHtml(r.title)}</div>
+            <div class="music-search-sub">${this.escapeHtml(r.channel)}${r.duration ? ' • ' + this.escapeHtml(r.duration) : ''}</div>
+          </div>
+          <button type="button" class="music-search-save" onclick="MusicModule.saveSearchResult(${idx}, event)" title="Simpan ke Daftar Putar Kafe">⭐</button>
+        </div>
+      `).join('')}
+    `;
+  },
+
+  playSearchResult(idx) {
+    const r = this.lastSearchResults[idx];
+    if (!r || !r.videoId) return;
+    this.clearSearchResults();
+    this.playItem({
+      id: 'yt_' + r.videoId,
+      title: r.title || `Lagu YouTube (${r.videoId})`,
+      type: 'video',
+      videoId: r.videoId,
+      listId: '',
+      url: `https://www.youtube.com/watch?v=${r.videoId}`
+    });
+  },
+
+  saveSearchResult(idx, event) {
+    if (event) event.stopPropagation();
+    const r = this.lastSearchResults[idx];
+    if (!r || !r.videoId) return;
+    const saved = this.getSavedItems();
+    const newItem = {
+      id: 'saved_' + Date.now(),
+      title: r.title || `Lagu YouTube (${r.videoId})`,
+      type: 'video',
+      videoId: r.videoId,
+      listId: '',
+      url: `https://www.youtube.com/watch?v=${r.videoId}`,
+      isPreset: false
+    };
+    saved.unshift(newItem);
+    this.saveItems(saved);
+    if (window.App && App.showToast) {
+      App.showToast(`🎵 "${newItem.title}" disimpan ke Daftar Putar Kafe!`, 'success');
+    }
+  },
+
+  clearSearchResults() {
+    const box = document.getElementById('musicSearchResults');
+    if (box) {
+      box.style.display = 'none';
+      box.innerHTML = '';
     }
   },
 
