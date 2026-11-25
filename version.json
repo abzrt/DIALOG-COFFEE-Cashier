@@ -1,10 +1,10 @@
 {
-  "versionCode": 22,
-  "versionName": "3.1",
+  "versionCode": 23,
+  "versionName": "3.2",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.1.apk",
+  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.2.apk",
   "fallbackApkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Perbaikan Freeze Loop & Auto-Update: Memutus infinite loop render Owner-Cloud, debounce listener transaksi, dan memperbaiki auto-updater direct download HTTP 200"
+  "changelog": "Pembersihan Teks UI: Menghapus seluruh teks lama myphp.id / MySQL yang sudah tidak digunakan dan menggantinya dengan label Cloud Firebase"
 }

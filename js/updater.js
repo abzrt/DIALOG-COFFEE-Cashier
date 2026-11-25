@@ -5,8 +5,8 @@
  */
 const AppUpdater = {
   CURRENT_VERSION: {
-    versionCode: 22,
-    versionName: '3.1'
+    versionCode: 23,
+    versionName: '3.2'
   },
   DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,
@@ -24,8 +24,6 @@ const AppUpdater = {
 
   getConfig() {
     const s = (window.StorageManager && StorageManager.getSettings) ? StorageManager.getSettings() : {};
-    const defaultApiUrl = 'https://abzrtsushee.co-id.id/DIALOG%20COFFEE/data/api_sync.php';
-    const apiUrl = (s.cloudSyncUrl && s.cloudSyncUrl !== 'api_sync.php') ? s.cloudSyncUrl : defaultApiUrl;
     const repo = (s.githubRepo || this.DEFAULT_GITHUB_REPO).trim();
     const token = (s.githubToken || '').trim();
 
@@ -38,9 +36,7 @@ const AppUpdater = {
       firebaseVersionEndpoint: 'https://tech-solution-6441a-default-rtdb.asia-southeast1.firebasedatabase.app/app_version.json',
       githubDirectApkUrl: `https://raw.githubusercontent.com/${repo}/main/dialog-coffee-cashier-release.apk`,
       githubReleasesPage: `https://github.com/${repo}/releases/latest`,
-      githubLatestApkUrl: `https://raw.githubusercontent.com/${repo}/main/dialog-coffee-cashier-release.apk`,
-      apiUrl: apiUrl,
-      checkUpdateEndpoint: apiUrl + (apiUrl.includes('?') ? '&' : '?') + 'action=check_update'
+      githubLatestApkUrl: `https://raw.githubusercontent.com/${repo}/main/dialog-coffee-cashier-release.apk`
     };
   },
 
