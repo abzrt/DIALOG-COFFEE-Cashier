@@ -647,15 +647,15 @@
             </p>
 
             <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 6px;">
-              <div id="updaterStatusText" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                <span>Versi Terpasang: <strong>v3.6 (Build #27)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+              <div id="updaterStatusText" class="updater-status-text" style="font-size: 0.8rem; background: var(--bg-surface); padding: 10px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                <span>Versi Terpasang: <strong>v3.7 (Build #28)</strong> &bull; Sumber Rilis: GitHub Releases</span>
               </div>
 
               <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px;">
                 <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.82rem;" onclick="AppUpdater.checkUpdate(false)" title="Periksa apakah ada versi APK baru di GitHub Releases">
                   <span>🔄</span> <span>Periksa Pembaruan di GitHub</span>
                 </button>
-                <a href="https://github.com/abzrt/DIALOG-COFFEE-Cashier/releases/latest" target="_blank" class="btn-primary-action btn-closing" style="text-decoration: none; font-size: 0.82rem; padding: 8px 12px; display: inline-flex; align-items: center;" title="Buka Halaman Rilis GitHub">
+                <a href="https://github.com/abzrt/DIALOG-COFFEE-Cashier/tags" target="_blank" class="btn-primary-action btn-closing" style="text-decoration: none; font-size: 0.82rem; padding: 8px 12px; display: inline-flex; align-items: center;" title="Buka Halaman Rilis GitHub">
                   <span>🌐</span> <span>Halaman GitHub</span>
                 </a>
               </div>
@@ -1480,6 +1480,24 @@
           <button type="button" class="btn-primary-action" style="background: var(--bg-surface); color: var(--text-primary); border: 1.5px solid var(--border-color); justify-content: center; font-size: 0.8rem; padding: 10px 8px;" onclick="App.closeShiftModal(); App.openInventoryModal();" title="Periksa sisa stok bahan baku">
             <span>📦</span> Stok Bahan (BOM)
           </button>
+        </div>
+
+        <!-- Pembaruan Versi Aplikasi (Tersedia untuk Barista & Owner) -->
+        <div style="margin-top: 12px; padding: 12px; border-radius: var(--radius-sm); background: var(--bg-surface); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 8px;">
+          <div style="font-size: 0.82rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+            <span>🚀</span> <span>Pembaruan Versi Aplikasi (Auto-Update)</span>
+          </div>
+          <div id="baristaUpdaterStatusText" class="updater-status-text" style="font-size: 0.78rem; color: var(--text-secondary);">
+            <span>Versi Terpasang: <strong>v3.7 (Build #28)</strong> &bull; Sumber Rilis: GitHub Releases</span>
+          </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn-primary-action btn-income" style="flex: 1; justify-content: center; font-size: 0.8rem; padding: 8px 10px;" onclick="AppUpdater.checkUpdate(false)" title="Periksa apakah ada versi APK baru">
+              <span>🔄</span> <span>Periksa Pembaruan</span>
+            </button>
+            <a href="https://github.com/abzrt/DIALOG-COFFEE-Cashier/tags" target="_blank" class="btn-primary-action btn-closing" style="text-decoration: none; font-size: 0.8rem; padding: 8px 12px; display: inline-flex; align-items: center;" title="Buka Halaman Rilis GitHub">
+              <span>🌐</span> <span>GitHub</span>
+            </a>
+          </div>
         </div>
       </div>
       <div class="modal-footer" style="flex-wrap: wrap; gap: 8px;">

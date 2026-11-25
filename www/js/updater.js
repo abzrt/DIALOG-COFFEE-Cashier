@@ -5,8 +5,8 @@
  */
 const AppUpdater = {
   CURRENT_VERSION: {
-    versionCode: 27,
-    versionName: '3.6'
+    versionCode: 28,
+    versionName: '3.7'
   },
   DEFAULT_GITHUB_REPO: 'abzrt/DIALOG-COFFEE-Cashier',
   availableUpdate: null,
@@ -138,11 +138,15 @@ const AppUpdater = {
     }
   },
 
+  setUpdaterStatusHtml(html) {
+    const els = document.querySelectorAll('#updaterStatusText, #baristaUpdaterStatusText, .updater-status-text');
+    els.forEach(el => {
+      el.innerHTML = html;
+    });
+  },
+
   renderCurrentVersionInfo() {
-    const statusEl = document.getElementById('updaterStatusText');
-    if (statusEl) {
-      statusEl.innerHTML = `<span>Versi Terpasang: <strong>v${this.CURRENT_VERSION.versionName} (Build #${this.CURRENT_VERSION.versionCode})</strong> &bull; Sumber Rilis: GitHub Releases</span>`;
-    }
+    this.setUpdaterStatusHtml(`<span>Versi Terpasang: <strong>v${this.CURRENT_VERSION.versionName} (Build #${this.CURRENT_VERSION.versionCode})</strong> &bull; Sumber Rilis: GitHub Releases</span>`);
   },
 
   // Helper untuk membandingkan semver string (contoh: "1.5" > "1.4")
@@ -163,9 +167,8 @@ const AppUpdater = {
     if (this.isChecking || this.isDownloading) return;
     this.isChecking = true;
 
-    const statusEl = document.getElementById('updaterStatusText');
-    if (statusEl && !silent) {
-      statusEl.innerHTML = '<span style="color: var(--text-muted);">🔄 Memeriksa rilis APK terbaru di GitHub...</span>';
+    if (!silent) {
+      this.setUpdaterStatusHtml('<span style="color: var(--text-muted);">🔄 Memeriksa rilis APK terbaru di GitHub...</span>');
     }
 
     const cfg = this.getConfig();
@@ -275,11 +278,9 @@ const AppUpdater = {
 
     if (!updateInfo) {
       if (!silent) {
-        if (statusEl) {
-          statusEl.innerHTML = '<span style="color: var(--expense-red);">✕ Gagal terhubung ke GitHub Releases. Pastikan koneksi internet aktif.</span>';
-        }
+        this.setUpdaterStatusHtml('<span style="color: var(--expense-red);">✕ Gagal terhubung ke server rilis. Pastikan koneksi internet aktif.</span>');
         if (window.App && App.showToast) {
-          App.showToast('Gagal memeriksa rilis GitHub (offline / server GitHub tidak merespons)', 'error');
+          App.showToast('Gagal memeriksa rilis terbaru (offline / server tidak merespons)', 'error');
         }
       }
       return null;
@@ -294,20 +295,16 @@ const AppUpdater = {
 
     if (isNewer) {
       this.availableUpdate = updateInfo;
-      if (statusEl) {
-        statusEl.innerHTML = `<span style="color: var(--income-green); font-weight: 700;">🚀 Pembaruan GitHub v${updateInfo.versionName} (Build #${remoteCode}) tersedia!</span>`;
-      }
+      this.setUpdaterStatusHtml(`<span style="color: var(--income-green); font-weight: 700;">🚀 Pembaruan v${updateInfo.versionName} (Build #${remoteCode}) tersedia!</span>`);
       this.showBanner(updateInfo);
       this.showModal(updateInfo);
       return updateInfo;
     } else {
       this.availableUpdate = null;
       this.hideBanner();
-      if (statusEl) {
-        statusEl.innerHTML = `<span style="color: var(--income-green);">✓ Aplikasi adalah versi terbaru: <strong>v${this.CURRENT_VERSION.versionName} (Build #${currentCode})</strong> via GitHub</span>`;
-      }
+      this.setUpdaterStatusHtml(`<span style="color: var(--income-green);">✓ Aplikasi adalah versi terbaru: <strong>v${this.CURRENT_VERSION.versionName} (Build #${currentCode})</strong></span>`);
       if (!silent && window.App && App.showToast) {
-        App.showToast(`Aplikasi sudah versi terbaru di GitHub (v${this.CURRENT_VERSION.versionName})!`, 'success');
+        App.showToast(`Aplikasi sudah versi terbaru (v${this.CURRENT_VERSION.versionName})!`, 'success');
       }
       return null;
     }

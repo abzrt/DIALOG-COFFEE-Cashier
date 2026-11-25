@@ -1,10 +1,10 @@
 {
-  "versionCode": 27,
-  "versionName": "3.6",
+  "versionCode": 28,
+  "versionName": "3.7",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.6.apk",
+  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.7.apk",
   "fallbackApkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Fitur Baru: Filter tanggal transaksi khusus Owner di Buku Kas & Pencarian lagu langsung ke YouTube di DIALOG Music Player"
+  "changelog": "Menambahkan Menu Periksa Pembaruan Aplikasi (Auto-Update) di Login Barista (Panel Shift & Akun)"
 }
