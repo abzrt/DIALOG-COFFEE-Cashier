@@ -1,10 +1,10 @@
 {
-  "versionCode": 24,
-  "versionName": "3.3",
+  "versionCode": 25,
+  "versionName": "3.4",
   "githubRepo": "abzrt/DIALOG-COFFEE-Cashier",
-  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.3.apk",
+  "apkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-v3.4.apk",
   "fallbackApkUrl": "https://raw.githubusercontent.com/abzrt/DIALOG-COFFEE-Cashier/main/dialog-coffee-cashier-release.apk",
   "downloadPageUrl": "https://github.com/abzrt/DIALOG-COFFEE-Cashier",
   "releaseDate": "2026-11-25",
-  "changelog": "Fitur Baru DIALOG Music Player: Putar lagu dan playlist dari YouTube / YouTube Music langsung di dalam aplikasi kasir dengan mode Mini Player"
+  "changelog": "Perbaikan UI Tablet: Memperbaiki ukuran bar navigasi (.nav-tabs) pada tablet agar pas mengikuti jumlah tab tanpa melebar kosong ke kanan"
 }

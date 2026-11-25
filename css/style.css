@@ -166,6 +166,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding-left: max(var(--safe-left), 20px);
   padding-right: max(var(--safe-right), 20px);
   position: sticky;
@@ -179,6 +180,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .brand-logo-img {
@@ -229,11 +231,19 @@ body.dark-theme .brand-badge {
 /* Desktop Navigation Tabs */
 .nav-tabs {
   display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
   background: var(--bg-surface);
   padding: 4px;
   border-radius: var(--radius-full);
   border: 1px solid var(--border-color);
   gap: 4px;
+}
+
+.nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tab-btn {
@@ -251,6 +261,7 @@ body.dark-theme .brand-badge {
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-tab-btn:hover {
@@ -269,6 +280,7 @@ body.dark-theme .brand-badge {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .shift-chip {
@@ -2373,8 +2385,9 @@ body.dark-theme .mcb-count {
   }
 
   .nav-tabs {
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     min-width: 0;
+    max-width: 100%;
     overflow-x: auto;
     scrollbar-width: none;
   }
